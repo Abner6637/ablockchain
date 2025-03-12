@@ -3,84 +3,129 @@ package p2p
 import (
 	"fmt"
 	"testing"
-	"time"
+
+	"github.com/libp2p/go-libp2p/core/network"
+	"github.com/multiformats/go-multiaddr"
 )
 
+// 测试节点启动功能
 func TestStartNode(t *testing.T) {
-	// 配置监听地址和对方节点地址
-	listenAddress := "/ip4/127.0.0.1/tcp/9000"
-	peerAddress := "/ip4/127.0.0.1/tcp/9001"
-
-	// 启动节点
-	node, err := StartNode(listenAddress, peerAddress)
-
-	// 检查是否没有错误
+	// 使用随机端口（tcp/0）
+	listenAddr := "/ip4/127.0.0.1/tcp/0"
+	node, err := StartNode(listenAddr)
 	if err != nil {
-		t.Fatalf("Expected no error, got %v", err)
+		t.Fatalf("启动节点失败: %v", err)
 	}
-	// 检查返回的节点是否非空
-	if node == nil {
-		t.Fatal("Expected node to be non-nil")
+	defer node.Host.Close()
+
+	// 验证基础属性
+	if node.Host == nil {
+		t.Error("Host 不应为 nil")
 	}
-	// 检查节点的 peerAddress 是否正确
-	if node.PeerAddress != peerAddress {
-		t.Errorf("Expected peer address %s, got %s", peerAddress, node.PeerAddress)
+	if node.PeerID == "" {
+		t.Error("PeerID 不应为空")
+	}
+
+	// 验证至少有一个有效的 IPv4 TCP 地址
+	foundValidAddr := false
+	for _, addr := range node.Host.Addrs() {
+		// 检查 IPv4
+		if _, err := addr.ValueForProtocol(multiaddr.P_IP4); err != nil {
+			continue
+		}
+		// 检查 TCP
+		if _, err := addr.ValueForProtocol(multiaddr.P_TCP); err != nil {
+			continue
+		}
+		foundValidAddr = true
+		break
+	}
+	if !foundValidAddr {
+		t.Error("未找到有效的 IPv4 TCP 地址")
 	}
 }
 
-func TestConnectToPeer(t *testing.T) {
-	// 配置监听地址和对方节点地址
-	listenAddress1 := "/ip4/127.0.0.1/tcp/9000"
-	listenAddress2 := "/ip4/127.0.0.1/tcp/9001"
-
-	peerAddress1 := "/ip4/127.0.0.1/tcp/9001"
-	peerAddress2 := "/ip4/127.0.0.1/tcp/9000"
-
-	// 启动 Node 1
-	node1, err := StartNode(listenAddress1, peerAddress1)
+// 测试正常节点连接
+func TestSuccessfulPeerConnection(t *testing.T) {
+	// 启动两个节点
+	nodeA, err := StartNode("/ip4/127.0.0.1/tcp/0")
 	if err != nil {
-		t.Fatalf("Failed to start node 1: %v", err)
+		t.Fatalf("启动 nodeA 失败: %v", err)
+	}
+	defer nodeA.Host.Close()
+
+	nodeB, err := StartNode("/ip4/127.0.0.1/tcp/0")
+	if err != nil {
+		t.Fatalf("启动 nodeB 失败: %v", err)
+	}
+	defer nodeB.Host.Close()
+
+	// 获取 nodeB 的完整地址（包含 PeerID）
+	nodeBAddr, err := getNodeFullAddr(nodeB)
+	if err != nil {
+		t.Fatalf("获取 nodeB 地址失败: %v", err)
 	}
 
-	// 启动 Node 2
-	node2, err := StartNode(listenAddress2, peerAddress2)
-	if err != nil {
-		t.Fatalf("Failed to start node 2: %v", err)
+	// 连接 nodeA 到 nodeB
+	if err := nodeA.ConnectToPeer(nodeBAddr); err != nil {
+		t.Fatalf("连接失败: %v", err)
 	}
 
-	// 给目标节点一些时间来完全启动
-	time.Sleep(2 * time.Second) // 延迟 2 秒，确保两个节点完全启动
-
-	// 连接 Node 1 到 Node 2
-	err = node1.ConnectToPeer()
-	if err != nil {
-		t.Errorf("Node 1 failed to connect to Node 2: %v", err)
+	// 验证连接状态
+	connStatus := nodeA.Host.Network().Connectedness(nodeB.Host.ID())
+	if connStatus != network.Connected {
+		t.Errorf("连接状态异常，期望 Connected，实际为 %v", connStatus)
 	}
-
-	// 连接 Node 2 到 Node 1
-	err = node2.ConnectToPeer()
-	if err != nil {
-		t.Errorf("Node 2 failed to connect to Node 1: %v", err)
-	}
-
-	// 这里可以进一步添加验证连接是否成功的代码
-	fmt.Println("Node 1 connected to Node 2 and vice versa")
 }
 
-func TestInvalidConnection(t *testing.T) {
-	// 配置错误的对方节点地址
-	listenAddress := "/ip4/127.0.0.1/tcp/9000"
-	invalidPeerAddress := "/ip4/127.0.0.1/tcp/9999" // 不存在的地址
-
-	// 启动节点
-	node, err := StartNode(listenAddress, invalidPeerAddress)
+// 测试连接无效地址
+func TestConnectToInvalidAddress(t *testing.T) {
+	node, err := StartNode("/ip4/127.0.0.1/tcp/0")
 	if err != nil {
-		t.Fatalf("Expected no error, got %v", err)
+		t.Fatalf("启动节点失败: %v", err)
+	}
+	defer node.Host.Close()
+
+	// 使用无效的 multiaddr 格式
+	testCases := []struct {
+		name    string
+		address string
+	}{
+		{"无效格式", "invalid_multiaddr"},
+		{"正确格式但不存在节点", "/ip4/127.0.0.1/tcp/12345/p2p/QmInvalidPeerID"},
 	}
 
-	// 尝试连接到错误的地址
-	err = node.ConnectToPeer()
-	if err == nil {
-		t.Errorf("Expected error when connecting to invalid peer address, got nil")
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			err := node.ConnectToPeer(tc.address)
+			if err == nil {
+				t.Error("预期返回错误，但结果为 nil")
+			}
+		})
 	}
+}
+
+// 辅助函数：获取节点的完整 multiaddr 地址（含 PeerID）
+func getNodeFullAddr(n *Node) (string, error) {
+	// 获取节点的第一个 IPv4 TCP 地址
+	var addr multiaddr.Multiaddr
+	for _, a := range n.Host.Addrs() {
+		if _, err := a.ValueForProtocol(multiaddr.P_IP4); err != nil {
+			continue
+		}
+		if _, err := a.ValueForProtocol(multiaddr.P_TCP); err != nil {
+			continue
+		}
+		addr = a
+		break
+	}
+	if addr == nil {
+		return "", fmt.Errorf("无可用 IPv4 TCP 地址")
+	}
+
+	// 封装为包含 PeerID 的地址
+	fullAddr := addr.Encapsulate(
+		multiaddr.StringCast("/p2p/" + n.Host.ID().String()),
+	)
+	return fullAddr.String(), nil
 }
