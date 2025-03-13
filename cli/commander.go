@@ -23,7 +23,7 @@ func ParseFlags() *Config {
 }
 
 func StartListen(cfg *Config) *p2p.Node {
-	node, err := p2p.StartListen(cfg.ListenAddr)
+	node, err := p2p.NewNode(cfg.ListenAddr)
 	if err != nil {
 		fmt.Printf("启动节点失败: %v\n", err)
 		os.Exit(1)

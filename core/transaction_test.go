@@ -13,7 +13,6 @@ func TestEncodeTransaction(t *testing.T) {
 	tx := Transaction{
 		Time:  time.Now(),
 		Hash:  []byte("test_hash"),
-		Nonce: 1,
 		From:  "0xSenderAddress",
 		To:    "0xReceiverAddress",
 		Value: 100,

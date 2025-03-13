@@ -8,6 +8,7 @@ type Blockchain struct {
 }
 
 func NewBlockchain() *Blockchain {
+
 	return &Blockchain{}
 }
 

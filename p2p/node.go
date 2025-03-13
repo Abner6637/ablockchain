@@ -18,7 +18,8 @@ type Node struct {
 	MessageHandler func(string) // 消息接收回调
 }
 
-func StartListen(listenAddress string) (*Node, error) {
+// 创建新的p2p节点并开始监听
+func NewNode(listenAddress string) (*Node, error) {
 	node, err := libp2p.New(libp2p.ListenAddrStrings(listenAddress))
 	if err != nil {
 		return nil, err
