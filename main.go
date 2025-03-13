@@ -6,8 +6,9 @@ import (
 )
 
 func main() {
-	levelDBPath := "./storage/leveldb_data"
-	db, err := storage.NewLevelDB(levelDBPath)
+	dbPath := "test.db"
+	bucketName := "TestBucket"
+	db, err := storage.NewBoltDB(dbPath, bucketName)
 	if err != nil {
 		fmt.Println("Failed1")
 	}

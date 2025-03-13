@@ -32,3 +32,14 @@
 	defer db.Close()
     
 ```
+
+
+## BoltDB
+```go
+    dbPath := "test.db"
+	bucketName := "TestBucket"
+	db, err := storage.NewBoltDB(dbPath, bucketName)
+
+	//后面的操作同上
+    
+```
