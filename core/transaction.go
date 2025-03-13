@@ -9,9 +9,8 @@ import (
 )
 
 type Transaction struct {
-	Time  time.Time
-	Hash  []byte
-	Nonce uint64
+	Time time.Time
+	Hash []byte
 
 	From  string
 	To    string
