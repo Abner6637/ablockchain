@@ -21,7 +21,7 @@ func main() {
 }
 ```
 
-use example:
+usage example:
 ```sh
 # 终端1（节点A）
 go run main.go --listen /ip4/0.0.0.0/tcp/9000
