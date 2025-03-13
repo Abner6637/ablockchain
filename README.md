@@ -1,16 +1,21 @@
+
 consensus
-blockchain
-- blockchain 
 
 core
+- blockchain
 - account
 - block
 - transaction
 - txpool
 
 storage （s）
-rpc 节点通信 （h）  libp2p
+
+p2p （h）  libp2p
+
 encrypt （s）
+
 networks
+
 cli
+
 utils
