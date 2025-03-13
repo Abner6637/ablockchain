@@ -9,10 +9,10 @@ import (
 )
 
 // 测试节点启动功能
-func TestStartNode(t *testing.T) {
+func TestStartListen(t *testing.T) {
 	// 使用随机端口（tcp/0）
 	listenAddr := "/ip4/127.0.0.1/tcp/0"
-	node, err := StartNode(listenAddr)
+	node, err := StartListen(listenAddr)
 	if err != nil {
 		t.Fatalf("启动节点失败: %v", err)
 	}
@@ -22,7 +22,7 @@ func TestStartNode(t *testing.T) {
 	if node.Host == nil {
 		t.Error("Host 不应为 nil")
 	}
-	if node.PeerID == "" {
+	if node.ID == "" {
 		t.Error("PeerID 不应为空")
 	}
 
@@ -46,15 +46,15 @@ func TestStartNode(t *testing.T) {
 }
 
 // 测试正常节点连接
-func TestSuccessfulPeerConnection(t *testing.T) {
+func TestPeerConnection(t *testing.T) {
 	// 启动两个节点
-	nodeA, err := StartNode("/ip4/127.0.0.1/tcp/0")
+	nodeA, err := StartListen("/ip4/127.0.0.1/tcp/0")
 	if err != nil {
 		t.Fatalf("启动 nodeA 失败: %v", err)
 	}
 	defer nodeA.Host.Close()
 
-	nodeB, err := StartNode("/ip4/127.0.0.1/tcp/0")
+	nodeB, err := StartListen("/ip4/127.0.0.1/tcp/0")
 	if err != nil {
 		t.Fatalf("启动 nodeB 失败: %v", err)
 	}
@@ -80,7 +80,7 @@ func TestSuccessfulPeerConnection(t *testing.T) {
 
 // 测试连接无效地址
 func TestConnectToInvalidAddress(t *testing.T) {
-	node, err := StartNode("/ip4/127.0.0.1/tcp/0")
+	node, err := StartListen("/ip4/127.0.0.1/tcp/0")
 	if err != nil {
 		t.Fatalf("启动节点失败: %v", err)
 	}

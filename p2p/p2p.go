@@ -11,42 +11,41 @@ import (
 )
 
 type Node struct {
-	Host        host.Host
-	PeerID      string // 当前节点的 PeerID
-	PeerAddress string // 对方节点的完整地址（需包含其 PeerID）
+	Host host.Host
+	ID   string // 当前节点的ID
 }
 
-func StartNode(listenAddress string) (*Node, error) {
+func StartListen(listenAddress string) (*Node, error) {
 	node, err := libp2p.New(libp2p.ListenAddrStrings(listenAddress))
 	if err != nil {
 		return nil, err
 	}
 
-	fmt.Printf("Node started on %s, PeerID: %s\n", listenAddress, node.ID())
+	fmt.Printf("Node started on %s, ID: %s\n", node.Addrs(), node.ID())
 	return &Node{
-		Host:   node,
-		PeerID: node.ID().String(),
+		Host: node,
+		ID:   node.ID().String(),
 	}, nil
 }
 
 func (n *Node) ConnectToPeer(peerAddress string) error {
-	// 解析对方节点的完整地址（需包含 PeerID）
+	// 将string类型的地址转换为multiaddr类型
 	peerAddr, err := multiaddr.NewMultiaddr(peerAddress)
 	if err != nil {
 		return fmt.Errorf("failed to parse peer address: %v", err)
 	}
 
-	// 从 multiaddr 中提取对方节点的 PeerID 和地址
+	// 从peerAddr中提取peer节点的Info，该Info包含地址和ID
 	peerInfo, err := peer.AddrInfoFromP2pAddr(peerAddr)
 	if err != nil {
 		return fmt.Errorf("failed to extract peer info: %v", err)
 	}
 
-	// 连接到对方节点
+	// 连接到peer节点
 	if err := n.Host.Connect(context.Background(), *peerInfo); err != nil {
 		return fmt.Errorf("failed to connect to peer: %v", err)
 	}
 
-	fmt.Printf("Successfully connected to peer: %s\n", peerInfo.ID)
+	fmt.Printf("Successfully connected to peer: %s, %s\n", peerInfo.Addrs, peerInfo.ID)
 	return nil
 }
