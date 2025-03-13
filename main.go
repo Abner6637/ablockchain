@@ -1,37 +1,17 @@
 package main
 
 import (
-	"ablockchain/storage"
-	"fmt"
+	"ablockchain/cli"
 )
 
 func main() {
-	dbPath := "test.db"
-	bucketName := "TestBucket"
-	db, err := storage.NewBoltDB(dbPath, bucketName)
-	if err != nil {
-		fmt.Println("Failed1")
-	}
+	// 解析命令行参数
+	cfg := cli.ParseFlags()
 
-	// 存储数据
-	err = db.Put("nodeID", 7)
-	if err != nil {
-		fmt.Println("Failed2")
-	}
+	// 启动 P2P 节点
+	node := cli.StartListen(cfg)
 
-	// 读取数据
-	var nodeID int
-	err = db.Get("nodeID", &nodeID)
-	if err != nil {
-		fmt.Println("Failed3")
-	} else {
-		fmt.Println(nodeID)
-	}
-
-	err = db.Delete("nodeID")
-	if err != nil {
-		fmt.Println("Failed to Delete data")
-	}
-
-	defer db.Close()
+	// 进入交互命令行
+	commander := cli.NewCommander(node)
+	commander.Run()
 }
