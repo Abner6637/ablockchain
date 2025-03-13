@@ -8,8 +8,15 @@ type Blockchain struct {
 }
 
 func NewBlockchain() *Blockchain {
+	path := "./block_storage"
+	db, err := storage.NewLevelDB(path)
+	if err != nil {
+		return nil
+	}
 
-	return &Blockchain{}
+	txPool := NewTxPool()
+
+	return &Blockchain{db: db, TxPool: txPool}
 }
 
 func NewGenesisBlock() *Block {
