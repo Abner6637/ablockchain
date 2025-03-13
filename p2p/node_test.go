@@ -3,6 +3,7 @@ package p2p
 import (
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/libp2p/go-libp2p/core/network"
 	"github.com/multiformats/go-multiaddr"
@@ -102,6 +103,43 @@ func TestConnectToInvalidAddress(t *testing.T) {
 				t.Error("预期返回错误，但结果为 nil")
 			}
 		})
+	}
+}
+
+func TestMessageExchange(t *testing.T) {
+	// 启动两个节点
+	nodeA, _ := StartListen("/ip4/127.0.0.1/tcp/0")
+	defer nodeA.Host.Close()
+
+	nodeB, _ := StartListen("/ip4/127.0.0.1/tcp/0")
+	defer nodeB.Host.Close()
+
+	// 设置消息接收验证
+	received := make(chan string)
+	nodeB.SetMessageHandler(func(msg string) {
+		received <- msg
+	})
+
+	// 连接节点
+	nodeBAddr, _ := getNodeFullAddr(nodeB)
+	if err := nodeA.ConnectToPeer(nodeBAddr); err != nil {
+		t.Fatalf("连接失败: %v", err)
+	}
+
+	// 发送测试消息
+	testMsg := "Hello libp2p!"
+	if err := nodeA.SendMessage(nodeB.Host.ID(), testMsg); err != nil {
+		t.Fatalf("发送失败: %v", err)
+	}
+
+	// 验证接收
+	select {
+	case msg := <-received:
+		if msg != testMsg {
+			t.Errorf("消息不匹配，期望: %s，实际: %s", testMsg, msg)
+		}
+	case <-time.After(5 * time.Second):
+		t.Error("未收到消息")
 	}
 }
 
