@@ -2,6 +2,7 @@ package p2p
 
 import (
 	"fmt"
+	"sync"
 	"testing"
 	"time"
 
@@ -141,6 +142,74 @@ func TestMessageExchange(t *testing.T) {
 	case <-time.After(5 * time.Second):
 		t.Error("未收到消息")
 	}
+}
+
+func TestBroadcast(t *testing.T) {
+	// 启动3个节点
+	nodeA, _ := NewNode("/ip4/127.0.0.1/tcp/0")
+	defer nodeA.Host.Close()
+
+	nodeB, _ := NewNode("/ip4/127.0.0.1/tcp/0")
+	defer nodeB.Host.Close()
+
+	nodeC, _ := NewNode("/ip4/127.0.0.1/tcp/0")
+	defer nodeC.Host.Close()
+
+	// 设置消息接收验证
+	receivedB := make(chan string)
+	nodeB.SetMessageHandler(func(msgB string) {
+		receivedB <- msgB
+	})
+
+	receivedC := make(chan string)
+	nodeC.SetMessageHandler(func(msgC string) {
+		receivedC <- msgC
+	})
+
+	// 连接节点
+	nodeBAddr, _ := getNodeFullAddr(nodeB)
+	if err := nodeA.ConnectToPeer(nodeBAddr); err != nil {
+		t.Fatalf("连接失败: %v", err)
+	}
+	nodeCAddr, _ := getNodeFullAddr(nodeC)
+	if err := nodeA.ConnectToPeer(nodeCAddr); err != nil {
+		t.Fatalf("连接失败: %v", err)
+	}
+
+	// 发送测试消息
+	testMsg := "Brodcast test"
+	if err := nodeA.BroadcastMessage(testMsg); err != nil {
+		t.Fatalf("发送失败: %v", err)
+	}
+
+	// 使用WaitGroup等待两个节点的消息验证
+	var wg sync.WaitGroup
+	wg.Add(2) // 等待两个节点
+
+	// 在并发协程中验证消息
+	go func() {
+		defer wg.Done()
+		msgB := <-receivedB
+		if msgB != testMsg {
+			t.Errorf("nodeB: 消息不匹配，期望: %s，实际: %s", testMsg, msgB)
+		}
+	}()
+
+	go func() {
+		defer wg.Done()
+		msgC := <-receivedC
+		if msgC != testMsg {
+			t.Errorf("nodeC: 消息不匹配，期望: %s，实际: %s", testMsg, msgC)
+		}
+	}()
+
+	// 等待两个消息接收的协程完成
+	wg.Wait()
+
+	// 额外检查，确认nodeA是否记录了nodeB和nodeC
+	fmt.Print(nodeB.Peers)
+	fmt.Print(nodeC.Peers)
+	fmt.Print(nodeA.Peers)
 }
 
 // 辅助函数：获取节点的完整 multiaddr 地址（含 PeerID）
