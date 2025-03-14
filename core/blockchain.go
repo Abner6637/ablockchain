@@ -78,5 +78,4 @@ func (bc *Blockchain) mineNewBLock() {
 }
 
 func (bc *Blockchain) AddBlock(block *Block) {
-
 }
