@@ -177,7 +177,7 @@ func TestBroadcast(t *testing.T) {
 	}
 
 	// 发送测试消息
-	testMsg := "Hello libp2p!"
+	testMsg := "Brodcast test"
 	if err := nodeA.BroadcastMessage(testMsg); err != nil {
 		t.Fatalf("发送失败: %v", err)
 	}
@@ -205,6 +205,11 @@ func TestBroadcast(t *testing.T) {
 
 	// 等待两个消息接收的协程完成
 	wg.Wait()
+
+	// 额外检查，确认nodeA是否记录了nodeB和nodeC
+	fmt.Print(nodeB.Peers)
+	fmt.Print(nodeC.Peers)
+	fmt.Print(nodeA.Peers)
 }
 
 // 辅助函数：获取节点的完整 multiaddr 地址（含 PeerID）

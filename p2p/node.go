@@ -54,8 +54,20 @@ func (n *Node) handleStream(stream network.Stream) {
 		return
 	}
 
+	//读取消息源节点的信息
+	peerID := stream.Conn().RemotePeer()
+	peerAddr := stream.Conn().RemoteMultiaddr()
+
+	peerInfo := peer.AddrInfo{
+		ID:    peerID,
+		Addrs: []multiaddr.Multiaddr{peerAddr},
+	}
+
 	msg := string(buf[:nBytes])
-	fmt.Printf("收到来自 %s 的消息: %s\n", stream.Conn().RemotePeer(), msg)
+	fmt.Printf("收到来自 %s 的消息: %s\n", peerID, msg)
+
+	// 将连接成功的peer加入到Peers列表中
+	n.Peers[peerID] = peerInfo
 
 	// 触发消息回调
 	if n.MessageHandler != nil {
