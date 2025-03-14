@@ -5,7 +5,10 @@ import "time"
 type BlockHeader struct {
 	ParentHash []byte
 	Time       time.Time
+
 	Difficulty uint64
+	MerkleRoot []byte // 该区块交易的梅克尔根
+	Nonce      uint32 // PoW 计算用的随机数
 }
 
 type Block struct {
