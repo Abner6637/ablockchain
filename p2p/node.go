@@ -12,9 +12,9 @@ import (
 )
 
 type Node struct {
-	Host host.Host
-	ID   string // 当前节点的ID
-
+	Host           host.Host
+	ID             string // 当前节点的ID
+	Peers          map[peer.ID]peer.AddrInfo
 	MessageHandler func(string) // 消息接收回调
 }
 
@@ -26,8 +26,9 @@ func NewNode(listenAddress string) (*Node, error) {
 	}
 
 	n := &Node{
-		Host: node,
-		ID:   node.ID().String(),
+		Host:  node,
+		ID:    node.ID().String(),
+		Peers: make(map[peer.ID]peer.AddrInfo),
 	}
 
 	// 设置协议处理器
@@ -97,6 +98,20 @@ func (n *Node) ConnectToPeer(peerAddress string) error {
 		return fmt.Errorf("failed to connect to peer: %v", err)
 	}
 
+	// 将连接成功的peer加入到Peers列表中
+	n.Peers[peerInfo.ID] = *peerInfo
+
 	fmt.Printf("Successfully connected to peer: %s, %s\n", peerInfo.Addrs, peerInfo.ID)
+	return nil
+}
+
+// 广播消息到所有连接的Peer
+func (n *Node) BroadcastMessage(message string) error {
+	for peerID := range n.Peers {
+		if err := n.SendMessage(peerID, message); err != nil {
+			return fmt.Errorf("广播消息失败到 %s: %v", peerID, err)
+		}
+	}
+	fmt.Println("消息已广播到所有连接的节点")
 	return nil
 }
