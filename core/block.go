@@ -18,6 +18,14 @@ func NewBlock(bh *BlockHeader, txs []*Transaction) *Block {
 	return &Block{Header: bh, Transactions: txs}
 }
 
+func NewBlockHeader(parentHash []byte, dif uint64) *BlockHeader {
+	time := time.Now()
+	return &BlockHeader{
+		ParentHash: parentHash,
+		Time:       time,
+		Difficulty: dif}
+}
+
 func NewGenesisBlock(dif uint64) *Block {
 	return &Block{
 		Header: &BlockHeader{
