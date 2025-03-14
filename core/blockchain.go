@@ -1,24 +1,41 @@
 package core
 
-import "ablockchain/storage"
+import (
+	"ablockchain/config"
+	"ablockchain/storage"
+)
 
 type Blockchain struct {
 	db     *storage.LevelDB
 	TxPool *TxPool
 }
 
-func NewBlockchain() *Blockchain {
+func NewBlockchain() (*Blockchain, error) {
 	path := "./block_storage"
 	db, err := storage.NewLevelDB(path)
 	if err != nil {
-		return nil
+		return nil, err
 	}
 
 	txPool := NewTxPool()
 
-	return &Blockchain{db: db, TxPool: txPool}
+	// 加载创世配置
+	genensisConfig, err := config.LoadGenesisConfig("./genesis.json")
+	if err != nil {
+		return nil, err
+	}
+
+	// acountManager := NewAccountManager();
+
+	// 创建创世区块
+	genesisBlock := NewGenesisBlock(genensisConfig.Difficulty)
+	db.Put("0", genesisBlock)
+
+	return &Blockchain{db: db, TxPool: txPool}, nil
 }
 
-func NewGenesisBlock() *Block {
-	return NewBlock(nil, nil)
+func (bc *Blockchain) StartMiner() {
+	go func() {
+
+	}()
 }

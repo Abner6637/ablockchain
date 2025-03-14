@@ -1,0 +1,10 @@
+{
+  "difficulty": 1,
+  "chainId": 1234,
+  "alloc": {
+    "0xee4d6f2ead0926ea0bd3c4719ef0ddff455e38aa": 100000,
+    "0xbb59c8b1dee03a76e07c0d584e718a6edfec8132": 100000,
+    "0x33d3abee43b290984d6d382eea920a2b00fcaa87": 100000,
+    "0x670f3232c2b087569b9fcc9c29ea92deeac1e26a": 100000
+  }
+}
