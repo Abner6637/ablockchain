@@ -57,10 +57,10 @@ func (bc *Blockchain) StartMiner() {
 // 共识部分处理mineNewBlock何时启用的逻辑？
 //
 // TODO
-func (bc *Blockchain) mineNewBLock() error {
+func (bc *Blockchain) mineNewBLock() (*Block, error) {
 	txs := bc.TxPool.GetTxs()
 	if len(txs) == 0 {
-		return fmt.Errorf("no transaction!")
+		return nil, fmt.Errorf("no transaction!")
 	}
 
 	// 创建新区块（该部分的difficulty需要进一步修改）
@@ -81,7 +81,7 @@ func (bc *Blockchain) mineNewBLock() error {
 
 	// 清除已经打包到区块的交易
 	bc.TxPool.ClearPackedTxs(block.Transactions)
-	return nil
+	return block, nil
 }
 
 func (bc *Blockchain) AddBlock(block *Block) {
