@@ -28,21 +28,29 @@ func (tx *Transaction) EncodeTx() ([]byte, error) {
 	return encodedTx, nil
 }
 
+func DecodeTx(data []byte) error {
+	var tx Transaction
+	err := rlp.DecodeBytes(data, &tx)
+	if err != nil {
+		log.Fatal("Failed to decode RLP data:", err)
+		return err
+	}
+	return nil
+}
+
 func receiveData(stream network.Stream) {
 	buf := make([]byte, 1024)
-	n, err := stream.Read(buf)
+	_, err := stream.Read(buf)
 	if err != nil {
 		log.Fatal("Failed to read from stream:", err)
 	}
 
-	// 解码 RLP 数据
-	var tx Transaction
-	err = rlp.DecodeBytes(buf[:n], &tx)
+	err = DecodeTx(buf)
 	if err != nil {
 		log.Fatal("Failed to decode RLP data:", err)
 	}
 
-	log.Printf("Received transaction: %+v", tx)
+	// log.Printf("Received transaction: %+v", tx)
 }
 
 // 计算交易列表的 Merkle Root
