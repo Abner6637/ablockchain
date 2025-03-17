@@ -54,6 +54,9 @@ func (bc *Blockchain) StartMiner() {
 	}()
 }
 
+// 共识部分处理mineNewBlock何时启用的逻辑？
+//
+// TODO
 func (bc *Blockchain) mineNewBLock() error {
 	txs := bc.TxPool.GetTxs()
 	if len(txs) == 0 {
@@ -64,16 +67,7 @@ func (bc *Blockchain) mineNewBLock() error {
 	header := NewBlockHeader(bc.currentBlockHash, uint64(0))
 	block := NewBlock(header, txs)
 
-	// 后续需要加入consensus部分
-	//
-	//
-	// TODO
-
 	bc.AddBlock(block)
-	// 共识完成并将新区块加入区块链后，还需要广播该区块吗？
-	//
-	//
-	// TODO
 
 	// rlp编码区块，广播编码后的区块
 	/* 这部分在共识部分书写？

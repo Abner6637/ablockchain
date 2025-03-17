@@ -23,6 +23,7 @@ func NewBlockHeader(parentHash []byte, dif uint64) *BlockHeader {
 		Difficulty: dif}
 }
 
+// TODO: add other parts of bh
 func (bh *BlockHeader) BlockHash() []byte {
 	var buf bytes.Buffer
 
@@ -38,8 +39,13 @@ type Block struct {
 }
 
 func NewBlock(bh *BlockHeader, txs []*Transaction) *Block {
+	hash := bh.BlockHash()
 
-	return &Block{Header: bh, Transactions: txs}
+	return &Block{
+		Header:       bh,
+		Transactions: txs,
+		Hash:         hash,
+	}
 }
 
 func (b *Block) EncodeBLock() ([]byte, error) {
