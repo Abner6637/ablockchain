@@ -9,8 +9,7 @@ import (
 
 func main() {
 	var con consensus.Consensus
-
-	// 直接赋值并调用方法
+	
 	con = pow.NewPoW()
 	con.Start()
 	con.Stop()

@@ -12,8 +12,11 @@ import (
 type BlockHeader struct {
 	ParentHash []byte
 	Time       time.Time
+
 	Difficulty uint64
 	Number     uint64
+	MerkleRoot []byte // 该区块交易的梅克尔根
+	Nonce      uint32 // PoW 计算用的随机数
 }
 
 func NewBlockHeader(parentHash []byte, dif uint64) *BlockHeader {
