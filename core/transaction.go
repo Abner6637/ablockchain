@@ -1,6 +1,7 @@
 package core
 
 import (
+	"ablockchain/crypto"
 	"log"
 	"time"
 
@@ -42,4 +43,13 @@ func receiveData(stream network.Stream) {
 	}
 
 	log.Printf("Received transaction: %+v", tx)
+}
+
+// 计算交易列表的 Merkle Root
+func CalculateMerkleRoot(transactions []*Transaction) []byte {
+	var txHashes [][]byte
+	for _, tx := range transactions {
+		txHashes = append(txHashes, tx.Hash)
+	}
+	return crypto.ComputeMerkleRoot(txHashes)
 }

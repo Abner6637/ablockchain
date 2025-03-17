@@ -1,7 +1,6 @@
 package core
 
 import (
-	"ablockchain/crypto"
 	"bytes"
 	"log"
 	"time"
@@ -23,16 +22,18 @@ func NewBlockHeader(parentHash []byte, dif uint64) *BlockHeader {
 	return &BlockHeader{
 		ParentHash: parentHash,
 		Time:       time.Now(),
-		Difficulty: dif}
+		Difficulty: dif,
+	}
 }
 
 // TODO: add other parts of bh
+// Hash怎么用
 func (bh *BlockHeader) BlockHash() []byte {
 	var buf bytes.Buffer
 
 	buf.Write(bh.ParentHash)
 
-	return crypto.Keccak256Hash(buf.Bytes())
+	return []byte{}
 }
 
 type Block struct {
