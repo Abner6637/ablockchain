@@ -20,7 +20,7 @@ func TestEncodeTransaction(t *testing.T) {
 	}
 
 	// 编码交易
-	encodedTx, err := encodeTransaction(tx)
+	encodedTx, err := tx.EncodeTx()
 	assert.NoError(t, err, "Failed to encode transaction")
 
 	// 确保编码的字节流不为空

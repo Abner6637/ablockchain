@@ -3,6 +3,7 @@ package core
 import (
 	"ablockchain/config"
 	"ablockchain/storage"
+	"fmt"
 	"time"
 )
 
@@ -53,10 +54,10 @@ func (bc *Blockchain) StartMiner() {
 	}()
 }
 
-func (bc *Blockchain) mineNewBLock() {
+func (bc *Blockchain) mineNewBLock() error {
 	txs := bc.TxPool.GetTxs()
 	if len(txs) == 0 {
-		return
+		return fmt.Errorf("no transaction!")
 	}
 
 	// 创建新区块（该部分的difficulty需要进一步修改）
@@ -74,8 +75,22 @@ func (bc *Blockchain) mineNewBLock() {
 	//
 	// TODO
 
+	// rlp编码区块，广播编码后的区块
+	/* 这部分在共识部分书写？
+	还有，很多共识并不是直接广播区块，如PBFT广播包含区块信息的Request
+	encodedBlock, err := block.EncodeBLock()
+	if err != nil {
+		return err
+	}
+	p2p.BroadcastMessage(string(encodedBlock))
+	*/
+
+	// 清除已经打包到区块的交易
 	bc.TxPool.ClearPackedTxs(block.Transactions)
+	return nil
 }
 
 func (bc *Blockchain) AddBlock(block *Block) {
+	str := fmt.Sprintf("%d", block.Header.Number)
+	bc.db.Put(str, block) // str代表区块编号Number（可能不是这样的
 }

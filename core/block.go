@@ -1,11 +1,34 @@
 package core
 
-import "time"
+import (
+	"ablockchain/crypto"
+	"bytes"
+	"log"
+	"time"
+
+	"github.com/ethereum/go-ethereum/rlp"
+)
 
 type BlockHeader struct {
 	ParentHash []byte
 	Time       time.Time
 	Difficulty uint64
+	Number     uint64
+}
+
+func NewBlockHeader(parentHash []byte, dif uint64) *BlockHeader {
+	return &BlockHeader{
+		ParentHash: parentHash,
+		Time:       time.Now(),
+		Difficulty: dif}
+}
+
+func (bh *BlockHeader) BlockHash() []byte {
+	var buf bytes.Buffer
+
+	buf.Write(bh.ParentHash)
+
+	return crypto.Keccak256Hash(buf.Bytes())
 }
 
 type Block struct {
@@ -15,15 +38,17 @@ type Block struct {
 }
 
 func NewBlock(bh *BlockHeader, txs []*Transaction) *Block {
+
 	return &Block{Header: bh, Transactions: txs}
 }
 
-func NewBlockHeader(parentHash []byte, dif uint64) *BlockHeader {
-	time := time.Now()
-	return &BlockHeader{
-		ParentHash: parentHash,
-		Time:       time,
-		Difficulty: dif}
+func (b *Block) EncodeBLock() ([]byte, error) {
+	encodedBlock, err := rlp.EncodeToBytes(b)
+	if err != nil {
+		log.Fatal("RLP encoding failed:", err)
+		return nil, err
+	}
+	return encodedBlock, nil
 }
 
 func NewGenesisBlock(dif uint64) *Block {

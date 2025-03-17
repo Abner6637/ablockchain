@@ -18,7 +18,7 @@ type Transaction struct {
 	Gas   uint64
 }
 
-func encodeTransaction(tx Transaction) ([]byte, error) {
+func (tx *Transaction) EncodeTx() ([]byte, error) {
 	encodedTx, err := rlp.EncodeToBytes(tx)
 	if err != nil {
 		log.Fatal("RLP encoding failed:", err)

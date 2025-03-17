@@ -75,6 +75,9 @@ func (n *Node) handleStream(stream network.Stream) {
 	}
 }
 
+// 发送消息，需要增加消息的类型
+//
+// TODO
 func (n *Node) SendMessage(peerID peer.ID, message string) error {
 	// 创建流
 	stream, err := n.Host.NewStream(context.Background(), peerID, ProtocolID)
