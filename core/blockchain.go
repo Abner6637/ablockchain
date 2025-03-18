@@ -16,6 +16,8 @@ type Blockchain struct {
 	TxPool *TxPool
 
 	currentBlockHash []byte
+
+	NewBlockChan chan *Block
 }
 
 func NewBlockchain() (*Blockchain, error) {
@@ -39,7 +41,11 @@ func NewBlockchain() (*Blockchain, error) {
 	genesisBlock := NewGenesisBlock(genensisConfig.Difficulty)
 	db.Put("0", genesisBlock)
 
-	return &Blockchain{db: db, TxPool: txPool}, nil
+	return &Blockchain{
+		db:           db,
+		TxPool:       txPool,
+		NewBlockChan: make(chan *Block, 10), // 缓冲通道防止堵塞
+	}, nil
 }
 
 // 开始一个异步的miner进程
@@ -54,9 +60,6 @@ func (bc *Blockchain) StartMiner() {
 	}()
 }
 
-// 共识部分处理mineNewBlock何时启用的逻辑？
-//
-// TODO
 func (bc *Blockchain) mineNewBLock() (*Block, error) {
 	txs := bc.TxPool.GetTxs()
 	if len(txs) == 0 {
@@ -68,18 +71,8 @@ func (bc *Blockchain) mineNewBLock() (*Block, error) {
 	block := NewBlock(header, txs)
 
 	bc.AddBlock(block)
+	bc.NewBlockChan <- block // 将新区块发送到通道
 
-	// rlp编码区块，广播编码后的区块
-	/* 这部分在共识部分书写？
-	还有，很多共识并不是直接广播区块，如PBFT广播包含区块信息的Request
-	encodedBlock, err := block.EncodeBLock()
-	if err != nil {
-		return err
-	}
-	p2p.BroadcastMessage(string(encodedBlock))
-	*/
-
-	// 清除已经打包到区块的交易
 	bc.TxPool.ClearPackedTxs(block.Transactions)
 	return block, nil
 }
