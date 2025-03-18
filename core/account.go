@@ -9,12 +9,12 @@ type Account struct {
 }
 
 type AccountManager struct {
-	accounts map[string]*Account
+	Accounts map[string]*Account
 }
 
 func NewAccountManager() *AccountManager {
 	return &AccountManager{
-		accounts: make(map[string]*Account),
+		Accounts: make(map[string]*Account),
 	}
 }
 

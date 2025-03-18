@@ -4,18 +4,29 @@ import (
 	"ablockchain/cli"
 	"ablockchain/core"
 	"ablockchain/p2p"
+	"fmt"
 
 	"log"
 )
 
 type System struct {
-	p2pNode    *p2p.Node
-	blockChain *core.Blockchain
+	p2pNode        *p2p.Node
+	blockChain     *core.Blockchain
+	accountManager *core.AccountManager
 }
 
 func StartSystem(cfg *cli.Config) *System {
 	// 启动 P2P 节点
 	node := cli.StartListen(cfg)
+
+	// 初始化账户管理和账户
+	accountManager := core.NewAccountManager()
+	account, err := accountManager.NewAccount()
+	if err != nil {
+		fmt.Errorf("cannot create new account")
+	}
+	accountManager.Accounts[account.Address] = account
+	// TODO: account的地址如何获取，account的各个参数如何设置，如公私钥、balance
 
 	bc, err := core.NewBlockchain()
 	if err != nil {
