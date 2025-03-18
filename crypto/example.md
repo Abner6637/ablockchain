@@ -2,28 +2,20 @@
 package main
 
 import (
-	"ablockchain/crypto"
+	"ablockchain/crypto" // 请替换为你实际使用的包路径
 	"fmt"
 )
 
 func main() {
-	data := []byte("Hello, Ethereum!")
+	// 使用默认的 SHA256 哈希算法
+	data := []byte("hello, world")
+	hash := crypto.GlobalHashAlgorithm.Hash(data)
+	fmt.Printf("SHA256 Hash: %x\n", hash)
 
-	hash1, err := crypto.NewSHA256()
-	if err != nil {
-		fmt.Printf("G")
-
-	}
-	SHA256Hash := hash1.Hash(data)
-	fmt.Printf("SHA-256: %x\n", SHA256Hash)
-
-	hash2, err := crypto.NewKeccak256()
-	if err != nil {
-		fmt.Printf("G")
-
-	}
-	Keccak256Hash := hash2.Hash(data)
-	fmt.Printf("Keccak-256: %x\n", Keccak256Hash)
-
+	// 切换为 Keccak256 哈希算法
+	crypto.SetGlobalHashAlgorithm(crypto.NewKeccak256())
+	hash = crypto.GlobalHashAlgorithm.Hash(data)
+	fmt.Printf("Keccak256 Hash: %x\n", hash)
 }
+
 ```

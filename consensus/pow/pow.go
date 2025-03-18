@@ -10,13 +10,11 @@ import (
 
 type PowProof struct {
 	BlockHeader *core.BlockHeader
-	HashAlg     crypto.Hash
 }
 
-func NewPoWProof(BlockHeader *core.BlockHeader, HashAlg crypto.Hash) *PowProof {
+func NewPoWProof(BlockHeader *core.BlockHeader) *PowProof {
 	consensus := new(PowProof)
 	consensus.BlockHeader = BlockHeader
-	consensus.HashAlg = HashAlg
 
 	return consensus
 }
@@ -43,7 +41,7 @@ func (pow *PowProof) calculateHash(nonce uint32) []byte {
 	data = append(data, pow.BlockHeader.MerkleRoot...)
 	data = append(data, []byte(fmt.Sprintf("%d", nonce))...)
 
-	hash := pow.HashAlg.Hash(data)
+	hash := crypto.GlobalHashAlgorithm.Hash(data)
 	return hash[:]
 }
 

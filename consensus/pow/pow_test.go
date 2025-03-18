@@ -2,7 +2,6 @@ package pow
 
 import (
 	"ablockchain/core"
-	"ablockchain/crypto"
 	"fmt"
 	"testing"
 	"time"
@@ -22,10 +21,9 @@ func createTestBlockHeader() *core.BlockHeader {
 // 测试 NewPoWProof 函数
 func TestNewPoWProof(t *testing.T) {
 	blockHeader := createTestBlockHeader()
-	sha256Hash := crypto.NewSHA256() // 使用 SHA256 算法
-	powProof := NewPoWProof(blockHeader, sha256Hash)
+	powProof := NewPoWProof(blockHeader)
 
-	if powProof.BlockHeader == nil || powProof.HashAlg == nil {
+	if powProof.BlockHeader == nil {
 		t.Errorf("Failed to initialize PowProof correctly")
 	}
 }
@@ -33,8 +31,7 @@ func TestNewPoWProof(t *testing.T) {
 // 测试 calculateHash 方法
 func TestCalculateHash(t *testing.T) {
 	blockHeader := createTestBlockHeader()
-	sha256Hash := crypto.NewSHA256() // 使用 SHA256 算法
-	powProof := NewPoWProof(blockHeader, sha256Hash)
+	powProof := NewPoWProof(blockHeader)
 
 	// 测试特定 nonce 的哈希计算
 	nonce := uint32(0)
@@ -51,8 +48,7 @@ func TestCalculateHash(t *testing.T) {
 // 测试 mine 方法
 func TestMine(t *testing.T) {
 	blockHeader := createTestBlockHeader()
-	sha256Hash := crypto.NewSHA256() // 使用 SHA256 算法
-	powProof := NewPoWProof(blockHeader, sha256Hash)
+	powProof := NewPoWProof(blockHeader)
 
 	// 测试 PoW 持续计算直到找到满足条件的 nonce
 	nonce := powProof.mine()
@@ -69,8 +65,7 @@ func TestMine(t *testing.T) {
 // 测试 GetBlockHash 方法
 func TestGetBlockHash(t *testing.T) {
 	blockHeader := createTestBlockHeader()
-	sha256Hash := crypto.NewSHA256() // 使用 SHA256 算法
-	powProof := NewPoWProof(blockHeader, sha256Hash)
+	powProof := NewPoWProof(blockHeader)
 
 	hash := powProof.GetBlockHash()
 
@@ -85,8 +80,7 @@ func TestGetBlockHash(t *testing.T) {
 // 测试 Start 方法
 func TestStart(t *testing.T) {
 	blockHeader := createTestBlockHeader()
-	sha256Hash := crypto.NewSHA256() // 使用 SHA256 算法
-	powProof := NewPoWProof(blockHeader, sha256Hash)
+	powProof := NewPoWProof(blockHeader)
 
 	block := &core.Block{Header: blockHeader}
 
@@ -100,8 +94,7 @@ func TestStart(t *testing.T) {
 // 测试 Stop 方法
 func TestStop(t *testing.T) {
 	blockHeader := createTestBlockHeader()
-	sha256Hash := crypto.NewSHA256() // 使用 SHA256 算法
-	powProof := NewPoWProof(blockHeader, sha256Hash)
+	powProof := NewPoWProof(blockHeader)
 
 	err := powProof.Stop()
 	if err != nil {
