@@ -2,10 +2,7 @@ package crypto
 
 // 计算两个哈希的合并哈希
 func HashPair(left, right []byte) []byte {
-	hash, err := NewSHA256()
-	if err != nil {
-		return nil
-	}
+	hash := NewSHA256()
 
 	data := append(left, right...)
 	return hash.Hash(data)

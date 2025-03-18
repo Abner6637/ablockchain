@@ -14,14 +14,14 @@ type SHA256 struct{}
 
 type Keccak256 struct{}
 
-func NewSHA256() (*SHA256, error) {
+func NewSHA256() *SHA256 {
 	hash := new(SHA256)
-	return hash, nil
+	return hash
 }
 
-func NewKeccak256() (*Keccak256, error) {
+func NewKeccak256() *Keccak256 {
 	hash := new(Keccak256)
-	return hash, nil
+	return hash
 }
 
 func (h *SHA256) Hash(data []byte) []byte {
