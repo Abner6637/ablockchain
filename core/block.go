@@ -1,7 +1,9 @@
 package core
 
 import (
+	"ablockchain/crypto"
 	"bytes"
+	"encoding/binary"
 	"log"
 	"time"
 
@@ -26,14 +28,19 @@ func NewBlockHeader(parentHash []byte, dif uint64) *BlockHeader {
 	}
 }
 
-// TODO: add other parts of bh
-// Hash怎么用
+// 计算区块头哈希
 func (bh *BlockHeader) BlockHash() []byte {
 	var buf bytes.Buffer
 
 	buf.Write(bh.ParentHash)
+	binary.Write(&buf, binary.BigEndian, uint32(bh.Time.Unix()))
+	binary.Write(&buf, binary.BigEndian, bh.Difficulty)
+	binary.Write(&buf, binary.BigEndian, bh.Number)
+	buf.Write(bh.MerkleRoot)
+	binary.Write(&buf, binary.BigEndian, bh.Nonce)
 
-	return []byte{}
+	hash := crypto.GlobalHashAlgorithm.Hash(buf.Bytes())
+	return hash
 }
 
 type Block struct {
