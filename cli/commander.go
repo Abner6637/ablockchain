@@ -8,7 +8,8 @@ import (
 )
 
 type Config struct {
-	ListenAddr string
+	ListenAddr    string
+	ConsensusType string
 }
 
 func ParseFlags() *Config {
