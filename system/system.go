@@ -22,8 +22,8 @@ func StartSystem(cfg *cli.Config) *System {
 		log.Fatalf("initial blockchain failed")
 	}
 
-	bc.StartMiner()     // 开启判断是否要打包交易生成区块
-	ListenNewBlocks(bc) // 监听是否有新区块生成
+	bc.StartMiner()     // 异步进程，开启判断是否要打包交易生成区块
+	ListenNewBlocks(bc) // 异步进程，监听是否有新区块生成，若有则处理
 
 	// 进入交互命令行
 	commander := cli.NewCommander(node)
