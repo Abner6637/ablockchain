@@ -40,7 +40,7 @@ func DecodeTx(data []byte) (*Transaction, error) {
 	return &tx, nil
 }
 
-func receiveData(stream network.Stream) *Transaction {
+func ReceiveData(stream network.Stream) *Transaction {
 	buf := make([]byte, 1024)
 	_, err := stream.Read(buf)
 	if err != nil {

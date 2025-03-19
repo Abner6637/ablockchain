@@ -4,6 +4,7 @@ import (
 	"ablockchain/cli"
 	"ablockchain/consensus"
 	pbftcore "ablockchain/consensus/bft/pbft/core"
+	"ablockchain/consensus/poa"
 	"ablockchain/core"
 	"ablockchain/p2p"
 	"fmt"
@@ -44,11 +45,17 @@ func StartSystem(cfg *cli.Config) *System {
 	switch cfg.ConsensusType {
 	case "pbft":
 		sys.consensus = pbftcore.NewPBFT(node) // TODO：调用接口必须需要使用pbftcore吗？
-	case "raft":
+	case "poa":
+		sys.consensus = poa.NewPoA()
+	default:
+		sys.consensus = pbftcore.NewPBFT(node)
 	}
 
 	bc.StartMiner()     // 异步进程，开启判断是否要打包交易生成区块
 	ListenNewBlocks(bc) // 异步进程，监听是否有新区块生成，若有则处理
+
+	// 开启共识模块
+	sys.consensus.Start()
 
 	// 进入交互命令行
 	commander := cli.NewCommander(node)

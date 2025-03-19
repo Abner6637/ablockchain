@@ -20,6 +20,7 @@ func NewPoWProof(BlockHeader *core.BlockHeader) *PowProof {
 }
 
 // 实现 Start 方法
+// TODO: 要复用consensus接口的话，Start函数里的参数要和接口一致
 func (p *PowProof) Start(block *core.Block) error {
 	fmt.Println("PoW 共识已启动")
 	nounce := p.mine()
