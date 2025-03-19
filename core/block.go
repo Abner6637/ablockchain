@@ -68,14 +68,14 @@ func (b *Block) EncodeBLock() ([]byte, error) {
 	return encodedBlock, nil
 }
 
-func DecodeBlock(data []byte) error {
+func DecodeBlock(data []byte) (*Block, error) {
 	var bk Block
 	err := rlp.DecodeBytes(data, &bk)
 	if err != nil {
 		log.Fatal("Failed to decode RLP data:", err)
-		return err
+		return nil, err
 	}
-	return nil
+	return &bk, nil
 }
 
 func NewGenesisBlock(dif uint64) *Block {

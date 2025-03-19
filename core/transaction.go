@@ -28,27 +28,30 @@ func (tx *Transaction) EncodeTx() ([]byte, error) {
 	return encodedTx, nil
 }
 
-func DecodeTx(data []byte) error {
+// TODO:rlp解码的时候，传入的是数据地址还是数据本身？
+// 涉及到解码的部分都需要修改
+func DecodeTx(data []byte) (*Transaction, error) {
 	var tx Transaction
 	err := rlp.DecodeBytes(data, &tx)
 	if err != nil {
 		log.Fatal("Failed to decode RLP data:", err)
-		return err
+		return nil, err
 	}
-	return nil
+	return &tx, nil
 }
 
-func receiveData(stream network.Stream) {
+func receiveData(stream network.Stream) *Transaction {
 	buf := make([]byte, 1024)
 	_, err := stream.Read(buf)
 	if err != nil {
 		log.Fatal("Failed to read from stream:", err)
 	}
 
-	err = DecodeTx(buf)
+	tx, err := DecodeTx(buf)
 	if err != nil {
 		log.Fatal("Failed to decode RLP data:", err)
 	}
+	return tx
 
 	// log.Printf("Received transaction: %+v", tx)
 }

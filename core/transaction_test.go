@@ -4,7 +4,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -27,13 +26,14 @@ func TestEncodeTransaction(t *testing.T) {
 	assert.NotNil(t, encodedTx, "Encoded transaction should not be nil")
 
 	// 验证解码后的交易数据是否匹配
-	var txr Transaction
-	err = rlp.DecodeBytes(encodedTx, &txr)
+
+	decodeTx, err := DecodeTx(encodedTx)
 	assert.NoError(t, err, "Failed to decode transaction")
 
 	// 验证收到的数据与原始数据一致
-	assert.Equal(t, "0xSenderAddress", txr.From, "From address should match")
-	assert.Equal(t, "0xReceiverAddress", txr.To, "To address should match")
-	assert.Equal(t, uint64(100), txr.Value, "Value should match")
-	assert.Equal(t, uint64(200), txr.Gas, "Gas should match")
+	assert.Equal(t, "0xSenderAddress", decodeTx.From, "From address should match")
+	// fmt.Printf("check if equal: %s \n", decodeTx.From)
+	assert.Equal(t, "0xReceiverAddress", decodeTx.To, "To address should match")
+	assert.Equal(t, uint64(100), decodeTx.Value, "Value should match")
+	assert.Equal(t, uint64(200), decodeTx.Gas, "Gas should match")
 }

@@ -2,6 +2,8 @@ package system
 
 import (
 	"ablockchain/cli"
+	"ablockchain/consensus"
+	pbftcore "ablockchain/consensus/bft/pbft/core"
 	"ablockchain/core"
 	"ablockchain/p2p"
 	"fmt"
@@ -13,14 +15,19 @@ type System struct {
 	p2pNode        *p2p.Node
 	blockChain     *core.Blockchain
 	accountManager *core.AccountManager
+	consensus      consensus.Consensus
 }
 
 func StartSystem(cfg *cli.Config) *System {
+	var sys System
+
 	// 启动 P2P 节点
 	node := cli.StartListen(cfg)
+	sys.p2pNode = node
 
 	// 初始化账户管理和账户
 	accountManager := core.NewAccountManager()
+	sys.accountManager = accountManager
 	account, err := accountManager.NewAccount()
 	if err != nil {
 		fmt.Errorf("cannot create new account")
@@ -32,11 +39,11 @@ func StartSystem(cfg *cli.Config) *System {
 	if err != nil {
 		log.Fatalf("initial blockchain failed")
 	}
+	sys.blockChain = bc
 
-	//TODO: 可以配一个consensusEngine，哪种类型就调用哪个
 	switch cfg.ConsensusType {
 	case "pbft":
-
+		sys.consensus = pbftcore.NewPBFT(node) // TODO：调用接口必须需要使用pbftcore吗？
 	case "raft":
 	}
 
@@ -47,10 +54,7 @@ func StartSystem(cfg *cli.Config) *System {
 	commander := cli.NewCommander(node)
 	commander.Run()
 
-	return &System{
-		p2pNode:    node,
-		blockChain: bc,
-	}
+	return &sys
 }
 
 // 监听通道，是否有新区块产生
