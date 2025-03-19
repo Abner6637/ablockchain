@@ -3,23 +3,28 @@ package pow
 import (
 	"ablockchain/core"
 	"ablockchain/crypto"
+	"ablockchain/event"
+	"ablockchain/p2p"
 	"bytes"
 	"fmt"
 	"math/big"
+	"time"
 )
 
 type ProofOfWork struct {
-	block  *core.Block
-	target *big.Int //用于判断hash前置0个数是否达到Difficulty要求
+	p2pNode *p2p.Node
+	block   *core.Block
+	target  *big.Int //用于判断hash前置0个数是否达到Difficulty要求
+	running bool
 }
 
-func NewProofOfWork(b *core.Block) *ProofOfWork {
-	target := big.NewInt(1)
-	target.Lsh(target, uint(256-b.Header.Difficulty*4))
-
-	pow := &ProofOfWork{b, target}
-
-	return pow
+func NewProofOfWork(p2pNode *p2p.Node) *ProofOfWork {
+	return &ProofOfWork{
+		p2pNode: p2pNode,
+		running: false,
+		block:   nil,
+		target:  nil,
+	}
 }
 
 // 准备用于计算hash的数据
@@ -38,11 +43,15 @@ func (pow *ProofOfWork) prepareData(nonce uint64) []byte {
 }
 
 // 共识的核心逻辑
-func (pow *ProofOfWork) Run() (uint64, []byte) {
+func (pow *ProofOfWork) Run(block *core.Block) {
 	var hashInt big.Int
 	var hash []byte
 	nonce := uint64(0)
 	maxNonce := uint64(1000000)
+	pow.block = block
+	target := big.NewInt(1)
+	target.Lsh(target, uint(256-pow.block.Header.Difficulty*4))
+	pow.target = target
 
 	fmt.Printf("Mining the block \"%d\"\n", pow.block.Header.Number)
 	for nonce < maxNonce {
@@ -60,24 +69,13 @@ func (pow *ProofOfWork) Run() (uint64, []byte) {
 	}
 	fmt.Print("\n\n")
 
-	return nonce, hash[:]
-}
-
-// 挖矿完成后重新封装block
-func NewBlock(block *core.Block) *core.Block {
-	pow := NewProofOfWork(block)
-	nonce, hash := pow.Run()
-
 	block.Hash = hash[:]
 	block.Header.Nonce = nonce
-
-	return block
 }
 
 // 验证hash
 func (pow *ProofOfWork) Validate(block *core.Block) bool {
 	var hashInt big.Int
-
 	data := pow.prepareData(block.Header.Nonce)
 	hash := crypto.GlobalHashAlgorithm.Hash(data)
 	hashInt.SetBytes(hash[:])
@@ -88,8 +86,44 @@ func (pow *ProofOfWork) Validate(block *core.Block) bool {
 }
 
 // 实现共识接口
-func (pow *ProofOfWork) start() error {
-	fmt.Printf("pow start")
+func (pow *ProofOfWork) Start() error {
+	if pow.running {
+		fmt.Println("PoW 已经在运行")
+		return nil
+	}
 
+	pow.running = true
+	go pow.ListenForConsensus()
 	return nil
+}
+
+func (pow *ProofOfWork) Stop() error {
+	if !pow.running {
+		fmt.Println("PoW 已经停止")
+		return nil
+	}
+	pow.running = false
+	event.StopConsensus() // 统一停止所有共识
+	fmt.Println("PoW stop")
+	return nil
+}
+
+// 监听共识事件
+func (pow *ProofOfWork) ListenForConsensus() {
+	for {
+		select {
+		case block := <-event.ConsensusStart:
+			fmt.Println("PoW 收到共识事件，开始计算区块:", block.Header.Number)
+			pow.Run(block)
+			if pow.Validate(block) {
+				fmt.Println("验证通过，准备上链")
+				event.TriggerCommit(block)
+			}
+		default:
+			if event.ShouldStop() {
+				return
+			}
+			time.Sleep(500 * time.Millisecond) // 避免 CPU 高占用
+		}
+	}
 }

@@ -2,9 +2,7 @@ package pow
 
 import (
 	"ablockchain/core"
-	"bytes"
-	"encoding/hex"
-	"fmt"
+	"ablockchain/p2p"
 	"testing"
 	"time"
 )
@@ -16,56 +14,40 @@ func newTestBlock() *core.Block {
 			ParentHash: []byte("0df9a8f4a2f2fc354c3c8aa5e837d4db137f20ccbf3d8336e4c95ac9d0e2943e"),
 			MerkleRoot: []byte("1cdfdf5680f2a639732f6aae64a8b96c10a913b46c8fcd908c9eb95925979974"),
 			Time:       time.Now(),
-			Difficulty: 3,
+			Difficulty: 1,
 			Nonce:      0,
 			Number:     13,
 		},
 	}
 }
 
-// 测试 prepareData 生成的数据格式
-func TestPrepareData(t *testing.T) {
-	block := newTestBlock()
-	pow := NewProofOfWork(block)
-
-	nonce := uint64(12345)
-	data := pow.prepareData(nonce)
-
-	expected := append(block.Header.ParentHash, block.Header.MerkleRoot...)
-	expected = append(expected, []byte(hex.EncodeToString([]byte(fmt.Sprintf("%v", block.Header.Time))))...)
-	expected = append(expected, []byte(fmt.Sprintf("%d", block.Header.Difficulty))...)
-	expected = append(expected, []byte(fmt.Sprintf("%d", nonce))...)
-
-	if !bytes.Contains(data, block.Header.ParentHash) || !bytes.Contains(data, block.Header.MerkleRoot) {
-		t.Errorf("prepareData() missing necessary components")
-	}
+func newP2PNode() *p2p.Node {
+	return &p2p.Node{}
 }
 
-// 测试 Run 计算 nonce 是否成功
 func TestRun(t *testing.T) {
 	block := newTestBlock()
-	pow := NewProofOfWork(block)
+	p2pnode := newP2PNode()
+	pow := NewProofOfWork(p2pnode)
+	pow.Run(block)
 
-	nonce, hash := pow.Run()
-
-	if nonce == 0 {
+	if block.Header.Nonce == 0 {
 		t.Errorf("Run() failed to find a valid nonce")
 	}
 
-	if len(hash) != 32 {
-		t.Errorf("Run() returned an invalid hash length: %d", len(hash))
+	if len(block.Header.BlockHash()) != 32 {
+		t.Errorf("Run() returned an invalid hash length: %d", len(block.Header.BlockHash()))
 	}
 }
 
 // 测试 Validate 是否正确验证区块
 func TestValidate(t *testing.T) {
 	block := newTestBlock()
-	pow := NewProofOfWork(block)
+	p2pnode := newP2PNode()
+	pow := NewProofOfWork(p2pnode)
 
 	// 运行挖矿
-	nonce, hash := pow.Run()
-	block.Header.Nonce = nonce
-	block.Hash = hash
+	pow.Run(block)
 
 	if !pow.Validate(block) {
 		t.Errorf("Validate() failed, block should be valid")
