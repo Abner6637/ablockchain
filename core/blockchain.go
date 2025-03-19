@@ -67,7 +67,7 @@ func (bc *Blockchain) mineNewBLock() (*Block, error) {
 	}
 
 	// 创建新区块（该部分的difficulty需要进一步修改）
-	header := NewBlockHeader(bc.currentBlockHash, uint64(0))
+	header := NewBlockHeader(bc.currentBlockHash, uint64(1))
 	block := NewBlock(header, txs)
 
 	bc.AddBlock(block)
@@ -80,4 +80,10 @@ func (bc *Blockchain) mineNewBLock() (*Block, error) {
 func (bc *Blockchain) AddBlock(block *Block) {
 	str := fmt.Sprintf("%d", block.Header.Number)
 	bc.db.Put(str, block) // str代表区块编号Number（可能不是这样的
+}
+
+// 实现共识接口
+func (bc *Blockchain) start() error {
+
+	return nil
 }

@@ -2,102 +2,72 @@ package pow
 
 import (
 	"ablockchain/core"
+	"bytes"
+	"encoding/hex"
 	"fmt"
 	"testing"
 	"time"
 )
 
-// 创建一个简单的测试区块头
-func createTestBlockHeader() *core.BlockHeader {
-	return &core.BlockHeader{
-		ParentHash: []byte("0df9a8f4a2f2fc354c3c8aa5e837d4db137f20ccbf3d8336e4c95ac9d0e2943e"),
-		Time:       time.Now(),
-		Difficulty: 1,
-		MerkleRoot: []byte("0df9a8f4a2f2fc354c3c8aa5e837d4db137f20ccbf3d8336e4c95ac9d0e2943e"),
-		Nonce:      0,
+// 创建一个测试区块
+func newTestBlock() *core.Block {
+	return &core.Block{
+		Header: &core.BlockHeader{
+			ParentHash: []byte("0df9a8f4a2f2fc354c3c8aa5e837d4db137f20ccbf3d8336e4c95ac9d0e2943e"),
+			MerkleRoot: []byte("1cdfdf5680f2a639732f6aae64a8b96c10a913b46c8fcd908c9eb95925979974"),
+			Time:       time.Now(),
+			Difficulty: 3,
+			Nonce:      0,
+			Number:     13,
+		},
 	}
 }
 
-// 测试 NewPoWProof 函数
-func TestNewPoWProof(t *testing.T) {
-	blockHeader := createTestBlockHeader()
-	powProof := NewPoWProof(blockHeader)
+// 测试 prepareData 生成的数据格式
+func TestPrepareData(t *testing.T) {
+	block := newTestBlock()
+	pow := NewProofOfWork(block)
 
-	if powProof.BlockHeader == nil {
-		t.Errorf("Failed to initialize PowProof correctly")
+	nonce := uint64(12345)
+	data := pow.prepareData(nonce)
+
+	expected := append(block.Header.ParentHash, block.Header.MerkleRoot...)
+	expected = append(expected, []byte(hex.EncodeToString([]byte(fmt.Sprintf("%v", block.Header.Time))))...)
+	expected = append(expected, []byte(fmt.Sprintf("%d", block.Header.Difficulty))...)
+	expected = append(expected, []byte(fmt.Sprintf("%d", nonce))...)
+
+	if !bytes.Contains(data, block.Header.ParentHash) || !bytes.Contains(data, block.Header.MerkleRoot) {
+		t.Errorf("prepareData() missing necessary components")
 	}
 }
 
-// 测试 calculateHash 方法
-func TestCalculateHash(t *testing.T) {
-	blockHeader := createTestBlockHeader()
-	powProof := NewPoWProof(blockHeader)
+// 测试 Run 计算 nonce 是否成功
+func TestRun(t *testing.T) {
+	block := newTestBlock()
+	pow := NewProofOfWork(block)
 
-	// 测试特定 nonce 的哈希计算
-	nonce := uint32(0)
-	hash := powProof.calculateHash(nonce)
-
-	if len(hash) == 0 {
-		t.Errorf("calculateHash() failed, expected non-empty hash")
-	}
-
-	// 输出计算的哈希以便查看
-	t.Logf("Calculated hash: %x", hash)
-}
-
-// 测试 mine 方法
-func TestMine(t *testing.T) {
-	blockHeader := createTestBlockHeader()
-	powProof := NewPoWProof(blockHeader)
-
-	// 测试 PoW 持续计算直到找到满足条件的 nonce
-	nonce := powProof.mine()
-	fmt.Print(powProof.GetBlockHash())
+	nonce, hash := pow.Run()
 
 	if nonce == 0 {
-		t.Errorf("mine() failed, expected nonce to be non-zero")
+		t.Errorf("Run() failed to find a valid nonce")
 	}
 
-	// 输出找到的 nonce
-	t.Logf("Found nonce: %d", nonce)
-}
-
-// 测试 GetBlockHash 方法
-func TestGetBlockHash(t *testing.T) {
-	blockHeader := createTestBlockHeader()
-	powProof := NewPoWProof(blockHeader)
-
-	hash := powProof.GetBlockHash()
-
-	if len(hash) == 0 {
-		t.Errorf("GetBlockHash() failed, expected non-empty hash")
-	}
-
-	// 输出最终计算的哈希值
-	t.Logf("Final Block Hash: %x", hash)
-}
-
-// 测试 Start 方法
-func TestStart(t *testing.T) {
-	blockHeader := createTestBlockHeader()
-	powProof := NewPoWProof(blockHeader)
-
-	block := &core.Block{Header: blockHeader}
-
-	// 测试 Start 方法
-	err := powProof.Start(block)
-	if err != nil {
-		t.Errorf("Start() failed: %v", err)
+	if len(hash) != 32 {
+		t.Errorf("Run() returned an invalid hash length: %d", len(hash))
 	}
 }
 
-// 测试 Stop 方法
-func TestStop(t *testing.T) {
-	blockHeader := createTestBlockHeader()
-	powProof := NewPoWProof(blockHeader)
+// 测试 Validate 是否正确验证区块
+func TestValidate(t *testing.T) {
+	block := newTestBlock()
+	pow := NewProofOfWork(block)
 
-	err := powProof.Stop()
-	if err != nil {
-		t.Errorf("Stop() failed: %v", err)
+	// 运行挖矿
+	nonce, hash := pow.Run()
+	block.Header.Nonce = nonce
+	block.Hash = hash
+
+	if !pow.Validate(block) {
+		t.Errorf("Validate() failed, block should be valid")
 	}
 }

@@ -16,8 +16,8 @@ type BlockHeader struct {
 
 	Difficulty uint64
 	Number     uint64
-	MerkleRoot []byte // 该区块交易的梅克尔根
-	Nonce      uint32 // PoW 计算用的随机数
+	MerkleRoot []byte
+	Nonce      uint64 // PoW 计算用的随机数
 }
 
 func NewBlockHeader(parentHash []byte, dif uint64) *BlockHeader {
