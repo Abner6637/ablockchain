@@ -7,10 +7,8 @@ import (
 
 type Core struct {
 	p2pNode *p2p.Node
-	view    uint64
-	round   uint64
 
-	state pbfttypes.State
+	consensusState *consensusState
 }
 
 func (c *Core) Start() error {
@@ -34,7 +32,7 @@ func NewCore(p2pNode *p2p.Node) *Core {
 }
 
 func (c *Core) Broadcast(msg *pbfttypes.Message) error {
-	payload, err := msg.EncodeMsg()
+	payload, err := msg.EncodeMessage()
 	if err != nil {
 		return err
 	}
@@ -42,8 +40,4 @@ func (c *Core) Broadcast(msg *pbfttypes.Message) error {
 	c.p2pNode.BroadcastMessage(string(payload))
 
 	return nil
-}
-
-func (c *Core) HandleMessage(msg *pbfttypes.Message) {
-
 }

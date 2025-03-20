@@ -1,27 +1,29 @@
 package bft
 
-import "math/big"
-
-type Proposal struct {
-	Number *big.Int
-	hash   []byte
-}
+import (
+	"math/big"
+	"time"
+)
 
 type Request struct {
-	Proposal Proposal
-}
-
-type View struct {
-	Round    *big.Int
-	Sequence *big.Int
+	Msg  []byte
+	Time time.Time
 }
 
 type Preprepare struct {
-	View     *View
-	Proposal Proposal
+	View     *big.Int
+	Sequence *big.Int
+	Request  Request
 }
 
-type Subject struct {
-	View   *View
-	Digest []byte
+type Prepare struct {
+	View     *big.Int
+	Sequence *big.Int
+	Digest   []byte // Request的hash
+}
+
+type Commit struct {
+	View     *big.Int
+	Sequence *big.Int
+	Digest   []byte
 }

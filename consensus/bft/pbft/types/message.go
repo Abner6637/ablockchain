@@ -21,7 +21,7 @@ type Message struct {
 	Signature []byte
 }
 
-func (m *Message) EncodeMsg() ([]byte, error) {
+func (m *Message) EncodeMessage() ([]byte, error) {
 	encodedMsg, err := rlp.EncodeToBytes(m)
 	if err != nil {
 		log.Fatal("RLP encoding failed:", err)
@@ -30,7 +30,7 @@ func (m *Message) EncodeMsg() ([]byte, error) {
 	return encodedMsg, nil
 }
 
-func DecodeMsg(data []byte) (*Message, error) {
+func DecodeMessage(data []byte) (*Message, error) {
 	var m Message
 	err := rlp.DecodeBytes(data, &m)
 	if err != nil {
@@ -38,4 +38,13 @@ func DecodeMsg(data []byte) (*Message, error) {
 		return nil, err
 	}
 	return &m, nil
+}
+
+// 解码Message.Msg
+func (m *Message) Decode(val interface{}) error {
+	return rlp.DecodeBytes(m.Msg, val)
+}
+
+func Encode(val interface{}) ([]byte, error) {
+	return rlp.EncodeToBytes(val)
 }

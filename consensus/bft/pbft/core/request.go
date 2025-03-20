@@ -1,7 +1,12 @@
 package pbftcore
 
-import pbfttypes "ablockchain/consensus/bft/pbft/types"
+import (
+	"ablockchain/consensus/bft"
+)
 
-func HandleRequest(msg *pbfttypes.Message) {
+func (c *Core) HandleRequest(request *bft.Request) error {
+	// TODO: verify Request
 
+	c.SendPreprepare(request)
+	return nil
 }
