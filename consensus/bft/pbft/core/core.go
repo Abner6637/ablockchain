@@ -19,6 +19,10 @@ func (c *Core) Start() error {
 
 	// TODO:
 	// event事件注册，监听是否有新的区块；是否有新的消息
+	c.SubcribeEvents()
+
+	c.HandleEvents()
+
 	return nil
 }
 
