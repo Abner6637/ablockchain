@@ -7,6 +7,7 @@ import (
 	"ablockchain/p2p"
 	"bytes"
 	"fmt"
+	"log"
 	"math/big"
 	"time"
 )
@@ -103,26 +104,34 @@ func (pow *ProofOfWork) Stop() error {
 		return nil
 	}
 	pow.running = false
-	event.StopConsensus() // 统一停止所有共识
+	event.Bus.Publish("ConsensusStop", true)
 	fmt.Println("PoW stop")
 	return nil
 }
 
 // 监听共识事件
 func (pow *ProofOfWork) ListenForConsensus() {
+	consensusstart := event.Bus.Subscribe("ConsensusStart")
+	consensusstop := event.Bus.Subscribe("ConsensusStop")
 	for {
 		select {
-		case block := <-event.ConsensusStart:
+		case msg := <-consensusstart:
+			block, ok := msg.(*core.Block)
+			if !ok {
+				log.Fatal("转换失败: 事件数据不是 *core.Block 类型")
+			}
 			fmt.Println("PoW 收到共识事件，开始计算区块:", block.Header.Number)
 			pow.Run(block)
 			if pow.Validate(block) {
 				fmt.Println("验证通过，准备上链")
-				event.TriggerCommit(block)
+				event.Bus.Publish("ConsensusFinish", block)
 			}
-		default:
-			if event.ShouldStop() {
+		case msg := <-consensusstop:
+			if msg == true {
+				fmt.Println("\n结束监听")
 				return
 			}
+		default:
 			time.Sleep(500 * time.Millisecond) // 避免 CPU 高占用
 		}
 	}

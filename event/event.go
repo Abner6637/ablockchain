@@ -1,42 +1,40 @@
 package event
 
-import "ablockchain/core"
+import (
+	"sync"
+)
 
-// 定义共识事件通道（传输区块）
-var ConsensusStart = make(chan *core.Block, 10)
-
-// 统一的停止通道
-var stopChan = make(chan bool)
-
-// 上链通道（传输区块）
-
-var ConsensusFinish chan *core.Block = make(chan *core.Block, 10)
-
-// 触发共识事件
-func TriggerConsensus(block *core.Block) {
-	ConsensusStart <- block
+// 事件管理器
+type EventBus[T any] struct {
+	subscribers map[string][]chan T // 事件类型 -> 订阅者列表
+	lock        sync.RWMutex        // 保护并发访问
 }
 
-func TriggerStopConsensus(stop bool) {
-	stopChan <- true
-}
+var Bus = NewEventBus[any]() //全局单例
 
-// 监听是否停止共识
-func ShouldStop() bool {
-	select {
-	case <-stopChan:
-		return true
-	default:
-		return false
+// 创建新的事件总线
+func NewEventBus[T any]() *EventBus[T] {
+	return &EventBus[T]{
+		subscribers: make(map[string][]chan T),
 	}
 }
 
-// 停止所有共识
-func StopConsensus() {
-	close(stopChan) // 关闭通道，所有监听者都会收到信号
+// 订阅事件
+func (eb *EventBus[T]) Subscribe(eventType string) <-chan T {
+	eb.lock.Lock()
+	defer eb.lock.Unlock()
+	ch := make(chan T, 10) // 创建一个新的事件通道
+	eb.subscribers[eventType] = append(eb.subscribers[eventType], ch)
+	return ch
 }
 
-// 共识完毕触发上链
-func TriggerCommit(block *core.Block) {
-	ConsensusFinish <- block
+// 发布事件
+func (eb *EventBus[T]) Publish(eventType string, message T) {
+	eb.lock.RLock()
+	defer eb.lock.RUnlock()
+	if subscribers, found := eb.subscribers[eventType]; found {
+		for _, ch := range subscribers {
+			ch <- message // 发送消息到所有订阅者
+		}
+	}
 }

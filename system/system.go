@@ -71,6 +71,8 @@ func StartSystem(cfg *cli.Config) *System {
 //
 // TODO
 func ListenNewBlocks(bc *core.Blockchain) {
+	consensusfinish := event.Bus.Subscribe("ConsensusFinish")
+
 	go func() {
 		for {
 			select {
@@ -79,9 +81,13 @@ func ListenNewBlocks(bc *core.Blockchain) {
 				fmt.Println("\n##触发共识##")
 				handleNewBlock(block)
 			// 提交区块（上链）
-			case block := <-event.ConsensusFinish:
+			case msg := <-consensusfinish:
+				Block, ok := msg.(*core.Block)
+				if !ok {
+					log.Fatal("转换失败: 事件数据不是 *core.Block 类型")
+				}
 				fmt.Println("\n##提交区块##")
-				bc.AddBlock(block)
+				bc.AddBlock(Block)
 			}
 		}
 	}()
@@ -92,6 +98,6 @@ func ListenNewBlocks(bc *core.Blockchain) {
 //
 // TODO
 func handleNewBlock(block *core.Block) {
-	event.TriggerConsensus(block)
+	event.Bus.Publish("ConsensusStart", block)
 
 }
