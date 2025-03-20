@@ -4,7 +4,7 @@ import (
 	pbfttypes "ablockchain/consensus/bft/pbft/types"
 )
 
-func (p *PBFT) HandlePreprepare(msg *pbfttypes.Message) error {
+func (p *Core) HandlePreprepare(msg *pbfttypes.Message) error {
 	preprepare, err := pbfttypes.DecodeMsg(msg.Msg)
 	if err != nil {
 		return nil
@@ -16,7 +16,7 @@ func (p *PBFT) HandlePreprepare(msg *pbfttypes.Message) error {
 	return nil
 }
 
-func (p *PBFT) SendPreprepare() error {
+func (p *Core) SendPreprepare() error {
 	var msg pbfttypes.Message
 	msg.Code = pbfttypes.MsgPrepare
 
@@ -25,6 +25,6 @@ func (p *PBFT) SendPreprepare() error {
 	return nil
 }
 
-func (p *PBFT) AcceptPrepare() {
-
+func (p *Core) AcceptPrepare() {
+	p.state = pbfttypes.StatePrepared
 }

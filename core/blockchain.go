@@ -70,7 +70,7 @@ func (bc *Blockchain) mineNewBLock() (*Block, error) {
 	header := NewBlockHeader(bc.currentBlockHash, uint64(0))
 	block := NewBlock(header, txs)
 
-	bc.AddBlock(block)
+	// bc.AddBlock(block)
 	bc.NewBlockChan <- block // 将新区块发送到通道
 
 	bc.TxPool.ClearPackedTxs(block.Transactions)
