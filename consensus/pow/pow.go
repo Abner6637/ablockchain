@@ -1,96 +1,129 @@
 package pow
 
 import (
-	"ablockchain/crypto"
-	"encoding/hex"
-	"fmt"
-
 	"ablockchain/core"
+	"ablockchain/crypto"
+	"ablockchain/event"
+	"ablockchain/p2p"
+	"bytes"
+	"fmt"
+	"math/big"
+	"time"
 )
 
-type PowProof struct {
-	BlockHeader *core.BlockHeader
+type ProofOfWork struct {
+	p2pNode *p2p.Node
+	block   *core.Block
+	target  *big.Int //用于判断hash前置0个数是否达到Difficulty要求
+	running bool
 }
 
-func NewPoWProof(BlockHeader *core.BlockHeader) *PowProof {
-	consensus := new(PowProof)
-	consensus.BlockHeader = BlockHeader
-
-	return consensus
+func NewProofOfWork(p2pNode *p2p.Node) *ProofOfWork {
+	return &ProofOfWork{
+		p2pNode: p2pNode,
+		running: false,
+		block:   nil,
+		target:  nil,
+	}
 }
 
-// 实现 Start 方法
-// TODO: 要复用consensus接口的话，Start函数里的参数要和接口一致
-func (p *PowProof) Start(block *core.Block) error {
-	fmt.Println("PoW 共识已启动")
-	nounce := p.mine()
-	fmt.Println(nounce)
-	return nil
+// 准备用于计算hash的数据
+func (pow *ProofOfWork) prepareData(nonce uint64) []byte {
+	data := bytes.Join(
+		[][]byte{
+			pow.block.Header.ParentHash,
+			pow.block.Header.MerkleRoot,
+			[]byte(fmt.Sprintf("%v", pow.block.Header.Time)),
+			[]byte(fmt.Sprintf("%d", pow.block.Header.Difficulty)),
+			[]byte(fmt.Sprintf("%d", nonce)),
+		},
+		[]byte{},
+	)
+	return data
 }
 
-// 实现 Stop 方法
-func (p *PowProof) Stop() error {
-	fmt.Println("PoW 共识已停止")
-	return nil
+// 共识的核心逻辑
+func (pow *ProofOfWork) Run(block *core.Block) {
+	var hashInt big.Int
+	var hash []byte
+	nonce := uint64(0)
+	maxNonce := uint64(1000000)
+	pow.block = block
+	target := big.NewInt(1)
+	target.Lsh(target, uint(256-pow.block.Header.Difficulty*4))
+	pow.target = target
+
+	fmt.Printf("Mining the block \"%d\"\n", pow.block.Header.Number)
+	for nonce < maxNonce {
+		data := pow.prepareData(nonce)
+		hash = crypto.GlobalHashAlgorithm.Hash(data)
+		hashInt.SetBytes(hash[:])
+		//结束条件：hash小于target
+		if hashInt.Cmp(pow.target) == -1 {
+			fmt.Printf("\n hash: %x", hash)
+			fmt.Printf("\n nonce: %d", nonce)
+			break
+		} else {
+			nonce++
+		}
+	}
+	fmt.Print("\n\n")
+
+	block.Hash = hash[:]
+	block.Header.Nonce = nonce
 }
 
-// 计算区块的哈希值
-func (pow *PowProof) calculateHash(nonce uint32) []byte {
-	// 拼接区块头数据并计算其哈希
-	data := append(pow.BlockHeader.ParentHash, []byte(fmt.Sprintf("%v", pow.BlockHeader.Time))...)
-	data = append(data, []byte(fmt.Sprintf("%d", pow.BlockHeader.Difficulty))...)
-	data = append(data, pow.BlockHeader.MerkleRoot...)
-	data = append(data, []byte(fmt.Sprintf("%d", nonce))...)
-
+// 验证hash
+func (pow *ProofOfWork) Validate(block *core.Block) bool {
+	var hashInt big.Int
+	data := pow.prepareData(block.Header.Nonce)
 	hash := crypto.GlobalHashAlgorithm.Hash(data)
-	return hash[:]
+	hashInt.SetBytes(hash[:])
+
+	isValid := hashInt.Cmp(pow.target) == -1
+
+	return isValid
 }
 
-// 判断哈希是否符合难度要求
-func (pow *PowProof) isValidHash(hash []byte) bool {
-	// 根据 Difficulty 生成目标难度
-	target := make([]byte, len(hash))
-	// 生成目标值，即哈希值需要的前导零数量
-	for i := uint64(0); i < pow.BlockHeader.Difficulty; i++ {
-		target[i/8] |= 1 << (7 - (i % 8))
+// 实现共识接口
+func (pow *ProofOfWork) Start() error {
+	if pow.running {
+		fmt.Println("PoW 已经在运行")
+		return nil
 	}
-	// 如果哈希小于目标值，说明符合难度要求
-	return compareHashes(hash, target) < 0
+
+	pow.running = true
+	go pow.ListenForConsensus()
+	return nil
 }
 
-// 比较两个哈希值，返回第一个小于还是大于第二个
-func compareHashes(a, b []byte) int {
-	for i := 0; i < len(a); i++ {
-		if a[i] < b[i] {
-			return -1
-		} else if a[i] > b[i] {
-			return 1
-		}
+func (pow *ProofOfWork) Stop() error {
+	if !pow.running {
+		fmt.Println("PoW 已经停止")
+		return nil
 	}
-	return 0
+	pow.running = false
+	event.StopConsensus() // 统一停止所有共识
+	fmt.Println("PoW stop")
+	return nil
 }
 
-// 进行工作量证明，返回找到的Nonce
-func (pow *PowProof) mine() uint32 {
-	var nonce uint32
+// 监听共识事件
+func (pow *ProofOfWork) ListenForConsensus() {
 	for {
-		hash := pow.calculateHash(nonce)
-		if pow.isValidHash(hash) {
-			return nonce
+		select {
+		case block := <-event.ConsensusStart:
+			fmt.Println("PoW 收到共识事件，开始计算区块:", block.Header.Number)
+			pow.Run(block)
+			if pow.Validate(block) {
+				fmt.Println("验证通过，准备上链")
+				event.TriggerCommit(block)
+			}
+		default:
+			if event.ShouldStop() {
+				return
+			}
+			time.Sleep(500 * time.Millisecond) // 避免 CPU 高占用
 		}
-		nonce++
 	}
-}
-
-// 获取区块的哈希值
-func (pow *PowProof) GetBlockHash() []byte {
-	nonce := pow.mine()
-	hash := pow.calculateHash(nonce)
-	return hash
-}
-
-// 辅助函数：显示区块哈希（用于调试）
-func (pow *PowProof) DisplayBlockHash() {
-	hash := pow.GetBlockHash()
-	fmt.Printf("Block Hash: %s\n", hex.EncodeToString(hash))
 }

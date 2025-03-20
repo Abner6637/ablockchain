@@ -4,8 +4,9 @@ import (
 	"ablockchain/cli"
 	"ablockchain/consensus"
 	pbftcore "ablockchain/consensus/bft/pbft/core"
-	"ablockchain/consensus/poa"
+	"ablockchain/consensus/pow"
 	"ablockchain/core"
+	"ablockchain/event"
 	"ablockchain/p2p"
 	"fmt"
 
@@ -45,8 +46,8 @@ func StartSystem(cfg *cli.Config) *System {
 	switch cfg.ConsensusType {
 	case "pbft":
 		sys.consensus = pbftcore.NewCore(node) // TODO：调用接口必须需要使用pbftcore吗？
-	case "poa":
-		sys.consensus = poa.NewPoA()
+	case "pow":
+		sys.consensus = pow.NewProofOfWork(node)
 	default:
 		sys.consensus = pbftcore.NewCore(node)
 	}
@@ -72,8 +73,14 @@ func ListenNewBlocks(bc *core.Blockchain) {
 	go func() {
 		for {
 			select {
+			// 打包区块（触发共识）
 			case block := <-bc.NewBlockChan:
+				fmt.Println("\n##触发共识##")
 				handleNewBlock(block)
+			// 提交区块（上链）
+			case block := <-event.ConsensusFinish:
+				fmt.Println("\n##提交区块##")
+				bc.AddBlock(block)
 			}
 		}
 	}()
@@ -85,5 +92,6 @@ func ListenNewBlocks(bc *core.Blockchain) {
 //
 // TODO
 func handleNewBlock(block *core.Block) {
+	event.TriggerConsensus(block)
 
 }
