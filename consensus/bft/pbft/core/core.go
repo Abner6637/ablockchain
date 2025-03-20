@@ -2,13 +2,17 @@ package pbftcore
 
 import (
 	pbfttypes "ablockchain/consensus/bft/pbft/types"
+	"ablockchain/event"
 	"ablockchain/p2p"
+	"log"
 )
 
 type Core struct {
 	p2pNode *p2p.Node
 
 	consensusState *consensusState
+
+	events []event.EventSubscription
 }
 
 func (c *Core) Start() error {
@@ -21,7 +25,8 @@ func (c *Core) Start() error {
 func (c *Core) Stop() error {
 
 	// TODO
-	// 关闭一些必要的进程
+	event.Bus.Publish("ConsensusStop", true)
+	log.Println("PBFT stop")
 	return nil
 }
 

@@ -38,3 +38,8 @@ func (eb *EventBus[T]) Publish(eventType string, message T) {
 		}
 	}
 }
+
+type EventSubscription struct {
+	Name    string     // 事件名称
+	Channel <-chan any // 事件通道
+}
