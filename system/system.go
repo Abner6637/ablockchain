@@ -32,7 +32,7 @@ func StartSystem(cfg *cli.Config) *System {
 	sys.accountManager = accountManager
 	account, err := accountManager.NewAccount()
 	if err != nil {
-		fmt.Errorf("cannot create new account")
+		log.Printf("cannot create new account: %v", err)
 	}
 	accountManager.Accounts[account.Address] = account
 	// TODO: account的地址如何获取，account的各个参数如何设置，如公私钥、balance
@@ -54,7 +54,7 @@ func StartSystem(cfg *cli.Config) *System {
 
 	// 开启共识模块
 	sys.consensus.Start()
-	fmt.Printf("开启共识模块……\n")
+	log.Printf("开启共识模块……\n")
 
 	bc.StartMiner()     // 异步进程，开启判断是否要打包交易生成区块
 	ListenNewBlocks(bc) // 异步进程，监听是否有新区块生成，若有则处理
@@ -88,8 +88,7 @@ func ListenNewBlocks(bc *core.Blockchain) {
 }
 
 // 处理新区块
-// 1. 广播区块（可能不需要，在共识里面操作？）
-// 2. 触发一个事件，共识模块需要事先注册事件，告知有新区块生成；相应地，共识部分需要增加监听该事件的内容
+// 1. 触发一个事件，共识模块需要事先注册事件，告知有新区块生成；相应地，共识部分需要增加监听该事件的内容
 //
 // TODO
 func handleNewBlock(block *core.Block) {

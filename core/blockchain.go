@@ -4,6 +4,7 @@ import (
 	"ablockchain/config"
 	"ablockchain/storage"
 	"fmt"
+	"log"
 	"time"
 )
 
@@ -29,16 +30,16 @@ func NewBlockchain() (*Blockchain, error) {
 
 	txPool := NewTxPool()
 
-	// 加载创世配置
-	genensisConfig, err := config.LoadGenesisConfig("config/genesis.json")
+	// 加载创世配置（需要在启动的目录下有一个创世文件
+	genensisConfig, err := config.LoadGenesisConfig("./genesis.json")
 	if err != nil {
 		return nil, err
 	}
-	fmt.Printf("加载创世配置……\n")
+	log.Printf("加载创世配置……\n")
 
 	// 创建创世区块
 	genesisBlock := NewGenesisBlock(genensisConfig.Difficulty)
-	fmt.Printf("创建创世区块……\n")
+	log.Printf("创建创世区块……\n")
 	db.Put("0", genesisBlock)
 
 	return &Blockchain{
@@ -80,5 +81,5 @@ func (bc *Blockchain) mineNewBLock() (*Block, error) {
 func (bc *Blockchain) AddBlock(block *Block) {
 	str := fmt.Sprintf("%d", block.Header.Number)
 	fmt.Println(str, block)
-	bc.db.Put(str, block) // str代表区块编号Number（可能不是这样的
+	bc.db.Put(str, block)
 }
