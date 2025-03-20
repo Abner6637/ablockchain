@@ -1,5 +1,7 @@
 package core
 
+import "fmt"
+
 type Account struct {
 	Address   string
 	PublicKey []byte
@@ -13,6 +15,7 @@ type AccountManager struct {
 }
 
 func NewAccountManager() *AccountManager {
+	fmt.Printf("创建新的账户管理器\n")
 	return &AccountManager{
 		Accounts: make(map[string]*Account),
 	}
@@ -20,5 +23,6 @@ func NewAccountManager() *AccountManager {
 
 func (am *AccountManager) NewAccount() (*Account, error) {
 	publicKey, secretKey := "test", "test"
+	fmt.Printf("创建新账户，publickey: %s\n", publicKey)
 	return &Account{PublicKey: []byte(publicKey), SecretKey: []byte(secretKey)}, nil
 }

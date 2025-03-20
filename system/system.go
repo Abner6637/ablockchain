@@ -39,7 +39,7 @@ func StartSystem(cfg *cli.Config) *System {
 
 	bc, err := core.NewBlockchain()
 	if err != nil {
-		log.Fatalf("initial blockchain failed")
+		log.Fatalf("initial blockchain failed: %v", err)
 	}
 	sys.blockChain = bc
 
@@ -54,6 +54,7 @@ func StartSystem(cfg *cli.Config) *System {
 
 	// 开启共识模块
 	sys.consensus.Start()
+	fmt.Printf("开启共识模块……\n")
 
 	bc.StartMiner()     // 异步进程，开启判断是否要打包交易生成区块
 	ListenNewBlocks(bc) // 异步进程，监听是否有新区块生成，若有则处理

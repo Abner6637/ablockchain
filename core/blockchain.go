@@ -1,6 +1,7 @@
 package core
 
 import (
+	"ablockchain/config"
 	"ablockchain/storage"
 	"fmt"
 	"time"
@@ -19,7 +20,6 @@ type Blockchain struct {
 	NewBlockChan chan *Block
 }
 
-// ##错误待修复
 func NewBlockchain() (*Blockchain, error) {
 	path := "./block_storage"
 	db, err := storage.NewLevelDB(path)
@@ -29,17 +29,17 @@ func NewBlockchain() (*Blockchain, error) {
 
 	txPool := NewTxPool()
 
-	// // 加载创世配置
-	// genensisConfig, err := config.LoadGenesisConfig("./genesis.json")
-	// if err != nil {
-	// 	return nil, err
-	// }
+	// 加载创世配置
+	genensisConfig, err := config.LoadGenesisConfig("config/genesis.json")
+	if err != nil {
+		return nil, err
+	}
+	fmt.Printf("加载创世配置……\n")
 
-	// // acountManager := NewAccountManager();
-
-	// // 创建创世区块
-	// genesisBlock := NewGenesisBlock(genensisConfig.Difficulty)
-	// db.Put("0", genesisBlock)
+	// 创建创世区块
+	genesisBlock := NewGenesisBlock(genensisConfig.Difficulty)
+	fmt.Printf("创建创世区块……\n")
+	db.Put("0", genesisBlock)
 
 	return &Blockchain{
 		db:           db,
