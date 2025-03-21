@@ -28,8 +28,6 @@ func (tx *Transaction) EncodeTx() ([]byte, error) {
 	return encodedTx, nil
 }
 
-// TODO:rlp解码的时候，传入的是数据地址还是数据本身？
-// 涉及到解码的部分都需要修改
 func DecodeTx(data []byte) (*Transaction, error) {
 	var tx Transaction
 	err := rlp.DecodeBytes(data, &tx)

@@ -56,6 +56,7 @@ func StartSystem(cfg *cli.Config) *System {
 	sys.consensus.Start()
 	log.Printf("开启共识模块……\n")
 
+	// TODO：如对于PBFT算法，非主节点应该不需要开启挖矿进程？
 	bc.StartMiner()     // 异步进程，开启判断是否要打包交易生成区块
 	ListenNewBlocks(bc) // 异步进程，监听是否有新区块生成，若有则处理
 
@@ -66,10 +67,6 @@ func StartSystem(cfg *cli.Config) *System {
 	return &sys
 }
 
-// 监听通道，是否有新区块产生
-// 后续可以增加其他监听通道内容在里面
-//
-// TODO
 func ListenNewBlocks(bc *core.Blockchain) {
 	consensusfinish := event.Bus.Subscribe("ConsensusFinish")
 
@@ -93,10 +90,6 @@ func ListenNewBlocks(bc *core.Blockchain) {
 	}()
 }
 
-// 处理新区块
-// 1. 触发一个事件，共识模块需要事先注册事件，告知有新区块生成；相应地，共识部分需要增加监听该事件的内容
-//
-// TODO
 func handleNewBlock(block *core.Block) {
 	event.Bus.Publish("ConsensusStart", block)
 

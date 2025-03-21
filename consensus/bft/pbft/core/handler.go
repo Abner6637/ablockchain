@@ -25,10 +25,13 @@ func (c *Core) SubcribeEvents() {
 			Name:    "MessageEvent",
 			Channel: event.Bus.Subscribe("MessageEvent"),
 		},
+		{
+			Name:    "RequestEvent",
+			Channel: event.Bus.Subscribe("RequestEvent"),
+		},
 	}
 }
 
-// TODO: after events finished
 func (c *Core) HandleEvents() {
 	go func() {
 		// 准备反射监听参数
@@ -64,6 +67,8 @@ func (c *Core) HandleEvents() {
 						Msg:  startEvent.Block.Hash,
 						Time: time.Now(),
 					}
+					// TODO，目前Request是直接由自己生成的（假设是主节点的话）
+					// 其次，目前还没有做主节点区分（怎么区分？）
 					c.HandleRequest(request)
 				}
 			case "ConsensusStop":
