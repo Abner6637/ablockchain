@@ -4,6 +4,7 @@
 *.o
 *.a
 *.so
+/ablockchain
 
 # Go 的缓存文件和依赖
 /vendor/

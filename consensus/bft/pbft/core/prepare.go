@@ -12,7 +12,12 @@ func (c *Core) HandlePrepare(msg *pbfttypes.Message) error {
 		return err
 	}
 
-	c.AcceptPrepare(prepare)
+	c.consensusState.addPrepare(msg)
+
+	if len(c.consensusState.Prepares.messages) >= 2*ByzantineSize+1 {
+		c.consensusState.setState(pbfttypes.StatePrepared)
+		c.SendCommit()
+	}
 
 	return nil
 }
@@ -29,8 +34,4 @@ func (c *Core) SendPrepare() error {
 	c.Broadcast(&msg)
 
 	return nil
-}
-
-func (c *Core) AcceptPrepare(prepare *bft.Prepare) {
-	c.consensusState.state = pbfttypes.StatePrepared
 }

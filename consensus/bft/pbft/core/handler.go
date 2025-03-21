@@ -21,6 +21,10 @@ func (c *Core) SubcribeEvents() {
 			Name:    "ConsensusStop",
 			Channel: event.Bus.Subscribe("ConsensusStop"),
 		},
+		{
+			Name:    "MessageEvent",
+			Channel: event.Bus.Subscribe("MessageEvent"),
+		},
 	}
 }
 
@@ -69,6 +73,14 @@ func (c *Core) HandleEvents() {
 						return
 					}
 				}
+			case "MessageEvent":
+				if MsgEvent, ok := eventData.(bft.MessageEvent); ok {
+					msg := MsgEvent.Msg
+					err := c.HandleMessage(msg)
+					if err != nil {
+						log.Println("failed to handle the message")
+					}
+				}
 			default:
 				log.Printf("未知事件类型: %s", eventNames[chosen])
 			}
@@ -86,6 +98,12 @@ func (c *Core) HandleMessage(payload []byte) error {
 	switch msg.Code {
 	case pbfttypes.MsgPreprepare:
 		err := c.HandlePreprepare(msg)
+		return err
+	case pbfttypes.MsgPrepare:
+		err := c.HandlePrepare(msg)
+		return err
+	case pbfttypes.MsgCommit:
+		err := c.HandleCommit(msg)
 		return err
 	}
 

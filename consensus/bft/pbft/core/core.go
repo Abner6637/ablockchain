@@ -7,6 +7,10 @@ import (
 	"log"
 )
 
+const (
+	ByzantineSize int = 1
+)
+
 type Core struct {
 	p2pNode *p2p.Node
 
@@ -27,8 +31,6 @@ func (c *Core) Start() error {
 }
 
 func (c *Core) Stop() error {
-
-	// TODO
 	event.Bus.Publish("ConsensusStop", true)
 	log.Println("PBFT stop")
 	return nil

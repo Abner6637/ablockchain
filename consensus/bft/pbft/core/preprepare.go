@@ -7,12 +7,14 @@ import (
 
 func (c *Core) HandlePreprepare(msg *pbfttypes.Message) error {
 	var preprepare *bft.Preprepare
-	err := msg.Decode(&preprepare)
+	err := msg.Decode(&preprepare) // 直接针对msg.Msg进行解码
 	if err != nil {
 		return err
 	}
 
-	c.AcceptPreprepare(preprepare)
+	c.consensusState.setPreprepare(preprepare)
+	c.consensusState.setState(pbfttypes.StatePreprepared)
+
 	c.SendPrepare()
 
 	return nil
@@ -34,8 +36,4 @@ func (c *Core) SendPreprepare(request *bft.Request) error {
 	c.Broadcast(&msg)
 
 	return nil
-}
-
-func (c *Core) AcceptPreprepare(preprepare *bft.Preprepare) {
-	c.consensusState.state = pbfttypes.StatePrepared
 }
