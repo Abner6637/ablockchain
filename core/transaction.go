@@ -2,6 +2,7 @@ package core
 
 import (
 	"ablockchain/crypto"
+	"fmt"
 	"log"
 	"time"
 
@@ -9,6 +10,7 @@ import (
 	"github.com/libp2p/go-libp2p/core/network"
 )
 
+// rlp编码不支持time.Time，考虑改为Unix？
 type Transaction struct {
 	Time time.Time
 	Hash []byte
@@ -61,4 +63,20 @@ func CalculateMerkleRoot(transactions []*Transaction) []byte {
 		txHashes = append(txHashes, tx.Hash)
 	}
 	return crypto.ComputeMerkleRoot(txHashes)
+}
+
+func (tx *Transaction) PrintTransaction() {
+	if tx == nil {
+		fmt.Println("Transaction is nil")
+		return
+	}
+
+	// 打印 Transaction 信息
+	fmt.Println("Transaction:")
+	fmt.Printf("  Hash: %x\n", tx.Hash) // 输出字节数组为十六进制
+	fmt.Printf("  From: %s\n", tx.From)
+	fmt.Printf("  To: %s\n", tx.To)
+	fmt.Printf("  Value: %d\n", tx.Value)
+	fmt.Printf("  Gas: %d\n", tx.Gas)
+	fmt.Printf("  Time: %v\n", tx.Time)
 }

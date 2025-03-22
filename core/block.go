@@ -4,6 +4,7 @@ import (
 	"ablockchain/crypto"
 	"bytes"
 	"encoding/binary"
+	"fmt"
 	"log"
 	"time"
 
@@ -59,7 +60,7 @@ func NewBlock(bh *BlockHeader, txs []*Transaction) *Block {
 	}
 }
 
-func (b *Block) EncodeBLock() ([]byte, error) {
+func (b *Block) EncodeBlock() ([]byte, error) {
 	encodedBlock, err := rlp.EncodeToBytes(b)
 	if err != nil {
 		log.Fatal("RLP encoding failed:", err)
@@ -86,4 +87,21 @@ func NewGenesisBlock(dif uint64) *Block {
 			Difficulty: dif,
 		},
 	}
+}
+
+func (b *Block) PrintBlock() {
+	if b.Header == nil {
+		fmt.Println("BlockHeader is nil")
+		return
+	}
+
+	fmt.Printf("BlockHash: %x\n", b.Hash)
+
+	fmt.Println("BlockHeader:")
+	fmt.Printf("  ParentHash: %x\n", b.Header.ParentHash) // 输出字节数组为十六进制
+	fmt.Printf("  Time: %v\n", b.Header.Time)
+	fmt.Printf("  Difficulty: %d\n", b.Header.Difficulty)
+	fmt.Printf("  Number: %d\n", b.Header.Number)
+	fmt.Printf("  MerkleRoot: %x\n", b.Header.MerkleRoot)
+	fmt.Printf("  Nonce: %d\n", b.Header.Nonce)
 }
