@@ -2,6 +2,7 @@ package p2p
 
 import (
 	"ablockchain/core"
+	"ablockchain/event"
 	"fmt"
 
 	"github.com/ethereum/go-ethereum/rlp"
@@ -56,6 +57,7 @@ func ProcessMessage(msg *Message) {
 			fmt.Errorf("交易解码失败")
 		}
 		tx.PrintTransaction()
+		event.Bus.Publish("TransactionMessage", tx)
 
 	case BlockMessage:
 		fmt.Println("处理区块消息...")
@@ -64,6 +66,7 @@ func ProcessMessage(msg *Message) {
 			fmt.Errorf("区块解码失败")
 		}
 		block.PrintBlock()
+		event.Bus.Publish("BlockMessage", block)
 
 	case ConsensusMessage:
 		fmt.Println("处理共识消息...")

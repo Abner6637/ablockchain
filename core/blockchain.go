@@ -80,6 +80,7 @@ func (bc *Blockchain) mineNewBLock() (*Block, error) {
 
 func (bc *Blockchain) AddBlock(block *Block) {
 	str := fmt.Sprintf("%d", block.Header.Number)
-	fmt.Println(str, block)
+	fmt.Println(str)
+	block.PrintBlock()
 	bc.db.Put(str, block)
 }
