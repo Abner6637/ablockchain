@@ -14,8 +14,8 @@ func (c *Core) HandlePrepare(msg *pbfttypes.Message) error {
 
 	c.consensusState.addPrepare(msg)
 
-	if len(c.consensusState.Prepares.messages) >= 2*ByzantineSize+1 {
-		c.consensusState.setState(pbfttypes.StatePrepared)
+	if len(c.consensusState.Prepares.messages) >= 2*c.ByzantineSize+1 {
+		c.setState(pbfttypes.StatePrepared)
 		c.SendCommit()
 	}
 

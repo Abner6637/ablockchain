@@ -16,8 +16,8 @@ func (c *Core) HandleCommit(msg *pbfttypes.Message) error {
 
 	c.consensusState.addCommit(msg)
 
-	if len(c.consensusState.Commits.messages) >= 2*ByzantineSize+1 {
-		c.consensusState.setState(pbfttypes.StateCommitted)
+	if len(c.consensusState.Commits.messages) >= 2*c.ByzantineSize+1 {
+		c.setState(pbfttypes.StateCommitted)
 
 		// TODO: 区块是从这时候获取的吗？还是从HandleRequest那里先在core里存一个block？
 		block, err := c.consensusState.getBlock()

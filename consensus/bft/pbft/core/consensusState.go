@@ -15,12 +15,21 @@ type consensusState struct {
 	view     *big.Int
 	sequence *big.Int
 
-	state pbfttypes.State
-
 	Preprepare *bft.Preprepare
 	Prepares   *messageSet
 	Commits    *messageSet
 	lock       *sync.RWMutex
+}
+
+func NewConsensusState(view *big.Int, sequence *big.Int, preprepare *bft.Preprepare) *consensusState {
+	return &consensusState{
+		view:       big.NewInt(0),
+		sequence:   big.NewInt(0),
+		Preprepare: preprepare,
+		Prepares:   NewMessageSet(),
+		Commits:    NewMessageSet(),
+		lock:       new(sync.RWMutex),
+	}
 }
 
 func (s *consensusState) getBlock() (*core.Block, error) {
@@ -103,11 +112,4 @@ func (s *consensusState) addCommit(msg *pbfttypes.Message) {
 	defer s.lock.RUnlock()
 
 	s.Commits.messages[string(msg.Address)] = msg
-}
-
-func (s *consensusState) setState(state pbfttypes.State) {
-	s.lock.RLock()
-	defer s.lock.RUnlock()
-
-	s.state = state
 }

@@ -6,3 +6,9 @@ import pbfttypes "ablockchain/consensus/bft/pbft/types"
 type messageSet struct {
 	messages map[string]*pbfttypes.Message
 }
+
+func NewMessageSet() *messageSet {
+	return &messageSet{
+		messages: make(map[string]*pbfttypes.Message),
+	}
+}

@@ -13,7 +13,7 @@ func (c *Core) HandlePreprepare(msg *pbfttypes.Message) error {
 	}
 
 	c.consensusState.setPreprepare(preprepare)
-	c.consensusState.setState(pbfttypes.StatePreprepared)
+	c.setState(pbfttypes.StatePreprepared)
 
 	c.SendPrepare()
 
