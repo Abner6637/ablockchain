@@ -3,6 +3,7 @@ package pbftcore
 import (
 	"ablockchain/consensus/bft"
 	pbfttypes "ablockchain/consensus/bft/pbft/types"
+	"ablockchain/core"
 	"ablockchain/event"
 	"errors"
 	"fmt"
@@ -62,9 +63,9 @@ func (c *Core) HandleEvents() {
 			// 根据事件名称路由处理
 			switch eventNames[chosen] {
 			case "ConsensusStart":
-				if startEvent, ok := eventData.(bft.ConsensusStartEvent); ok { // 类型断言确保事件数据类型的正确性
+				if block, ok := eventData.(*core.Block); ok { // 类型断言确保事件数据类型的正确性
 					request := &bft.Request{
-						Msg:  startEvent.Block.Hash,
+						Msg:  block.Hash,
 						Time: time.Now(),
 					}
 					// TODO，目前Request是直接由自己生成的（假设是主节点的话）
@@ -72,15 +73,14 @@ func (c *Core) HandleEvents() {
 					c.HandleRequest(request)
 				}
 			case "ConsensusStop":
-				if stopEvent, ok := eventData.(bft.ConsensusStopEvent); ok {
-					if stopEvent.IsStop == true {
+				if isStop, ok := eventData.(bool); ok {
+					if isStop == true {
 						fmt.Println("\n结束监听")
 						return
 					}
 				}
 			case "MessageEvent":
-				if MsgEvent, ok := eventData.(bft.MessageEvent); ok {
-					msg := MsgEvent.Msg
+				if msg, ok := eventData.([]byte); ok {
 					err := c.HandleMessage(msg)
 					if err != nil {
 						log.Println("failed to handle the message")

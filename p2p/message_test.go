@@ -52,7 +52,7 @@ func TestMessageEncodingDecoding(t *testing.T) {
 // 交易
 func TestProcessMessageTransaction(t *testing.T) {
 	tx := newTestTransaction()
-	tx.PrintTransaction()
+	// tx.PrintTransaction()
 	data, err := tx.EncodeTx()
 	if err != nil {
 		return
@@ -65,7 +65,7 @@ func TestProcessMessageTransaction(t *testing.T) {
 // 区块
 func TestProcessMessageBlock(t *testing.T) {
 	block := newTestBlock()
-	block.PrintBlock()
+	// block.PrintBlock()
 	data, err := block.EncodeBlock()
 	if err != nil {
 		return

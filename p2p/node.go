@@ -3,6 +3,7 @@ package p2p
 import (
 	"context"
 	"fmt"
+	"log"
 
 	"github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p/core/host"
@@ -33,6 +34,18 @@ func NewNode(listenAddress string) (*Node, error) {
 
 	// 设置协议处理器
 	node.SetStreamHandler(ProtocolID, n.handleStream)
+
+	// handleStream中消息回调时，触发MessageHandler，处理消息
+	// TODO：p2p层处理消息时是否需要另外建立一个进程？
+	n.SetMessageHandler(func(msg string) {
+		decodedMsg, err := DecodeMessage([]byte(msg))
+		if err != nil {
+			fmt.Printf("RLP解码失败")
+			return
+		}
+		ProcessMessage(decodedMsg)
+		log.Println("message handler处理消息完毕")
+	})
 
 	fmt.Printf("Node started on %s, ID: %s\n", node.Addrs(), node.ID())
 	return n, nil

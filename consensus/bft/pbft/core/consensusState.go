@@ -18,7 +18,7 @@ type consensusState struct {
 	state pbfttypes.State
 
 	Preprepare *bft.Preprepare
-	Prepares   *messageSet // 记录每个Address对应的消息哈希
+	Prepares   *messageSet
 	Commits    *messageSet
 	lock       *sync.RWMutex
 }

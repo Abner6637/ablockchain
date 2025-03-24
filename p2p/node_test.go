@@ -2,10 +2,12 @@ package p2p
 
 import (
 	"fmt"
+	"log"
 	"sync"
 	"testing"
 	"time"
 
+	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/libp2p/go-libp2p/core/network"
 	"github.com/multiformats/go-multiaddr"
 )
@@ -210,6 +212,41 @@ func TestBroadcast(t *testing.T) {
 	fmt.Print(nodeB.Peers)
 	fmt.Print(nodeC.Peers)
 	fmt.Print(nodeA.Peers)
+}
+
+func TestMessageHandler(t *testing.T) {
+	// 启动两个节点
+	nodeA, _ := NewNode("/ip4/127.0.0.1/tcp/0")
+	defer nodeA.Host.Close()
+
+	nodeB, _ := NewNode("/ip4/127.0.0.1/tcp/0")
+	defer nodeB.Host.Close()
+
+	// 连接节点
+	nodeBAddr, _ := getNodeFullAddr(nodeB)
+	if err := nodeA.ConnectToPeer(nodeBAddr); err != nil {
+		t.Fatalf("连接失败: %v", err)
+	}
+
+	msg := "test message handler"
+	data, err := rlp.EncodeToBytes(msg)
+	if err != nil {
+		t.Fatalf("编码失败: %v", err)
+	}
+
+	// 发送测试消息
+	testMsg := &Message{
+		Type: ConsensusMessage,
+		Data: data,
+	}
+
+	encodedTestMsg, err := testMsg.Encode()
+
+	log.Printf("发送消息，类型：%d，数据为编码后的：%s", testMsg.Type, msg)
+	if err := nodeA.SendMessage(nodeB.Host.ID(), string(encodedTestMsg)); err != nil {
+		t.Fatalf("发送失败: %v", err)
+	}
+
 }
 
 // 辅助函数：获取节点的完整 multiaddr 地址（含 PeerID）

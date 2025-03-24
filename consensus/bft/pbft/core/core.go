@@ -46,7 +46,16 @@ func (c *Core) Broadcast(msg *pbfttypes.Message) error {
 		return err
 	}
 
-	c.p2pNode.BroadcastMessage(string(payload))
+	p2pMsg := &p2p.Message{
+		Type: p2p.ConsensusMessage,
+		Data: payload,
+	}
+	encodedP2PMsg, err := p2pMsg.Encode()
+	if err != nil {
+		return err
+	}
+
+	c.p2pNode.BroadcastMessage(string(encodedP2PMsg))
 
 	return nil
 }

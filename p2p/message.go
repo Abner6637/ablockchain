@@ -56,7 +56,7 @@ func ProcessMessage(msg *Message) {
 		if err != nil {
 			fmt.Errorf("交易解码失败")
 		}
-		tx.PrintTransaction()
+		// tx.PrintTransaction()
 		event.Bus.Publish("TransactionMessage", tx)
 
 	case BlockMessage:
@@ -65,11 +65,17 @@ func ProcessMessage(msg *Message) {
 		if err != nil {
 			fmt.Errorf("区块解码失败")
 		}
-		block.PrintBlock()
+		// block.PrintBlock()
 		event.Bus.Publish("BlockMessage", block)
 
 	case ConsensusMessage:
 		fmt.Println("处理共识消息...")
+		/* 测试TestMessageHandler时使用
+		var mmsg string
+		rlp.DecodeBytes(msg.Data, &mmsg)
+		log.Printf("接收到的消息，类型：%d，数据为编码后的：%s", msg.Type, mmsg)
+		*/
+		event.Bus.Publish("MessageEvent", msg.Data)
 	default:
 		fmt.Println("未知消息类型")
 	}
