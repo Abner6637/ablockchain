@@ -3,6 +3,7 @@ package p2p
 import (
 	"context"
 	"fmt"
+	"io"
 	"log"
 
 	"github.com/libp2p/go-libp2p"
@@ -61,10 +62,16 @@ func (n *Node) handleStream(stream network.Stream) {
 
 	// 读取对方发送的数据
 	buf := make([]byte, 1024)
-	nBytes, err := stream.Read(buf)
-	if err != nil {
-		fmt.Printf("读取流失败: %v\n", err)
-		return
+	var fullData []byte // 定义一个fullData，防止消息长度大于1024字节时无法完全读取
+	for {
+		n, err := stream.Read(buf)
+		if err != nil {
+			if err == io.EOF {
+				break
+			}
+			log.Fatalf("读取数据时出错: %s", err)
+		}
+		fullData = append(fullData, buf[:n]...)
 	}
 
 	//读取消息源节点的信息
@@ -76,7 +83,7 @@ func (n *Node) handleStream(stream network.Stream) {
 		Addrs: []multiaddr.Multiaddr{peerAddr},
 	}
 
-	msg := string(buf[:nBytes])
+	msg := string(fullData)
 	fmt.Printf("收到来自 %s 的消息: %s\n", peerID, msg)
 
 	// 将连接成功的peer加入到Peers列表中
