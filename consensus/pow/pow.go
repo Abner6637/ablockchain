@@ -190,6 +190,20 @@ func (pow *ProofOfWork) HandleEvents() {
 					pow.Run(block)
 					if Validate(block) {
 						fmt.Println("验证通过，准备上链")
+						encodedBlock, err := block.EncodeBlock()
+						if err != nil {
+							log.Fatal("区块编码失败:encodedBlock, err := block.EncodeBlock()")
+						}
+						p2pMsg := &p2p.Message{
+							Type: p2p.BlockMessage,
+							Data: encodedBlock,
+						}
+						encodedP2PMsg, err := p2pMsg.Encode()
+						if err != nil {
+							log.Fatal("消息编码失败:encodedP2PMsg, err := p2pMsg.Encode()")
+						}
+						//挖出区块后进行广播
+						pow.p2pNode.BroadcastMessage(string(encodedP2PMsg))
 						event.Bus.Publish("ConsensusFinish", block)
 					} else {
 						fmt.Println("丢弃非法区块")
@@ -209,6 +223,7 @@ func (pow *ProofOfWork) HandleEvents() {
 				if !ok {
 					log.Fatal("转换失败: 事件数据不是 *core.Block 类型")
 				}
+				block.PrintBlock()
 				if Validate(block) {
 					fmt.Println("\n外部区块合法")
 					pow.stopcount = true //停止本轮计算
