@@ -1,7 +1,6 @@
 package cli
 
 import (
-	"ablockchain/p2p"
 	"flag"
 	"fmt"
 	"os"
@@ -26,15 +25,4 @@ func ParseFlags() *Config {
 	}
 	flag.Parse()
 	return cfg
-}
-
-func StartListen(cfg *Config) *p2p.Node {
-	node, err := p2p.NewNode(cfg.ListenAddr)
-	if err != nil {
-		fmt.Printf("启动节点失败: %v\n", err)
-		os.Exit(1)
-	}
-	fmt.Printf("节点已启动 ID: %s\n", node.ID)
-	fmt.Printf("监听地址: %v\n", node.Host.Addrs())
-	return node
 }

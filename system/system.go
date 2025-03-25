@@ -9,6 +9,7 @@ import (
 	"ablockchain/event"
 	"ablockchain/p2p"
 	"fmt"
+	"os"
 
 	"log"
 )
@@ -24,7 +25,7 @@ func StartSystem(cfg *cli.Config) *System {
 	var sys System
 
 	// 启动 P2P 节点
-	node := cli.StartListen(cfg)
+	node := StartListen(cfg)
 	sys.p2pNode = node
 
 	// 初始化账户管理和账户
@@ -62,10 +63,21 @@ func StartSystem(cfg *cli.Config) *System {
 	ListenNewBlocks(bc) // 异步进程，监听是否有新区块生成，若有则处理
 
 	// 进入交互命令行
-	commander := cli.NewCommander(node)
+	commander := NewCommander(node)
 	commander.Run()
 
 	return &sys
+}
+
+func StartListen(cfg *cli.Config) *p2p.Node {
+	node, err := p2p.NewNode(cfg.ListenAddr)
+	if err != nil {
+		fmt.Printf("启动节点失败: %v\n", err)
+		os.Exit(1)
+	}
+	fmt.Printf("节点已启动 ID: %s\n", node.ID)
+	fmt.Printf("监听地址: %v\n", node.Host.Addrs())
+	return node
 }
 
 func ListenNewBlocks(bc *core.Blockchain) {

@@ -25,6 +25,7 @@ type Blockchain struct {
 
 func NewBlockchain(DBPath string) (*Blockchain, error) {
 	// path := "./block_storage"
+	log.Printf("数据库存储地址: %s\n", DBPath)
 	path := DBPath
 	db, err := storage.NewLevelDB(path)
 	if err != nil {

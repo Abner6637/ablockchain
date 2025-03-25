@@ -13,10 +13,10 @@ func main() {
 	cfg := cli.ParseFlags()
 	
 	// 启动 P2P 节点
-	node := cli.StartListen(cfg)
+	node := StartListen(cfg)
 	
 	// 进入交互命令行
-	commander := cli.NewCommander(node)
+	commander := NewCommander(node)
 	commander.Run()
 }
 ```
