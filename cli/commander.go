@@ -10,6 +10,7 @@ import (
 type Config struct {
 	ListenAddr    string //p2p监听地址
 	ConsensusType string //共识类型
+	ConsensusNum  uint64
 }
 
 func ParseFlags() *Config {
