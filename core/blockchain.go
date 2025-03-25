@@ -23,8 +23,9 @@ type Blockchain struct {
 	NewBlockChan chan *Block
 }
 
-func NewBlockchain() (*Blockchain, error) {
-	path := "./block_storage"
+func NewBlockchain(DBPath string) (*Blockchain, error) {
+	// path := "./block_storage"
+	path := DBPath
 	db, err := storage.NewLevelDB(path)
 	if err != nil {
 		return nil, err
