@@ -61,7 +61,7 @@ func (c *Commander) Run() {
 		case "testmine":
 			c.testmine()
 		case "peers":
-			c.printPeers()
+			c.sys.p2pNode.PrintPeers()
 		case "exit":
 			c.running = false
 		case "help":
@@ -103,19 +103,6 @@ func (c *Commander) handleBroadcast(msg string) {
 	}
 	if err := c.sys.p2pNode.BroadcastMessage(msg); err != nil {
 		fmt.Printf("发送失败: %v\n", err)
-	}
-}
-
-func (c *Commander) printPeers() {
-	peers := c.sys.p2pNode.Host.Network().Peers()
-	if len(peers) == 0 {
-		fmt.Println("当前没有连接的节点")
-		return
-	}
-
-	fmt.Println("当前连接的节点列表:")
-	for _, peer := range peers {
-		fmt.Println(peer.String()) // 打印 Peer ID
 	}
 }
 

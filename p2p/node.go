@@ -16,8 +16,7 @@ import (
 
 type Node struct {
 	Host           host.Host
-	ID             string // 当前节点的ID
-	Peers          map[peer.ID]peer.AddrInfo
+	ID             string       // 当前节点的ID
 	MessageHandler func(string) // 消息接收回调
 
 	PrivateKey *ecdsa.PrivateKey
@@ -31,10 +30,8 @@ func NewNode(listenAddress string) (*Node, error) {
 	}
 
 	n := &Node{
-		Host:  node,
-		ID:    node.ID().String(),
-		Peers: make(map[peer.ID]peer.AddrInfo),
-		// privateKey: ,
+		Host: node,
+		ID:   node.ID().String(),
 	}
 
 	// 设置协议处理器
@@ -81,18 +78,8 @@ func (n *Node) handleStream(stream network.Stream) {
 
 	//读取消息源节点的信息
 	peerID := stream.Conn().RemotePeer()
-	peerAddr := stream.Conn().RemoteMultiaddr()
-
-	peerInfo := peer.AddrInfo{
-		ID:    peerID,
-		Addrs: []multiaddr.Multiaddr{peerAddr},
-	}
-
 	msg := string(fullData)
 	fmt.Printf("收到来自 %s 的消息: %s\n", peerID, msg)
-
-	// 将连接成功的peer加入到Peers列表中
-	n.Peers[peerID] = peerInfo
 
 	// 触发消息回调
 	if n.MessageHandler != nil {
@@ -138,20 +125,35 @@ func (n *Node) ConnectToPeer(peerAddress string) error {
 		return fmt.Errorf("failed to connect to peer: %v", err)
 	}
 
-	// 将连接成功的peer加入到Peers列表中
-	n.Peers[peerInfo.ID] = *peerInfo
-
 	fmt.Printf("Successfully connected to peer: %s, %s\n", peerInfo.Addrs, peerInfo.ID)
 	return nil
 }
 
-// 广播消息到所有连接的Peer
+// Peers 方法动态获取当前连接的所有节点
+func (n *Node) Peers() []peer.ID {
+	return n.Host.Network().Peers()
+}
+
 func (n *Node) BroadcastMessage(message string) error {
-	for peerID := range n.Peers {
+	for _, peerID := range n.Peers() {
 		if err := n.SendMessage(peerID, message); err != nil {
 			return fmt.Errorf("广播消息失败到 %s: %v", peerID, err)
 		}
 	}
 	fmt.Println("消息已广播到所有连接的节点")
 	return nil
+}
+
+func (n *Node) PrintPeers() {
+	peers := n.Peers() // 获取当前连接的所有对等节点
+
+	if len(peers) == 0 {
+		fmt.Println("当前没有连接的对等节点")
+		return
+	}
+
+	fmt.Println("当前连接的对等节点:")
+	for _, peerID := range peers {
+		fmt.Println("- ", peerID)
+	}
 }
