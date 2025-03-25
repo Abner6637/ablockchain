@@ -9,7 +9,8 @@ rm -rf ./block_storage
 mkdir -p ./block_storage/
 
 echo -e "${GREEN}启动第一个节点...${NC}"
-go run main.go --db ./block_storage/node1_data | tee ./block_storage/node1_addr.txt
+go run main.go --db ./block_storage/node1_data --consensus pow
+# go run main.go --db ./block_storage/node2_data --consensus pow
 
 # 等待节点启动
 sleep 3
