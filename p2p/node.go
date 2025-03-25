@@ -2,6 +2,7 @@ package p2p
 
 import (
 	"context"
+	"crypto/ecdsa"
 	"fmt"
 	"io"
 	"log"
@@ -18,6 +19,8 @@ type Node struct {
 	ID             string // 当前节点的ID
 	Peers          map[peer.ID]peer.AddrInfo
 	MessageHandler func(string) // 消息接收回调
+
+	PrivateKey *ecdsa.PrivateKey
 }
 
 // 创建新的p2p节点并开始监听
@@ -31,6 +34,7 @@ func NewNode(listenAddress string) (*Node, error) {
 		Host:  node,
 		ID:    node.ID().String(),
 		Peers: make(map[peer.ID]peer.AddrInfo),
+		// privateKey: ,
 	}
 
 	// 设置协议处理器

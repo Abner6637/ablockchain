@@ -11,7 +11,6 @@ import (
 	"github.com/ethereum/go-ethereum/rlp"
 )
 
-// TODO:修改time类型支持rlp编码
 type BlockHeader struct {
 	ParentHash []byte
 	Time       uint64

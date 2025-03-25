@@ -40,7 +40,9 @@ func (c *Core) SendCommit() error {
 		return err
 	}
 	msg.Msg = commit
+	msg.Address = c.address
 
+	c.consensusState.addCommit(&msg)
 	c.Broadcast(&msg)
 
 	return nil

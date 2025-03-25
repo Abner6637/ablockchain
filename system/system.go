@@ -47,7 +47,7 @@ func StartSystem(cfg *cli.Config) *System {
 
 	switch cfg.ConsensusType {
 	case "pbft":
-		sys.consensus = pbftcore.NewCore(node) // TODO：调用接口必须需要使用pbftcore吗？
+		sys.consensus = pbftcore.NewCore(node)
 	case "pow":
 		sys.consensus = pow.NewProofOfWork(node)
 	default:
@@ -77,6 +77,9 @@ func StartListen(cfg *cli.Config) *p2p.Node {
 	}
 	fmt.Printf("节点已启动 ID: %s\n", node.ID)
 	fmt.Printf("监听地址: %v\n", node.Host.Addrs())
+
+	// 节点的私钥
+	node.PrivateKey = cfg.NodeKey()
 	return node
 }
 

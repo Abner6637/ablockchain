@@ -3,14 +3,19 @@ package pbftcore
 import (
 	pbfttypes "ablockchain/consensus/bft/pbft/types"
 	"ablockchain/core"
+	"ablockchain/crypto"
 	"ablockchain/event"
 	"ablockchain/p2p"
+	"crypto/ecdsa"
 	"log"
 	"math/big"
 )
 
 type Core struct {
-	p2pNode *p2p.Node // 打算用p2pNode的ID标识共识节点的地址
+	p2pNode *p2p.Node
+
+	privateKey *ecdsa.PrivateKey
+	address    []byte
 
 	consensusState *consensusState
 
@@ -26,8 +31,10 @@ type Core struct {
 
 func NewCore(p2pNode *p2p.Node) *Core {
 	return &Core{
-		p2pNode: p2pNode,
-		state:   pbfttypes.StateAcceptRequest,
+		p2pNode:    p2pNode,
+		state:      pbfttypes.StateAcceptRequest,
+		privateKey: p2pNode.PrivateKey,
+		address:    crypto.PubkeyToAddress(p2pNode.PrivateKey.PublicKey).Bytes(),
 	}
 }
 

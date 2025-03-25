@@ -33,10 +33,13 @@ func (c *Core) SendPreprepare(request *bft.Request) error {
 		return err
 	}
 	msg.Msg = preprepare
+	msg.Address = c.address
 
 	c.Broadcast(&msg)
 
-	// 只有主节点会发送Preprepare，主节点在SendPreprepare中存储Preprepare，其他节点在HandlePreprepare
+	// 只有主节点会发送Preprepare，
+	// 主节点在SendPreprepare中存储Preprepare，
+	// 其他节点在HandlePreprepare中存储Preprepare
 	c.consensusState.setPreprepare(&bft.Preprepare{
 		View:     c.consensusState.getView(),
 		Sequence: c.consensusState.getSequence(),

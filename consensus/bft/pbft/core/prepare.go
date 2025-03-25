@@ -14,7 +14,8 @@ func (c *Core) HandlePrepare(msg *pbfttypes.Message) error {
 
 	c.consensusState.addPrepare(msg)
 
-	if len(c.consensusState.Prepares.messages) >= 2*c.ByzantineSize+1 {
+	// 2f个即可，因为还有一个是Preprepare
+	if len(c.consensusState.Prepares.messages) >= 2*c.ByzantineSize {
 		c.setState(pbfttypes.StatePrepared)
 		c.SendCommit()
 	}
@@ -30,7 +31,10 @@ func (c *Core) SendPrepare() error {
 		return err
 	}
 	msg.Msg = prepare
+	msg.Address = c.address
 
+	// 发给别人Prepare消息时，自己也保存一份自己发送的
+	c.consensusState.addPrepare(&msg)
 	c.Broadcast(&msg)
 
 	return nil
