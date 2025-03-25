@@ -42,7 +42,7 @@ func NewNode(listenAddress string) (*Node, error) {
 		fmt.Printf("\n[消息] %s\n> ", msg)
 		decodedMsg, err := DecodeMessage([]byte(msg))
 		if err != nil {
-			fmt.Printf("\nRLP解码失败")
+			fmt.Printf("RLP解码失败\n")
 			return
 		}
 		ProcessMessage(decodedMsg)

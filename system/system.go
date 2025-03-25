@@ -63,7 +63,7 @@ func StartSystem(cfg *cli.Config) *System {
 	ListenNewBlocks(bc) // 异步进程，监听是否有新区块生成，若有则处理
 
 	// 进入交互命令行
-	commander := NewCommander(node)
+	commander := NewCommander(&sys)
 	commander.Run()
 
 	return &sys

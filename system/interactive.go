@@ -1,7 +1,6 @@
 package system
 
 import (
-	"ablockchain/p2p"
 	"bufio"
 	"fmt"
 	"os"
@@ -9,14 +8,14 @@ import (
 )
 
 type Commander struct {
-	node    *p2p.Node
+	sys     *System
 	reader  *bufio.Reader
 	running bool
 }
 
-func NewCommander(node *p2p.Node) *Commander {
+func NewCommander(sys *System) *Commander {
 	return &Commander{
-		node:    node,
+		sys:     sys,
 		reader:  bufio.NewReader(os.Stdin),
 		running: true,
 	}
@@ -65,11 +64,11 @@ func (c *Commander) Run() {
 	}
 
 	fmt.Println("正在关闭节点...")
-	c.node.Host.Close()
+	c.sys.p2pNode.Host.Close()
 }
 
 func (c *Commander) handleConnect(addr string) {
-	if err := c.node.ConnectToPeer(addr); err != nil {
+	if err := c.sys.p2pNode.ConnectToPeer(addr); err != nil {
 		fmt.Printf("连接失败: %v\n", err)
 	} else {
 		fmt.Println("连接成功")
@@ -77,30 +76,30 @@ func (c *Commander) handleConnect(addr string) {
 }
 
 func (c *Commander) handleSend(msg string) {
-	if len(c.node.Host.Peerstore().Peers()) < 2 {
+	if len(c.sys.p2pNode.Host.Peerstore().Peers()) < 2 {
 		fmt.Println("错误: 未连接任何节点")
 		return
 	}
 
 	// 发送给第一个连接的节点（实际应用可扩展选择机制）
-	targetPeer := c.node.Host.Peerstore().Peers()[1]
-	if err := c.node.SendMessage(targetPeer, msg); err != nil {
+	targetPeer := c.sys.p2pNode.Host.Peerstore().Peers()[1]
+	if err := c.sys.p2pNode.SendMessage(targetPeer, msg); err != nil {
 		fmt.Printf("发送失败: %v\n", err)
 	}
 }
 
 func (c *Commander) handleBroadcast(msg string) {
-	if len(c.node.Host.Peerstore().Peers()) < 2 {
+	if len(c.sys.p2pNode.Host.Peerstore().Peers()) < 2 {
 		fmt.Println("错误: 未连接任何节点")
 		return
 	}
-	if err := c.node.BroadcastMessage(msg); err != nil {
+	if err := c.sys.p2pNode.BroadcastMessage(msg); err != nil {
 		fmt.Printf("发送失败: %v\n", err)
 	}
 }
 
 func (c *Commander) printPeers() {
-	peers := c.node.Host.Network().Peers()
+	peers := c.sys.p2pNode.Host.Network().Peers()
 	if len(peers) == 0 {
 		fmt.Println("当前没有连接的节点")
 		return
@@ -113,7 +112,7 @@ func (c *Commander) printPeers() {
 }
 
 func (c *Commander) printIncomingMessages() {
-	c.node.SetMessageHandler(func(msg string) {
+	c.sys.p2pNode.SetMessageHandler(func(msg string) {
 		fmt.Printf("\n[新消息] %s\n> ", msg) // 保持输入提示符
 	})
 }
