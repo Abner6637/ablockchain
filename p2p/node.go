@@ -39,9 +39,10 @@ func NewNode(listenAddress string) (*Node, error) {
 	// handleStream中消息回调时，触发MessageHandler，处理消息
 	// TODO：p2p层处理消息时是否需要另外建立一个进程？
 	n.SetMessageHandler(func(msg string) {
+		fmt.Printf("\n[消息] %s\n> ", msg)
 		decodedMsg, err := DecodeMessage([]byte(msg))
 		if err != nil {
-			fmt.Printf("RLP解码失败")
+			fmt.Printf("\nRLP解码失败")
 			return
 		}
 		ProcessMessage(decodedMsg)

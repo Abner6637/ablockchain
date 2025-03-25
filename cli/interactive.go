@@ -26,7 +26,7 @@ func (c *Commander) Run() {
 	fmt.Println("输入 'help' 查看可用命令")
 
 	// 启动消息接收协程
-	go c.printIncomingMessages()
+	//go c.printIncomingMessages()
 
 	for c.running {
 		fmt.Print("> ")
@@ -47,6 +47,14 @@ func (c *Commander) Run() {
 				continue
 			}
 			c.handleSend(parts[1])
+		case "broadcast":
+			if len(parts) < 2 {
+				fmt.Println("用法: broadcast <message>")
+				continue
+			}
+			c.handleBroadcast(parts[1])
+		case "peers":
+			c.printPeers()
 		case "exit":
 			c.running = false
 		case "help":
@@ -81,6 +89,29 @@ func (c *Commander) handleSend(msg string) {
 	}
 }
 
+func (c *Commander) handleBroadcast(msg string) {
+	if len(c.node.Host.Peerstore().Peers()) < 2 {
+		fmt.Println("错误: 未连接任何节点")
+		return
+	}
+	if err := c.node.BroadcastMessage(msg); err != nil {
+		fmt.Printf("发送失败: %v\n", err)
+	}
+}
+
+func (c *Commander) printPeers() {
+	peers := c.node.Host.Network().Peers()
+	if len(peers) == 0 {
+		fmt.Println("当前没有连接的节点")
+		return
+	}
+
+	fmt.Println("当前连接的节点列表:")
+	for _, peer := range peers {
+		fmt.Println(peer.String()) // 打印 Peer ID
+	}
+}
+
 func (c *Commander) printIncomingMessages() {
 	c.node.SetMessageHandler(func(msg string) {
 		fmt.Printf("\n[新消息] %s\n> ", msg) // 保持输入提示符
@@ -90,8 +121,10 @@ func (c *Commander) printIncomingMessages() {
 func (c *Commander) printHelp() {
 	fmt.Println(`
 可用命令:
-  connect <multiaddr> - 连接到指定节点
-  send <message>      - 发送消息
-  exit                - 退出程序
-  help                - 显示帮助`)
+  connect <multiaddr>  - 连接到指定节点
+  send <message>       - 发送消息
+  broadcast <message>  - 广播消息
+  peers                - 打印peers节点列表
+  exit                 - 退出程序
+  help                 - 显示帮助`)
 }
