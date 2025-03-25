@@ -5,18 +5,17 @@ import (
 	"bytes"
 	"encoding/binary"
 	"math/big"
-	"time"
 )
 
 type Request struct {
 	Msg  []byte
-	Time time.Time
+	Time uint64
 }
 
 func (r *Request) HashReqeust() []byte {
 	var buf bytes.Buffer
 	buf.Write(r.Msg)
-	binary.Write(&buf, binary.BigEndian, uint32(r.Time.Unix()))
+	binary.Write(&buf, binary.BigEndian, r.Time)
 
 	return crypto.GlobalHashAlgorithm.Hash(buf.Bytes())
 }

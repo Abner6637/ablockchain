@@ -71,7 +71,7 @@ func (c *Core) HandleEvents() {
 				if block, ok := eventData.(*core.Block); ok { // 类型断言确保事件数据类型的正确性
 					request := &bft.Request{
 						Msg:  block.Hash,
-						Time: time.Now(),
+						Time: uint64(time.Now().Unix()),
 					}
 					// TODO，目前Request是直接由自己生成的（假设是主节点的话）
 					// 其次，目前还没有做主节点区分（怎么区分？）

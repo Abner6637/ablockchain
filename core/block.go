@@ -13,7 +13,7 @@ import (
 
 type BlockHeader struct {
 	ParentHash []byte
-	Time       time.Time
+	Time       uint64
 
 	Difficulty uint64
 	Number     uint64
@@ -24,7 +24,7 @@ type BlockHeader struct {
 func NewBlockHeader(parentHash []byte, dif uint64, num uint64) *BlockHeader {
 	return &BlockHeader{
 		ParentHash: parentHash,
-		Time:       time.Now(),
+		Time:       uint64(time.Now().Unix()),
 		Difficulty: dif,
 		Number:     num,
 	}
@@ -35,7 +35,7 @@ func (bh *BlockHeader) BlockHash() []byte {
 	var buf bytes.Buffer
 
 	buf.Write(bh.ParentHash)
-	binary.Write(&buf, binary.BigEndian, uint32(bh.Time.Unix()))
+	binary.Write(&buf, binary.BigEndian, bh.Time)
 	binary.Write(&buf, binary.BigEndian, bh.Difficulty)
 	binary.Write(&buf, binary.BigEndian, bh.Number)
 	buf.Write(bh.MerkleRoot)
@@ -84,7 +84,7 @@ func NewGenesisBlock(dif uint64) *Block {
 	return &Block{
 		Header: &BlockHeader{
 			ParentHash: []byte("0"),
-			Time:       time.Now(),
+			Time:       uint64(time.Now().Unix()),
 			Difficulty: dif,
 			Number:     0,
 		},

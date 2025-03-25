@@ -96,7 +96,7 @@ func (s *consensusState) getCommit() *bft.Commit {
 
 	var buf bytes.Buffer
 	buf.Write(s.Preprepare.Request.Msg)
-	binary.Write(&buf, binary.BigEndian, uint32(s.Preprepare.Request.Time.Unix()))
+	binary.Write(&buf, binary.BigEndian, s.Preprepare.Request.Time)
 
 	digest := crypto.GlobalHashAlgorithm.Hash(buf.Bytes())
 
