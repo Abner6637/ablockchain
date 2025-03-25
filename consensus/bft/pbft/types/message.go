@@ -10,7 +10,7 @@ const (
 	MsgPreprepare uint64 = iota
 	MsgPrepare
 	MsgCommit
-	MsgRoundChange
+	MsgViewChange
 	// msgAll
 )
 

@@ -21,11 +21,12 @@ type BlockHeader struct {
 	Nonce      uint64 // PoW 计算用的随机数
 }
 
-func NewBlockHeader(parentHash []byte, dif uint64) *BlockHeader {
+func NewBlockHeader(parentHash []byte, dif uint64, num uint64) *BlockHeader {
 	return &BlockHeader{
 		ParentHash: parentHash,
 		Time:       time.Now(),
 		Difficulty: dif,
+		Number:     num,
 	}
 }
 
@@ -85,6 +86,7 @@ func NewGenesisBlock(dif uint64) *Block {
 			ParentHash: []byte("0"),
 			Time:       time.Now(),
 			Difficulty: dif,
+			Number:     0,
 		},
 	}
 }

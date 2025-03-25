@@ -25,6 +25,8 @@ func (c *Core) HandleCommit(msg *pbfttypes.Message) error {
 			return errors.New("invalid block")
 		}
 		event.Bus.Publish("ConsensusFinish", block)
+		event.Bus.Publish("FinalCommitedBlock", block)
+
 	}
 
 	return nil

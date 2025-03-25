@@ -18,6 +18,8 @@ type Blockchain struct {
 
 	currentBlockHash []byte
 
+	CurBlockNum uint64
+
 	NewBlockChan chan *Block
 }
 
@@ -39,12 +41,14 @@ func NewBlockchain() (*Blockchain, error) {
 
 	// 创建创世区块
 	genesisBlock := NewGenesisBlock(genensisConfig.Difficulty)
+	curBlockNum := uint64(0)
 	log.Printf("创建创世区块……\n")
 	db.Put("0", genesisBlock)
 
 	return &Blockchain{
 		db:           db,
 		TxPool:       txPool,
+		CurBlockNum:  curBlockNum,
 		NewBlockChan: make(chan *Block, 10), // 缓冲通道防止堵塞
 	}, nil
 }
@@ -68,7 +72,7 @@ func (bc *Blockchain) mineNewBLock() (*Block, error) {
 	}
 
 	// 创建新区块（该部分的difficulty需要进一步修改）
-	header := NewBlockHeader(bc.currentBlockHash, uint64(1))
+	header := NewBlockHeader(bc.currentBlockHash, uint64(1), bc.CurBlockNum+1)
 	block := NewBlock(header, txs)
 
 	// bc.AddBlock(block)

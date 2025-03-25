@@ -2,9 +2,11 @@ package pbftcore
 
 import (
 	pbfttypes "ablockchain/consensus/bft/pbft/types"
+	"ablockchain/core"
 	"ablockchain/event"
 	"ablockchain/p2p"
 	"log"
+	"math/big"
 )
 
 type Core struct {
@@ -12,7 +14,8 @@ type Core struct {
 
 	consensusState *consensusState
 
-	state pbfttypes.State
+	state            pbfttypes.State
+	curCommitedBlock *core.Block
 
 	events []event.EventSubscription
 
@@ -33,6 +36,8 @@ func (c *Core) Start() error {
 	c.SubcribeEvents()
 
 	c.HandleEvents()
+
+	c.StartNewProcess(big.NewInt(0))
 
 	return nil
 }
@@ -69,4 +74,14 @@ func (c *Core) IsPrimary() bool {
 
 func (c *Core) setState(state pbfttypes.State) {
 	c.state = state
+}
+
+func (c *Core) StartNewProcess(num *big.Int) {
+	if c.consensusState == nil {
+		NewConsensusState(big.NewInt(0), big.NewInt(0), nil)
+		log.Printf("Initiate the consensus state\n")
+	} else {
+		NewConsensusState(c.consensusState.getView(), big.NewInt(int64(c.curCommitedBlock.Header.Number)+1), nil)
+	}
+
 }

@@ -12,6 +12,7 @@ func (c *Core) HandlePreprepare(msg *pbfttypes.Message) error {
 		return err
 	}
 
+	// TODO 验证阶段
 	c.consensusState.setPreprepare(preprepare)
 	c.setState(pbfttypes.StatePreprepared)
 
@@ -34,6 +35,14 @@ func (c *Core) SendPreprepare(request *bft.Request) error {
 	msg.Msg = preprepare
 
 	c.Broadcast(&msg)
+
+	// 只有主节点会发送Preprepare，主节点在SendPreprepare中存储Preprepare，其他节点在HandlePreprepare
+	c.consensusState.setPreprepare(&bft.Preprepare{
+		View:     c.consensusState.getView(),
+		Sequence: c.consensusState.getSequence(),
+		Request:  *request,
+	})
+	c.setState(pbfttypes.StatePreprepared)
 
 	return nil
 }

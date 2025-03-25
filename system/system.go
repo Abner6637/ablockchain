@@ -85,6 +85,7 @@ func ListenNewBlocks(bc *core.Blockchain) {
 				}
 				fmt.Println("\n##提交区块##")
 				bc.AddBlock(Block)
+				bc.CurBlockNum = Block.Header.Number
 			}
 		}
 	}()

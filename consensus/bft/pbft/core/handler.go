@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"math/big"
 	"reflect"
 	"time"
 )
@@ -29,6 +30,10 @@ func (c *Core) SubcribeEvents() {
 		{
 			Name:    "RequestEvent",
 			Channel: event.Bus.Subscribe("RequestEvent"),
+		},
+		{
+			Name:    "FinalCommitedBlock",
+			Channel: event.Bus.Subscribe("FinalCommitedBlock"),
 		},
 	}
 }
@@ -85,6 +90,11 @@ func (c *Core) HandleEvents() {
 					if err != nil {
 						log.Println("failed to handle the message")
 					}
+				}
+			case "FinalCommitedBlock":
+				if block, ok := eventData.(*core.Block); ok {
+					c.curCommitedBlock = block
+					c.StartNewProcess(big.NewInt(0))
 				}
 			default:
 				log.Printf("未知事件类型: %s", eventNames[chosen])
