@@ -49,7 +49,7 @@ func TestPBFTSystem(t *testing.T) {
 	}
 
 	dbPath1 := "./test_storage1"
-	bc1, err := core.NewBlockchain(dbPath1)
+	bc1, err := core.NewTestBlockchain(dbPath1)
 
 	consensusCore1 := pbftcore.NewCore(node1)
 

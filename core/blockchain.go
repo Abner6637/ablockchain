@@ -101,3 +101,44 @@ func (bc *Blockchain) AddBlock(block *Block) {
 	block.PrintBlock()
 	bc.db.Put(str, block)
 }
+
+func NewTestBlockchain(DBPath string) (*Blockchain, error) {
+	// path := "./block_storage"
+	db, err := storage.NewLevelDB(DBPath)
+	if err != nil {
+		return nil, err
+	}
+
+	txPool := NewTxPool()
+
+	// 加载创世配置（需要在启动的目录下有一个创世文件
+	genensisConfig, err := config.LoadGenesisConfig("./genesis.json")
+	if err != nil {
+		return nil, err
+	}
+	log.Printf("加载创世配置……\n")
+
+	stateDB, err := NewStateDB(DBPath + "_state")
+	if err != nil {
+		return nil, err
+	}
+
+	// 创建创世区块
+	genesisBlock := NewGenesisBlock(genensisConfig.Difficulty)
+	curBlockNum := uint64(0)
+	log.Printf("创建创世区块……\n")
+	db.Put("0", genesisBlock)
+
+	// 计算初始 stateRoot
+	stateRoot := stateDB.trie.RootHash()
+
+	return &Blockchain{
+		db:        db,
+		TxPool:    txPool,
+		StateDB:   stateDB,
+		StateRoot: stateRoot,
+		//currentBlockHash: currentBlockHash,
+		CurBlockNum:  curBlockNum,
+		NewBlockChan: make(chan *Block, 10),
+	}, nil
+}
