@@ -54,6 +54,10 @@ func (c *Commander) Run() {
 				continue
 			}
 			c.handleBroadcast(parts[1])
+		case "newacc":
+			c.sys.blockChain.StateDB.NewAccount()
+		case "accls":
+			c.sys.blockChain.StateDB.PrintAccounts()
 		case "startcons":
 			c.sys.consensus.Start()
 		case "stopcons":
@@ -120,6 +124,8 @@ func (c *Commander) printHelp() {
   send <message>       - 发送消息
   broadcast <message>  - 广播消息
   peers                - 打印peers节点列表
+  newacc               - 创建新账户
+  accls                - 打印账户列表
   testmine             - 测试共识
   exit                 - 退出程序
   help                 - 显示帮助`)

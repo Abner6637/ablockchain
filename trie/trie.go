@@ -4,8 +4,9 @@ import (
 	"ablockchain/crypto"
 	"ablockchain/storage"
 	"encoding/hex"
-	"encoding/json"
 	"errors"
+
+	"github.com/ethereum/go-ethereum/rlp"
 )
 
 type TrieNode struct {
@@ -32,7 +33,7 @@ func NewTrie(dbPath string) (*Trie, error) {
 
 // 计算节点哈希
 func hashNode(node *TrieNode) string {
-	data, _ := json.Marshal(node)
+	data, _ := rlp.EncodeToBytes(node)
 	hash := crypto.GlobalHashAlgorithm.Hash(data)
 	return hex.EncodeToString(hash[:])
 }
@@ -65,4 +66,45 @@ func (t *Trie) Get(key string) ([]byte, error) {
 		return nil, errors.New("账户数据为空")
 	}
 	return node.Value, nil
+}
+
+// 计算整个 Trie 的根哈希
+func (t *Trie) RootHash() []byte {
+	if t.Root == nil {
+		return nil
+	}
+	return t.computeNodeHash(t.Root)
+}
+
+// 递归计算 TrieNode 的哈希值
+func (t *Trie) computeNodeHash(node *TrieNode) []byte {
+	// 若为叶子节点，直接计算其哈希
+	if len(node.Children) == 0 {
+		if node.Value == nil {
+			return nil
+		}
+		return crypto.GlobalHashAlgorithm.Hash(node.Value)
+	}
+
+	// 递归计算子节点哈希
+	var childHashes [][]byte
+	for key, child := range node.Children {
+		childHash := t.computeNodeHash(child)
+		if childHash != nil {
+			childHashes = append(childHashes, append([]byte{key}, childHash...))
+		}
+	}
+
+	// 编码子节点哈希列表和当前节点值
+	data, _ := rlp.EncodeToBytes(struct {
+		Value       []byte
+		ChildHashes [][]byte
+	}{
+		Value:       node.Value,
+		ChildHashes: childHashes,
+	})
+
+	// 计算当前节点哈希
+	node.Hash = hex.EncodeToString(crypto.GlobalHashAlgorithm.Hash(data))
+	return crypto.GlobalHashAlgorithm.Hash(data)
 }

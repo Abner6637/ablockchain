@@ -38,7 +38,7 @@ func StartSystem(cfg *cli.Config) *System {
 	// accountManager.Accounts[account.Address] = account
 	// // TODO: account的地址如何获取，account的各个参数如何设置，如公私钥、balance
 
-	bc, err := core.NewBlockchain(cfg.DBPath)
+	bc, err := core.NewBlockchain(cfg)
 	if err != nil {
 		log.Fatalf("initial blockchain failed: %v", err)
 	}

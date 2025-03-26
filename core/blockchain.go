@@ -1,13 +1,12 @@
 package core
 
 import (
+	"ablockchain/cli"
 	"ablockchain/config"
 	"ablockchain/storage"
 	"fmt"
 	"log"
 	"time"
-
-	"github.com/ethereum/go-ethereum/trie"
 )
 
 const BlockInterval time.Duration = 5 * time.Second
@@ -17,18 +16,18 @@ const MaxTransactionsPerBlock int = 10
 type Blockchain struct {
 	db        *storage.LevelDB
 	TxPool    *TxPool
-	stateDB   *trie.Trie // 使用Merkle Patricia Tree来存储账户状态
-	stateRoot []byte     // Merkle Patricia Tree的根哈希
+	StateDB   *StateDB // 使用Merkle Patricia Tree来存储账户状态
+	StateRoot []byte   // Merkle Patricia Tree的根哈希
 
-	currentBlockHash []byte
+	CurrentBlockHash []byte
 	CurBlockNum      uint64
 	NewBlockChan     chan *Block
 }
 
-func NewBlockchain(DBPath string) (*Blockchain, error) {
+func NewBlockchain(cfg *cli.Config) (*Blockchain, error) {
 	// path := "./block_storage"
-	path := DBPath
-	db, err := storage.NewLevelDB(path)
+	DBPath := cfg.DBPath
+	db, err := storage.NewLevelDB(DBPath)
 	if err != nil {
 		return nil, err
 	}
@@ -42,17 +41,28 @@ func NewBlockchain(DBPath string) (*Blockchain, error) {
 	}
 	log.Printf("加载创世配置……\n")
 
+	stateDB, err := NewStateDB(DBPath + "_state")
+	if err != nil {
+		return nil, err
+	}
+
 	// 创建创世区块
 	genesisBlock := NewGenesisBlock(genensisConfig.Difficulty)
 	curBlockNum := uint64(0)
 	log.Printf("创建创世区块……\n")
 	db.Put("0", genesisBlock)
 
+	// 计算初始 stateRoot
+	stateRoot := stateDB.trie.RootHash()
+
 	return &Blockchain{
-		db:           db,
-		TxPool:       txPool,
+		db:        db,
+		TxPool:    txPool,
+		StateDB:   stateDB,
+		StateRoot: stateRoot,
+		//currentBlockHash: currentBlockHash,
 		CurBlockNum:  curBlockNum,
-		NewBlockChan: make(chan *Block, 10), // 缓冲通道防止堵塞
+		NewBlockChan: make(chan *Block, 10),
 	}, nil
 }
 
@@ -75,7 +85,7 @@ func (bc *Blockchain) mineNewBLock() (*Block, error) {
 	}
 
 	// 创建新区块（该部分的difficulty需要进一步修改）
-	header := NewBlockHeader(bc.currentBlockHash, uint64(1), bc.CurBlockNum+1)
+	header := NewBlockHeader(bc.CurrentBlockHash, uint64(1), bc.CurBlockNum+1)
 	block := NewBlock(header, txs)
 
 	// bc.AddBlock(block)
