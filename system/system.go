@@ -70,7 +70,9 @@ func StartSystem(cfg *cli.Config) *System {
 }
 
 func StartListen(cfg *cli.Config) *p2p.Node {
-	node, err := p2p.NewNode(cfg.ListenAddr)
+	// 节点的私钥
+	privateKey := cfg.NodeKey()
+	node, err := p2p.NewNode(cfg.ListenAddr, privateKey)
 	if err != nil {
 		fmt.Printf("启动节点失败: %v\n", err)
 		os.Exit(1)
@@ -78,8 +80,6 @@ func StartListen(cfg *cli.Config) *p2p.Node {
 	fmt.Printf("节点已启动 ID: %s\n", node.ID)
 	fmt.Printf("监听地址: %v\n", node.Host.Addrs())
 
-	// 节点的私钥
-	node.PrivateKey = cfg.NodeKey()
 	return node
 }
 

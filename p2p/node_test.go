@@ -16,7 +16,7 @@ import (
 func TestStartListen(t *testing.T) {
 	// 使用随机端口（tcp/0）
 	listenAddr := "/ip4/127.0.0.1/tcp/0"
-	node, err := NewNode(listenAddr)
+	node, err := NewNode(listenAddr, nil)
 	if err != nil {
 		t.Fatalf("启动节点失败: %v", err)
 	}
@@ -52,13 +52,13 @@ func TestStartListen(t *testing.T) {
 // 测试正常节点连接
 func TestPeerConnection(t *testing.T) {
 	// 启动两个节点
-	nodeA, err := NewNode("/ip4/127.0.0.1/tcp/0")
+	nodeA, err := NewNode("/ip4/127.0.0.1/tcp/0", nil)
 	if err != nil {
 		t.Fatalf("启动 nodeA 失败: %v", err)
 	}
 	defer nodeA.Host.Close()
 
-	nodeB, err := NewNode("/ip4/127.0.0.1/tcp/0")
+	nodeB, err := NewNode("/ip4/127.0.0.1/tcp/0", nil)
 	if err != nil {
 		t.Fatalf("启动 nodeB 失败: %v", err)
 	}
@@ -84,7 +84,7 @@ func TestPeerConnection(t *testing.T) {
 
 // 测试连接无效地址
 func TestConnectToInvalidAddress(t *testing.T) {
-	node, err := NewNode("/ip4/127.0.0.1/tcp/0")
+	node, err := NewNode("/ip4/127.0.0.1/tcp/0", nil)
 	if err != nil {
 		t.Fatalf("启动节点失败: %v", err)
 	}
@@ -111,10 +111,10 @@ func TestConnectToInvalidAddress(t *testing.T) {
 
 func TestMessageExchange(t *testing.T) {
 	// 启动两个节点
-	nodeA, _ := NewNode("/ip4/127.0.0.1/tcp/0")
+	nodeA, _ := NewNode("/ip4/127.0.0.1/tcp/0", nil)
 	defer nodeA.Host.Close()
 
-	nodeB, _ := NewNode("/ip4/127.0.0.1/tcp/0")
+	nodeB, _ := NewNode("/ip4/127.0.0.1/tcp/0", nil)
 	defer nodeB.Host.Close()
 
 	// 设置消息接收验证
@@ -148,13 +148,13 @@ func TestMessageExchange(t *testing.T) {
 
 func TestBroadcast(t *testing.T) {
 	// 启动3个节点
-	nodeA, _ := NewNode("/ip4/127.0.0.1/tcp/0")
+	nodeA, _ := NewNode("/ip4/127.0.0.1/tcp/0", nil)
 	defer nodeA.Host.Close()
 
-	nodeB, _ := NewNode("/ip4/127.0.0.1/tcp/0")
+	nodeB, _ := NewNode("/ip4/127.0.0.1/tcp/0", nil)
 	defer nodeB.Host.Close()
 
-	nodeC, _ := NewNode("/ip4/127.0.0.1/tcp/0")
+	nodeC, _ := NewNode("/ip4/127.0.0.1/tcp/0", nil)
 	defer nodeC.Host.Close()
 
 	// 设置消息接收验证
@@ -211,10 +211,10 @@ func TestBroadcast(t *testing.T) {
 
 func TestMessageHandler(t *testing.T) {
 	// 启动两个节点
-	nodeA, _ := NewNode("/ip4/127.0.0.1/tcp/0")
+	nodeA, _ := NewNode("/ip4/127.0.0.1/tcp/0", nil)
 	defer nodeA.Host.Close()
 
-	nodeB, _ := NewNode("/ip4/127.0.0.1/tcp/0")
+	nodeB, _ := NewNode("/ip4/127.0.0.1/tcp/0", nil)
 	defer nodeB.Host.Close()
 
 	// 连接节点

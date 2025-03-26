@@ -3,19 +3,53 @@ package pbftcore
 import (
 	"ablockchain/consensus/bft"
 	pbfttypes "ablockchain/consensus/bft/pbft/types"
+	"ablockchain/core"
 	"ablockchain/crypto"
+	"ablockchain/p2p"
 	"bytes"
 	"crypto/ecdsa"
 	"log"
 	"math/big"
 	"testing"
+	"time"
 )
 
-func SignNewCore(privateKey *ecdsa.PrivateKey) *Core {
+func newTestBlock() *core.Block {
+	return &core.Block{
+		Header: &core.BlockHeader{
+			ParentHash: []byte("0df9a8f4a2f2fc354c3c8aa5e837d4db137f20ccbf3d8336e4c95ac9d0e2943e"),
+			MerkleRoot: []byte("1cdfdf5680f2a639732f6aae64a8b96c10a913b46c8fcd908c9eb95925979974"),
+			Time:       uint64(time.Now().Unix()),
+			Difficulty: 2,
+			Nonce:      0,
+			Number:     13,
+		},
+	}
+}
+
+func newP2PNode() *p2p.Node {
+	return &p2p.Node{}
+}
+
+func NewTestCoreForSign(privateKey *ecdsa.PrivateKey) *Core {
 	return &Core{
 		privateKey: privateKey,
 		address:    crypto.PubkeyToAddress(privateKey.PublicKey).Bytes(),
 	}
+}
+
+func NewTestCore(p2pNode *p2p.Node) *Core {
+	return &Core{
+		p2pNode:    p2pNode,
+		state:      pbfttypes.StateAcceptRequest,
+		privateKey: p2pNode.PrivateKey,
+		address:    crypto.PubkeyToAddress(p2pNode.PrivateKey.PublicKey).Bytes(),
+	}
+}
+
+func TestProcess(t *testing.T) {
+	//block := newTestBlock()
+	//p2pnode := newP2PNode()
 }
 
 func TestSign(t *testing.T) {
@@ -26,7 +60,7 @@ func TestSign(t *testing.T) {
 		t.Fatalf("生成密钥失败：%v", err)
 	}
 
-	core := SignNewCore(privateKey)
+	core := NewTestCoreForSign(privateKey)
 
 	publicKey := privateKey.PublicKey
 	log.Printf("publicKey: %+v", publicKey)
@@ -67,7 +101,6 @@ func TestSign(t *testing.T) {
 	signerAddress, err := GetSignatureAddress(payloadNoSig, msg.Signature)
 	log.Printf("signer address: %+v", signerAddress.Bytes())
 
-	// 比较签名地址和消息中的地址参数（即发送消息的地址）是否一致
 	if !bytes.Equal(signerAddress.Bytes(), msg.Address) {
 		t.Fatalf("验证失败")
 	} else {
