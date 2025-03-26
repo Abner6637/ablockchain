@@ -7,7 +7,6 @@ type Account struct {
 	PublicKey []byte
 	SecretKey []byte
 	Banlance  uint64
-	Nonce     uint64
 }
 
 type AccountManager struct {

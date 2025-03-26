@@ -10,7 +10,7 @@ import (
 func TestEncodeTransaction(t *testing.T) {
 	// 创建一个测试的交易对象
 	tx := Transaction{
-		Time:  time.Now(),
+		Time:  uint64(time.Now().Unix()),
 		Hash:  []byte("test_hash"),
 		From:  "0xSenderAddress",
 		To:    "0xReceiverAddress",
