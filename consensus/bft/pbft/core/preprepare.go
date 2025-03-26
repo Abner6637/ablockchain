@@ -28,7 +28,7 @@ func (c *Core) HandlePreprepare(msg *pbfttypes.Message) error {
 
 func (c *Core) SendPreprepare(request *bft.Request) error {
 	var msg pbfttypes.Message
-	msg.Code = pbfttypes.MsgPrepare
+	msg.Code = pbfttypes.MsgPreprepare
 	preprepare, err := pbfttypes.Encode(&bft.Preprepare{
 		View:     c.consensusState.getView(),
 		Sequence: c.consensusState.getSequence(),
