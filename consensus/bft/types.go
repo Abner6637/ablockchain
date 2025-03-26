@@ -8,7 +8,7 @@ import (
 )
 
 type Request struct {
-	Msg  []byte
+	Msg  []byte // 这里存储编码后的区块比存储区块的哈希更好，选择存储编码后的区块
 	Time uint64
 }
 

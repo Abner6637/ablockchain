@@ -1,6 +1,7 @@
 package pbftcore
 
 import (
+	"ablockchain/consensus/bft"
 	pbfttypes "ablockchain/consensus/bft/pbft/types"
 	"ablockchain/core"
 	"ablockchain/crypto"
@@ -26,7 +27,7 @@ type Core struct {
 	state            pbfttypes.State
 	curCommitedBlock *core.Block
 
-	pendingBlocks map[string]*core.Block
+	pendingRequests map[string]*bft.Request
 
 	events []event.EventSubscription
 

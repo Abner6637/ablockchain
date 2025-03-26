@@ -3,6 +3,7 @@ package pbftcore
 import (
 	"ablockchain/consensus/bft"
 	pbfttypes "ablockchain/consensus/bft/pbft/types"
+	"ablockchain/core"
 	"ablockchain/crypto"
 	"bytes"
 	"encoding/binary"
@@ -31,11 +32,14 @@ func NewConsensusState(view *big.Int, sequence *big.Int, preprepare *bft.Preprep
 	}
 }
 
-func (s *consensusState) getBlockHash() []byte {
+func (s *consensusState) getBlock() (*core.Block, error) {
 	req := s.Preprepare.Request
-	blockHash := req.Msg
+	block, err := core.DecodeBlock(req.Msg)
+	if err != nil {
+		return nil, err
+	}
 
-	return blockHash
+	return block, nil
 }
 
 func (s *consensusState) getView() *big.Int {

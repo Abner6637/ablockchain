@@ -5,7 +5,6 @@ import (
 	pbfttypes "ablockchain/consensus/bft/pbft/types"
 	"ablockchain/core"
 	"ablockchain/crypto"
-	"ablockchain/event"
 	"ablockchain/p2p"
 	"bytes"
 	"crypto/ecdsa"
@@ -62,9 +61,9 @@ func TestProcess(t *testing.T) {
 
 	core.Start()
 
-	block := newTestBlock()
+	// block := newTestBlock()
 
-	event.Bus.Publish("ConsensusStart", block)
+	// event.Bus.Publish("ConsensusStart", block)
 
 	time.Sleep(2 * time.Second)
 
@@ -86,7 +85,6 @@ func TestSign(t *testing.T) {
 	log.Printf("publicKey: %+v", publicKey)
 
 	comAddress := crypto.PubkeyToAddress(publicKey)
-
 	address := comAddress.Bytes()
 	log.Printf("address: %+v", address)
 

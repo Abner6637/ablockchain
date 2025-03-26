@@ -81,11 +81,14 @@ func (c *Core) HandleEvents() {
 				if block, ok := eventData.(*core.Block); ok { // 类型断言确保事件数据类型的正确性
 					log.Printf("接收到的block：%+v", block)
 					log.Printf("接收到的block的header：%+v", block.Header)
-					c.pendingBlocks[string(block.Hash)] = block
+					encodedBlock, _ := block.EncodeBlock()
 					request := &bft.Request{
-						Msg:  block.Hash,
+						Msg:  encodedBlock,
 						Time: uint64(time.Now().Unix()),
 					}
+					c.pendingRequests[string(encodedBlock)] = request
+					// c.pendingBlocks[string(block.Hash)] = block
+
 					// TODO，目前Request是直接由自己生成的（假设是主节点的话）
 					// 其次，目前还没有做主节点区分（怎么区分？）
 					c.HandleRequest(request)
@@ -112,8 +115,9 @@ func (c *Core) HandleEvents() {
 					// 最新达成共识的区块
 					c.curCommitedBlock = block
 
-					// 待处理区块中删除已经达成共识的区块
-					delete(c.pendingBlocks, string(block.Hash))
+					// 待处理request中删除已经达成共识的request
+					encodedBlock, _ := block.EncodeBlock()
+					delete(c.pendingRequests, string(encodedBlock))
 
 					// 更新共识状态，准备处理下一个区块
 					c.StartNewProcess(big.NewInt(0))
