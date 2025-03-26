@@ -4,15 +4,13 @@ import (
 	"ablockchain/crypto"
 	"fmt"
 	"log"
-	"time"
 
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/libp2p/go-libp2p/core/network"
 )
 
-// rlp编码不支持time.Time，考虑改为Unix？
 type Transaction struct {
-	Time time.Time
+	Time uint64
 	Hash []byte
 
 	From  string

@@ -24,7 +24,7 @@ func newTestBlock() *core.Block {
 
 func newTestTransaction() *core.Transaction {
 	return &core.Transaction{
-		Time:  time.Now(),
+		Time:  uint64(time.Now().Unix()),
 		Hash:  []byte("test_hash"),
 		From:  "0xSenderAddress",
 		To:    "0xReceiverAddress",

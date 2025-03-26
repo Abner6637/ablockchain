@@ -207,11 +207,6 @@ func TestBroadcast(t *testing.T) {
 
 	// 等待两个消息接收的协程完成
 	wg.Wait()
-
-	// 额外检查，确认nodeA是否记录了nodeB和nodeC
-	fmt.Print(nodeB.Peers)
-	fmt.Print(nodeC.Peers)
-	fmt.Print(nodeA.Peers)
 }
 
 func TestMessageHandler(t *testing.T) {
