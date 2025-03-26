@@ -4,20 +4,17 @@ import (
 	"bufio"
 	"crypto/ecdsa"
 	"crypto/elliptic"
-	"crypto/rand"
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"hash"
 	"io"
 	"io/ioutil"
 	"math/big"
 	"os"
 
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/math"
+	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/crypto/secp256k1"
-	"golang.org/x/crypto/sha3"
 )
 
 var (
@@ -26,7 +23,7 @@ var (
 )
 
 func GenerateKey() (*ecdsa.PrivateKey, error) {
-	return ecdsa.GenerateKey(S256(), rand.Reader)
+	return ethcrypto.GenerateKey()
 }
 
 func S256() elliptic.Curve {
@@ -144,37 +141,4 @@ func FromECDSA(priv *ecdsa.PrivateKey) []byte {
 		return nil
 	}
 	return math.PaddedBigBytes(priv.D, priv.Params().BitSize/8)
-}
-
-func PubkeyToAddress(p ecdsa.PublicKey) common.Address {
-	pubBytes := FromECDSAPub(&p)
-	return common.BytesToAddress(Keccak256_geth(pubBytes[1:])[12:])
-}
-
-func FromECDSAPub(pub *ecdsa.PublicKey) []byte {
-	if pub == nil || pub.X == nil || pub.Y == nil {
-		return nil
-	}
-	return elliptic.Marshal(S256(), pub.X, pub.Y)
-}
-
-// Keccak256 calculates and returns the Keccak256 hash of the input data.
-func Keccak256_geth(data ...[]byte) []byte {
-	b := make([]byte, 32)
-	d := NewKeccakState()
-	for _, b := range data {
-		d.Write(b)
-	}
-	d.Read(b)
-	return b
-}
-
-// NewKeccakState creates a new KeccakState
-func NewKeccakState() KeccakState {
-	return sha3.NewLegacyKeccak256().(KeccakState)
-}
-
-type KeccakState interface {
-	hash.Hash
-	Read([]byte) (int, error)
 }

@@ -6,6 +6,11 @@ import (
 )
 
 func (c *Core) HandlePreprepare(msg *pbfttypes.Message) error {
+	// 验证消息签名
+	if err := VerifySignature(msg); err != nil {
+		return err
+	}
+
 	var preprepare *bft.Preprepare
 	err := msg.Decode(&preprepare) // 直接针对msg.Msg进行解码
 	if err != nil {
@@ -34,6 +39,10 @@ func (c *Core) SendPreprepare(request *bft.Request) error {
 	}
 	msg.Msg = preprepare
 	msg.Address = c.address
+	msg.Signature, err = c.SignMessage(&msg)
+	if err != nil {
+		return err
+	}
 
 	c.Broadcast(&msg)
 

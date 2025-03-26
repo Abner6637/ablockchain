@@ -6,9 +6,13 @@ import (
 	"ablockchain/crypto"
 	"ablockchain/event"
 	"ablockchain/p2p"
+	"bytes"
 	"crypto/ecdsa"
+	"errors"
 	"log"
 	"math/big"
+
+	"github.com/ethereum/go-ethereum/common"
 )
 
 type Core struct {
@@ -91,4 +95,50 @@ func (c *Core) StartNewProcess(num *big.Int) {
 		NewConsensusState(c.consensusState.getView(), big.NewInt(int64(c.curCommitedBlock.Header.Number)+1), nil)
 	}
 
+}
+
+// 返回msg.Signature和err
+func (c *Core) Sign(data []byte) ([]byte, error) {
+	hashData := crypto.GlobalHashAlgorithm.Hash(data)
+	return crypto.Sign(hashData, c.privateKey)
+}
+
+func (c *Core) SignMessage(msg *pbfttypes.Message) ([]byte, error) {
+	// Sign message
+	data, err := msg.PayloadNoSig()
+	if err != nil {
+		return nil, err
+	}
+	msg.Signature, err = c.Sign(data)
+	if err != nil {
+		return nil, err
+	}
+
+	return msg.Signature, err
+}
+
+// 通过未经哈希的原数据和签名得到签名所用的公钥，再通过公钥得到签名地址
+func GetSignatureAddress(data []byte, sig []byte) (common.Address, error) {
+	hashData := crypto.GlobalHashAlgorithm.Hash(data)
+
+	pubkey, err := crypto.SigToPub(hashData, sig)
+	if err != nil {
+		return common.Address{}, err
+	}
+	return crypto.PubkeyToAddress(*pubkey), nil
+}
+
+func VerifySignature(msg *pbfttypes.Message) error {
+	payloadNoSig, err := msg.PayloadNoSig()
+	if err != nil {
+		return err
+	}
+
+	signerAddress, err := GetSignatureAddress(payloadNoSig, msg.Signature)
+
+	// 比较签名地址和消息中的地址参数（即发送消息的地址）是否一致
+	if !bytes.Equal(signerAddress.Bytes(), msg.Address) {
+		return errors.New("invaid signer")
+	}
+	return nil
 }

@@ -48,3 +48,12 @@ func (m *Message) Decode(val interface{}) error {
 func Encode(val interface{}) ([]byte, error) {
 	return rlp.EncodeToBytes(val)
 }
+
+func (m *Message) PayloadNoSig() ([]byte, error) {
+	return rlp.EncodeToBytes(&Message{
+		Code:      m.Code,
+		Msg:       m.Msg,
+		Address:   m.Address,
+		Signature: []byte{},
+	})
+}

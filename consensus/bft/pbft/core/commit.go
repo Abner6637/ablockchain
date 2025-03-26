@@ -8,6 +8,11 @@ import (
 )
 
 func (c *Core) HandleCommit(msg *pbfttypes.Message) error {
+	// 验证消息签名
+	if err := VerifySignature(msg); err != nil {
+		return err
+	}
+
 	var commit *bft.Commit
 	err := msg.Decode(&commit)
 	if err != nil {
@@ -41,6 +46,10 @@ func (c *Core) SendCommit() error {
 	}
 	msg.Msg = commit
 	msg.Address = c.address
+	msg.Signature, err = c.SignMessage(&msg)
+	if err != nil {
+		return err
+	}
 
 	c.consensusState.addCommit(&msg)
 	c.Broadcast(&msg)

@@ -26,6 +26,8 @@ NODE1_NODEKEY="./key_store/nodekey1"
 NODE2_NODEKEY="./key_store/nodekey2"
 NODE3_NODEKEY="./key_store/nodekey3"
 
+# 合并 stderr 到 stdout 后使用 tee
+# ./your_program 2>&1 | tee output.log
 
 # 启动第一个节点，并将其输出重定向到 log 文件
 tmux new-session -d -s node1 "go run main.go --db $NODE1_DB --listen $NODE1_LISTEN --consensus pow --nodekey $NODE1_NODEKEY 2>&1 | tee $NODE1_LOG"

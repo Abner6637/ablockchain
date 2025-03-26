@@ -6,6 +6,11 @@ import (
 )
 
 func (c *Core) HandlePrepare(msg *pbfttypes.Message) error {
+	// 验证消息签名
+	if err := VerifySignature(msg); err != nil {
+		return err
+	}
+
 	var prepare *bft.Prepare
 	err := msg.Decode(&prepare)
 	if err != nil {
@@ -32,6 +37,10 @@ func (c *Core) SendPrepare() error {
 	}
 	msg.Msg = prepare
 	msg.Address = c.address
+	msg.Signature, err = c.SignMessage(&msg)
+	if err != nil {
+		return err
+	}
 
 	// 发给别人Prepare消息时，自己也保存一份自己发送的
 	c.consensusState.addPrepare(&msg)
