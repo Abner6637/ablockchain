@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 )
 
 type Config struct {
@@ -24,7 +25,7 @@ func ParseFlags() *Config {
 	flag.StringVar(&cfg.DBPath, "db", "./block_storage", "数据库存储路径")
 	flag.StringVar(&cfg.ListenAddr, "listen", "/ip4/0.0.0.0/tcp/0", "监听地址")
 	flag.StringVar(&cfg.ConsensusType, "consensus", "pbft", "共识协议:pow||pbft")
-	flag.StringVar(&cfg.NodeKeyFile, "nodekeyfilepath", "nodekey", "共识协议:pow||pbft")
+	flag.StringVar(&cfg.NodeKeyFile, "nodekey", "./key_store/nodekey", "私钥存储地址")
 	flag.Usage = func() {
 		fmt.Printf("Usage: %s [options]\n", os.Args[0])
 		flag.PrintDefaults()
@@ -35,6 +36,12 @@ func ParseFlags() *Config {
 
 func (c *Config) NodeKey() *ecdsa.PrivateKey {
 	keyfile := c.NodeKeyFile
+
+	dir := filepath.Dir(keyfile)
+	if err := os.MkdirAll(dir, os.ModePerm); err != nil { // 创建目录
+		log.Fatalf("Failed to create key directory %s: %v", dir, err)
+	}
+
 	if key, err := crypto.LoadECDSA(keyfile); err == nil {
 		return key
 	}
@@ -44,7 +51,7 @@ func (c *Config) NodeKey() *ecdsa.PrivateKey {
 		log.Fatalf(fmt.Sprintf("Failed to generate node key: %v", err))
 	}
 
-	keyfile = "nodekey"
+	keyfile = c.NodeKeyFile
 	if err := crypto.SaveECDSA(keyfile, key); err != nil {
 		log.Fatalf(fmt.Sprintf("Failed to persist node key: %v", err))
 	}

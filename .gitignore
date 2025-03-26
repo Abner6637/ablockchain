@@ -11,6 +11,7 @@
 /bin/
 /pkg/
 /block_storage/
+/key_store/
 
 # 日志和临时文件
 *.log

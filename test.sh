@@ -6,6 +6,9 @@
 rm -rf ./block_storage
 mkdir -p ./block_storage/
 
+rm -rf ./key_store
+mkdir -p ./key_store/
+
 # 设置数据库目录
 NODE1_DB="./block_storage/node1_data"
 NODE2_DB="./block_storage/node2_data"
@@ -19,9 +22,13 @@ NODE1_LOG="./block_storage/node1.log"
 NODE2_LOG="./block_storage/node2.log"
 NODE3_LOG="./block_storage/node3.log"
 
+NODE1_NODEKEY="./key_store/nodekey1"
+NODE2_NODEKEY="./key_store/nodekey2"
+NODE3_NODEKEY="./key_store/nodekey3"
+
 
 # 启动第一个节点，并将其输出重定向到 log 文件
-tmux new-session -d -s node1 "go run main.go --db $NODE1_DB --listen $NODE1_LISTEN --consensus pow | tee $NODE1_LOG"
+tmux new-session -d -s node1 "go run main.go --db $NODE1_DB --listen $NODE1_LISTEN --consensus pow --nodekey $NODE1_NODEKEY 2>&1 | tee $NODE1_LOG"
 
 # 等待一会儿，确保节点1启动完成
 sleep 5
@@ -34,7 +41,7 @@ NODE1_ADDR="$NODE1_LISTEN/p2p/$NODE1_PEER_ID"
 echo "Node 1 Address: $NODE1_ADDR"
 
 # 启动第二个节点
-tmux new-session -d -s node2 "go run main.go --db $NODE2_DB --listen $NODE2_LISTEN --consensus pow | tee $NODE2_LOG"
+tmux new-session -d -s node2 "go run main.go --db $NODE2_DB --listen $NODE2_LISTEN --consensus pow --nodekey $NODE2_NODEKEY 2>&1 | tee $NODE2_LOG"
 
 sleep 5
 
@@ -45,7 +52,7 @@ NODE2_ADDR="$NODE2_LISTEN/p2p/$NODE2_PEER_ID"
 echo "Node 2 Address: $NODE2_ADDR"
 
 # 启动第三个节点
-tmux new-session -d -s node3 "go run main.go --db $NODE3_DB --listen $NODE3_LISTEN --consensus pow | tee $NODE3_LOG"
+tmux new-session -d -s node3 "go run main.go --db $NODE3_DB --listen $NODE3_LISTEN --consensus pow --nodekey $NODE3_NODEKEY 2>&1 | tee $NODE3_LOG"
 
 sleep 5
 
