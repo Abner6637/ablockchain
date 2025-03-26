@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"log"
 	"time"
+
+	"github.com/ethereum/go-ethereum/trie"
 )
 
 const BlockInterval time.Duration = 5 * time.Second
@@ -13,14 +15,14 @@ const MinTransactionsPerBlock int = 2
 const MaxTransactionsPerBlock int = 10
 
 type Blockchain struct {
-	db     *storage.LevelDB
-	TxPool *TxPool
+	db        *storage.LevelDB
+	TxPool    *TxPool
+	stateDB   *trie.Trie // 使用Merkle Patricia Tree来存储账户状态
+	stateRoot []byte     // Merkle Patricia Tree的根哈希
 
 	currentBlockHash []byte
-
-	CurBlockNum uint64
-
-	NewBlockChan chan *Block
+	CurBlockNum      uint64
+	NewBlockChan     chan *Block
 }
 
 func NewBlockchain(DBPath string) (*Blockchain, error) {

@@ -15,10 +15,10 @@ import (
 )
 
 type System struct {
-	p2pNode        *p2p.Node
-	blockChain     *core.Blockchain
-	accountManager *core.AccountManager
-	consensus      consensus.Consensus
+	p2pNode    *p2p.Node
+	blockChain *core.Blockchain
+	// accountManager *core.AccountManager
+	consensus consensus.Consensus
 }
 
 func StartSystem(cfg *cli.Config) *System {
@@ -28,17 +28,16 @@ func StartSystem(cfg *cli.Config) *System {
 	node := StartListen(cfg)
 	sys.p2pNode = node
 
-	// 初始化账户管理和账户
-	accountManager := core.NewAccountManager()
-	sys.accountManager = accountManager
-	account, err := accountManager.NewAccount()
-	if err != nil {
-		log.Printf("cannot create new account: %v", err)
-	}
-	accountManager.Accounts[account.Address] = account
-	// TODO: account的地址如何获取，account的各个参数如何设置，如公私钥、balance
+	// // 初始化账户管理和账户
+	// accountManager := core.NewAccountManager()
+	// sys.accountManager = accountManager
+	// account, err := accountManager.NewAccount()
+	// if err != nil {
+	// 	log.Printf("cannot create new account: %v", err)
+	// }
+	// accountManager.Accounts[account.Address] = account
+	// // TODO: account的地址如何获取，account的各个参数如何设置，如公私钥、balance
 
-	//如果传要入cfg,会导致循环引用(考虑把system放入cli?)
 	bc, err := core.NewBlockchain(cfg.DBPath)
 	if err != nil {
 		log.Fatalf("initial blockchain failed: %v", err)
