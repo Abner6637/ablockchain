@@ -4,7 +4,7 @@ import (
 	"ablockchain/consensus/bft"
 	pbfttypes "ablockchain/consensus/bft/pbft/types"
 	"ablockchain/event"
-	"errors"
+	"log"
 )
 
 func (c *Core) HandleCommit(msg *pbfttypes.Message) error {
@@ -24,11 +24,13 @@ func (c *Core) HandleCommit(msg *pbfttypes.Message) error {
 	if len(c.consensusState.Commits.messages) >= 2*c.ByzantineSize+1 {
 		c.setState(pbfttypes.StateCommitted)
 
-		// TODO: 区块是从这时候获取的吗？还是从HandleRequest那里先在core里存一个block？
-		block, err := c.consensusState.getBlock()
-		if err != nil {
-			return errors.New("invalid block")
+		blockHash := c.consensusState.getBlockHash()
+
+		block, ok := c.pendingBlocks[string(blockHash)]
+		if !ok {
+			log.Fatalf("There is no block in pending according to the given hash!")
 		}
+
 		event.Bus.Publish("ConsensusFinish", block)
 		event.Bus.Publish("FinalCommitedBlock", block)
 

@@ -3,6 +3,7 @@ package pbftcore
 import (
 	"ablockchain/consensus/bft"
 	pbfttypes "ablockchain/consensus/bft/pbft/types"
+	"log"
 )
 
 func (c *Core) HandlePreprepare(msg *pbfttypes.Message) error {
@@ -34,6 +35,14 @@ func (c *Core) SendPreprepare(request *bft.Request) error {
 		Sequence: c.consensusState.getSequence(),
 		Request:  *request,
 	})
+
+	// 打印使用
+	log.Printf("生成Preprepare：%+v", bft.Preprepare{
+		View:     c.consensusState.getView(),
+		Sequence: c.consensusState.getSequence(),
+		Request:  *request,
+	})
+
 	if err != nil {
 		return err
 	}
@@ -43,6 +52,8 @@ func (c *Core) SendPreprepare(request *bft.Request) error {
 	if err != nil {
 		return err
 	}
+
+	log.Printf("广播Preprepare消息：%+v", msg)
 
 	c.Broadcast(&msg)
 

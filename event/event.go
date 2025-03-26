@@ -28,6 +28,25 @@ func (eb *EventBus[T]) Subscribe(eventType string) <-chan T {
 	return ch
 }
 
+// 取消订阅事件
+func (eb *EventBus[T]) Unsubscribe(eventType string, ch <-chan T) {
+	eb.lock.Lock()
+	defer eb.lock.Unlock()
+
+	// 找到并移除指定的通道
+	if subscribers, found := eb.subscribers[eventType]; found {
+		for i, sub := range subscribers {
+			if sub == ch {
+				// 关闭通道
+				close(sub)
+				// 移除该通道
+				eb.subscribers[eventType] = append(subscribers[:i], subscribers[i+1:]...)
+				break
+			}
+		}
+	}
+}
+
 // 发布事件
 func (eb *EventBus[T]) Publish(eventType string, message T) {
 	eb.lock.RLock()

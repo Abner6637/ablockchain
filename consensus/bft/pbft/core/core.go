@@ -26,6 +26,8 @@ type Core struct {
 	state            pbfttypes.State
 	curCommitedBlock *core.Block
 
+	pendingBlocks map[string]*core.Block
+
 	events []event.EventSubscription
 
 	Primary       string
@@ -44,6 +46,8 @@ func NewCore(p2pNode *p2p.Node) *Core {
 
 func (c *Core) Start() error {
 
+	log.Printf("start core-----------------")
+
 	c.SubcribeEvents()
 
 	c.HandleEvents()
@@ -55,7 +59,11 @@ func (c *Core) Start() error {
 
 func (c *Core) Stop() error {
 	event.Bus.Publish("ConsensusStop", true)
+
+	c.UnSubcribeEvents()
+
 	log.Println("PBFT stop")
+
 	return nil
 }
 
@@ -88,13 +96,14 @@ func (c *Core) setState(state pbfttypes.State) {
 }
 
 func (c *Core) StartNewProcess(num *big.Int) {
+	log.Printf("开始新一轮共识")
 	if c.consensusState == nil {
-		NewConsensusState(big.NewInt(0), big.NewInt(0), nil)
-		log.Printf("Initiate the consensus state\n")
+		c.consensusState = NewConsensusState(big.NewInt(0), big.NewInt(0), nil)
+		log.Printf("新的共识状态：%v", c.consensusState)
 	} else {
-		NewConsensusState(c.consensusState.getView(), big.NewInt(int64(c.curCommitedBlock.Header.Number)+1), nil)
+		c.consensusState = NewConsensusState(c.consensusState.getView(), big.NewInt(int64(c.curCommitedBlock.Header.Number)+1), nil)
+		log.Printf("更改共识状态：%v", c.consensusState)
 	}
-
 }
 
 // 返回msg.Signature和err

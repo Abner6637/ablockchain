@@ -3,10 +3,10 @@ package core
 import "log"
 
 type Account struct {
-	Address   string
-	PublicKey []byte
-	SecretKey []byte
-	Banlance  uint64
+	Address    string
+	PublicKey  []byte
+	privateKey []byte
+	Banlance   uint64
 }
 
 type AccountManager struct {
@@ -23,5 +23,5 @@ func NewAccountManager() *AccountManager {
 func (am *AccountManager) NewAccount() (*Account, error) {
 	publicKey, secretKey := "test", "test"
 	log.Printf("创建新账户，publickey: %s\n", publicKey)
-	return &Account{PublicKey: []byte(publicKey), SecretKey: []byte(secretKey)}, nil
+	return &Account{PublicKey: []byte(publicKey), privateKey: []byte(secretKey)}, nil
 }

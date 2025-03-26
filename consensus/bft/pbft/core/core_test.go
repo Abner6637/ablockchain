@@ -5,6 +5,7 @@ import (
 	pbfttypes "ablockchain/consensus/bft/pbft/types"
 	"ablockchain/core"
 	"ablockchain/crypto"
+	"ablockchain/event"
 	"ablockchain/p2p"
 	"bytes"
 	"crypto/ecdsa"
@@ -22,13 +23,15 @@ func newTestBlock() *core.Block {
 			Time:       uint64(time.Now().Unix()),
 			Difficulty: 2,
 			Nonce:      0,
-			Number:     13,
+			Number:     1,
 		},
 	}
 }
 
-func newP2PNode() *p2p.Node {
-	return &p2p.Node{}
+func newP2PNode(privateKey *ecdsa.PrivateKey) *p2p.Node {
+	return &p2p.Node{
+		PrivateKey: privateKey,
+	}
 }
 
 func NewTestCoreForSign(privateKey *ecdsa.PrivateKey) *Core {
@@ -38,7 +41,7 @@ func NewTestCoreForSign(privateKey *ecdsa.PrivateKey) *Core {
 	}
 }
 
-func NewTestCore(p2pNode *p2p.Node) *Core {
+func newTestCore(p2pNode *p2p.Node) *Core {
 	return &Core{
 		p2pNode:    p2pNode,
 		state:      pbfttypes.StateAcceptRequest,
@@ -48,8 +51,25 @@ func NewTestCore(p2pNode *p2p.Node) *Core {
 }
 
 func TestProcess(t *testing.T) {
-	//block := newTestBlock()
-	//p2pnode := newP2PNode()
+	privateKey, err := crypto.GenerateKey()
+	if err != nil {
+		t.Fatalf("生成密钥失败：%v", err)
+	}
+
+	p2pNode := newP2PNode(privateKey)
+
+	core := newTestCore(p2pNode)
+
+	core.Start()
+
+	block := newTestBlock()
+
+	event.Bus.Publish("ConsensusStart", block)
+
+	time.Sleep(2 * time.Second)
+
+	core.Stop()
+
 }
 
 func TestSign(t *testing.T) {
