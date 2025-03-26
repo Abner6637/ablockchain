@@ -142,3 +142,10 @@ func FromECDSA(priv *ecdsa.PrivateKey) []byte {
 	}
 	return math.PaddedBigBytes(priv.D, priv.Params().BitSize/8)
 }
+
+func FromECDSAPub(pub *ecdsa.PublicKey) []byte {
+	if pub == nil || pub.X == nil || pub.Y == nil {
+		return nil
+	}
+	return elliptic.Marshal(S256(), pub.X, pub.Y)
+}

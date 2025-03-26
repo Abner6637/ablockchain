@@ -3,7 +3,7 @@
 # 使用 bash mesh.sh 运行
 
 # 设置节点数量
-NODE_COUNT=4
+NODE_COUNT=2
 
 # 删除旧的 block_storage 目录并重新创建
 rm -rf ./block_storage
