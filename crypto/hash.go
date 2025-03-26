@@ -3,6 +3,8 @@ package crypto
 import (
 	"crypto/sha256"
 	"sync"
+
+	gethcrypto "github.com/ethereum/go-ethereum/crypto"
 )
 
 // Hash 接口定义哈希算法的统一接口
@@ -46,5 +48,5 @@ func (h *SHA256) Hash(data []byte) []byte {
 }
 
 func (h *Keccak256) Hash(data []byte) []byte {
-	return Keccak256_geth(data)
+	return gethcrypto.Keccak256(data)
 }
