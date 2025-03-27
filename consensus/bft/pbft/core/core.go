@@ -1,6 +1,7 @@
 package pbftcore
 
 import (
+	"ablockchain/cli"
 	"ablockchain/consensus/bft"
 	pbfttypes "ablockchain/consensus/bft/pbft/types"
 	"ablockchain/core"
@@ -36,12 +37,15 @@ type Core struct {
 	ByzantineSize int
 }
 
-func NewCore(p2pNode *p2p.Node) *Core {
+func NewCore(cfg *cli.Config, p2pNode *p2p.Node) *Core {
 	return &Core{
-		p2pNode:    p2pNode,
-		state:      pbfttypes.StateAcceptRequest,
-		privateKey: p2pNode.PrivateKey,
-		address:    crypto.PubkeyToAddress(p2pNode.PrivateKey.PublicKey).Bytes(),
+		p2pNode:          p2pNode,
+		state:            pbfttypes.StateAcceptRequest,
+		privateKey:       p2pNode.PrivateKey,
+		address:          crypto.PubkeyToAddress(p2pNode.PrivateKey.PublicKey).Bytes(),
+		ByzantineSize:    (cfg.ConsensusNum - 1) / 3,
+		pendingRequests:  make(map[string]*bft.Request),
+		curCommitedBlock: &core.Block{},
 	}
 }
 
@@ -89,21 +93,22 @@ func (c *Core) Broadcast(msg *pbfttypes.Message) error {
 }
 
 func (c *Core) IsPrimary() bool {
-	return c.Primary == c.p2pNode.ID
+	return c.Primary == string(c.address)
 }
 
 func (c *Core) setState(state pbfttypes.State) {
 	c.state = state
+	log.Printf("共识state变更为：%d", c.state)
 }
 
 func (c *Core) StartNewProcess(num *big.Int) {
-	log.Printf("开始新一轮共识")
+	log.Printf("准备开始新一轮共识")
 	if c.consensusState == nil {
 		c.consensusState = NewConsensusState(big.NewInt(0), big.NewInt(0), nil)
-		log.Printf("新的共识状态：%v", c.consensusState)
+		log.Printf("新的共识状态：%+v", c.consensusState)
 	} else {
 		c.consensusState = NewConsensusState(c.consensusState.getView(), big.NewInt(int64(c.curCommitedBlock.Header.Number)+1), nil)
-		log.Printf("更改共识状态：%v", c.consensusState)
+		log.Printf("更改共识状态：%+v", c.consensusState)
 	}
 }
 

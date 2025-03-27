@@ -4,6 +4,7 @@ import (
 	"ablockchain/core"
 	"ablockchain/event"
 	"fmt"
+	"log"
 
 	"github.com/ethereum/go-ethereum/rlp"
 )
@@ -69,12 +70,13 @@ func ProcessMessage(msg *Message) {
 		event.Bus.Publish("BlockMessage", block)
 
 	case ConsensusMessage:
-		fmt.Println("处理共识消息...")
+		log.Printf("p2p收到的消息类型为共识消息...")
 		/* 测试TestMessageHandler时使用
 		var mmsg string
 		rlp.DecodeBytes(msg.Data, &mmsg)
 		log.Printf("接收到的消息，类型：%d，数据为编码后的：%s", msg.Type, mmsg)
 		*/
+		log.Printf("p2p发布MessageEvent事件")
 		event.Bus.Publish("MessageEvent", msg.Data)
 	default:
 		fmt.Println("未知消息类型")

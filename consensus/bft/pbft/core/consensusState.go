@@ -12,8 +12,8 @@ import (
 )
 
 type consensusState struct {
-	view     *big.Int
-	sequence *big.Int
+	View     *big.Int
+	Sequence *big.Int
 
 	Preprepare *bft.Preprepare
 	Prepares   *messageSet
@@ -23,14 +23,21 @@ type consensusState struct {
 
 func NewConsensusState(view *big.Int, sequence *big.Int, preprepare *bft.Preprepare) *consensusState {
 	return &consensusState{
-		view:       big.NewInt(0),
-		sequence:   big.NewInt(0),
+		View:       view,
+		Sequence:   sequence,
 		Preprepare: preprepare,
 		Prepares:   NewMessageSet(),
 		Commits:    NewMessageSet(),
 		lock:       new(sync.RWMutex),
 	}
 }
+
+/*
+// 结构化输出结构体时，使得未导出（小写开头）字段view和sequence能够转换为string类打印出
+func (s *consensusState) String() string {
+	return fmt.Sprintf("{view: %v, sequence: %v}", s.view, s.sequence)
+}
+*/
 
 func (s *consensusState) getBlock() (*core.Block, error) {
 	req := s.Preprepare.Request
@@ -46,14 +53,14 @@ func (s *consensusState) getView() *big.Int {
 	s.lock.RLock()
 	defer s.lock.RUnlock()
 
-	return s.view
+	return s.View
 }
 
 func (s *consensusState) getSequence() *big.Int {
 	s.lock.RLock()
 	defer s.lock.RUnlock()
 
-	return s.sequence
+	return s.Sequence
 }
 
 func (s *consensusState) setPreprepare(preprepare *bft.Preprepare) {
@@ -74,8 +81,8 @@ func (s *consensusState) getPrepare() *bft.Prepare {
 	digest := s.Preprepare.Request.HashReqeust()
 
 	return &bft.Prepare{
-		View:     new(big.Int).Set(s.view),
-		Sequence: new(big.Int).Set(s.sequence),
+		View:     new(big.Int).Set(s.View),
+		Sequence: new(big.Int).Set(s.Sequence),
 		Digest:   digest,
 	}
 }
@@ -102,8 +109,8 @@ func (s *consensusState) getCommit() *bft.Commit {
 	digest := crypto.GlobalHashAlgorithm.Hash(buf.Bytes())
 
 	return &bft.Commit{
-		View:     new(big.Int).Set(s.view),
-		Sequence: new(big.Int).Set(s.sequence),
+		View:     new(big.Int).Set(s.View),
+		Sequence: new(big.Int).Set(s.Sequence),
 		Digest:   digest,
 	}
 }

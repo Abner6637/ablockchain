@@ -46,11 +46,11 @@ func StartSystem(cfg *cli.Config) *System {
 
 	switch cfg.ConsensusType {
 	case "pbft":
-		sys.consensus = pbftcore.NewCore(node)
+		sys.consensus = pbftcore.NewCore(cfg, node)
 	case "pow":
 		sys.consensus = pow.NewProofOfWork(node)
 	default:
-		sys.consensus = pbftcore.NewCore(node)
+		sys.consensus = pbftcore.NewCore(cfg, node)
 	}
 
 	// 开启共识模块

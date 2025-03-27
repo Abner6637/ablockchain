@@ -1,7 +1,6 @@
 package system
 
 import (
-	pbftcore "ablockchain/consensus/bft/pbft/core"
 	"ablockchain/core"
 	"ablockchain/crypto"
 	"ablockchain/p2p"
@@ -51,9 +50,9 @@ func TestPBFTSystem(t *testing.T) {
 	dbPath1 := "./test_storage1"
 	bc1, err := core.NewTestBlockchain(dbPath1)
 
-	consensusCore1 := pbftcore.NewCore(node1)
+	// consensusCore1 := pbftcore.NewCore(node1)
 
-	consensusCore1.Start()
+	// consensusCore1.Start()
 
 	// 暂时忽略交易打包成区块的过程，用TestBlock进行测试
 	// bc1.StartMiner()

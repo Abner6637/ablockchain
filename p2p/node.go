@@ -41,14 +41,14 @@ func NewNode(listenAddress string, privateKey *ecdsa.PrivateKey) (*Node, error) 
 	// handleStream中消息回调时，触发MessageHandler，处理消息
 	// TODO：p2p层处理消息时是否需要另外建立一个进程？
 	n.SetMessageHandler(func(msg string) {
-		fmt.Printf("\n[消息] %s\n> ", msg)
+		// fmt.Printf("\np2p处理[消息] %s\n> ", msg)
 		decodedMsg, err := DecodeMessage([]byte(msg))
 		if err != nil {
 			fmt.Printf("RLP解码失败\n")
 			return
 		}
 		ProcessMessage(decodedMsg)
-		log.Println("message handler处理消息完毕")
+		// log.Println("p2p处理消息完毕")
 	})
 
 	fmt.Printf("Node started on %s, ID: %s\n", node.Addrs(), node.ID())
@@ -80,7 +80,7 @@ func (n *Node) handleStream(stream network.Stream) {
 	//读取消息源节点的信息
 	peerID := stream.Conn().RemotePeer()
 	msg := string(fullData)
-	fmt.Printf("收到来自 %s 的消息: %s\n", peerID, msg)
+	fmt.Printf("\np2p收到来自 %s 的消息\n", peerID)
 
 	// 触发消息回调
 	if n.MessageHandler != nil {
@@ -101,7 +101,7 @@ func (n *Node) SendMessage(peerID peer.ID, message string) error {
 		return fmt.Errorf("写入消息失败: %v", err)
 	}
 
-	fmt.Printf("已发送消息到 %s: %s\n", peerID, message)
+	fmt.Printf("p2p已发送消息到 %s\n", peerID)
 	return nil
 }
 
@@ -135,10 +135,10 @@ func (n *Node) Peers() []peer.ID {
 func (n *Node) BroadcastMessage(message string) error {
 	for _, peerID := range n.Peers() {
 		if err := n.SendMessage(peerID, message); err != nil {
-			return fmt.Errorf("广播消息失败到 %s: %v", peerID, err)
+			return fmt.Errorf("p2p广播消息失败到 %s: %v", peerID, err)
 		}
 	}
-	fmt.Println("消息已广播到所有连接的节点")
+	fmt.Println("p2p消息已广播到所有连接的节点")
 	return nil
 }
 

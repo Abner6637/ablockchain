@@ -77,7 +77,7 @@ func (c *Core) HandleEvents() {
 			// 根据事件名称路由处理
 			switch eventNames[chosen] {
 			case "ConsensusStart":
-				log.Printf("检测到ConsensusStart事件")
+				log.Printf("consensus检测到ConsensusStart事件")
 				if block, ok := eventData.(*core.Block); ok { // 类型断言确保事件数据类型的正确性
 					log.Printf("接收到的block：%+v", block)
 					log.Printf("接收到的block的header：%+v", block.Header)
@@ -94,7 +94,7 @@ func (c *Core) HandleEvents() {
 					c.HandleRequest(request)
 				}
 			case "ConsensusStop":
-				log.Printf("检测到ConsensusStop事件")
+				log.Printf("consensus检测到ConsensusStop事件")
 				if isStop, ok := eventData.(bool); ok {
 					if isStop == true {
 						fmt.Println("\n结束监听")
@@ -102,7 +102,7 @@ func (c *Core) HandleEvents() {
 					}
 				}
 			case "MessageEvent":
-				log.Printf("检测到MessageEvent事件")
+				log.Printf("consensus检测到MessageEvent事件")
 				if msg, ok := eventData.([]byte); ok {
 					err := c.HandleMessage(msg)
 					if err != nil {
@@ -110,7 +110,7 @@ func (c *Core) HandleEvents() {
 					}
 				}
 			case "FinalCommitedBlock":
-				log.Printf("检测到FinalCommitedBlock事件")
+				log.Printf("consensus检测到FinalCommitedBlock事件")
 				if block, ok := eventData.(*core.Block); ok {
 					// 最新达成共识的区块
 					c.curCommitedBlock = block
@@ -121,9 +121,13 @@ func (c *Core) HandleEvents() {
 
 					// 更新共识状态，准备处理下一个区块
 					c.StartNewProcess(big.NewInt(0))
+
+					// TODO: 状态是否是在这里修改为最初状态的呢？
+					c.setState(pbfttypes.StateAcceptRequest)
+
 				}
 			default:
-				log.Printf("未知事件类型: %s", eventNames[chosen])
+				log.Printf("consensus未知事件类型: %s", eventNames[chosen])
 			}
 		}
 	}()

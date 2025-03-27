@@ -7,6 +7,8 @@ import (
 )
 
 func (c *Core) HandlePreprepare(msg *pbfttypes.Message) error {
+	log.Printf("开始处理Preprepare消息：%+v", msg)
+
 	// 验证消息签名
 	if err := VerifySignature(msg); err != nil {
 		return err
@@ -17,8 +19,18 @@ func (c *Core) HandlePreprepare(msg *pbfttypes.Message) error {
 	if err != nil {
 		return err
 	}
+	log.Printf("解码后得到的Preprepare：%+v", preprepare)
 
-	// TODO 验证阶段
+	if preprepare.View.Cmp(c.consensusState.View) != 0 || preprepare.Sequence.Cmp(c.consensusState.Sequence) != 0 {
+		log.Printf("警告：接收到的preprepare的view或sequence不匹配")
+		return nil
+	}
+
+	if c.state.Cmp(pbfttypes.StatePreprepared) >= 0 {
+		log.Printf("警告：当前core的状态>=StatePreprepared")
+		return nil
+	}
+
 	c.consensusState.setPreprepare(preprepare)
 	c.setState(pbfttypes.StatePreprepared)
 
@@ -30,23 +42,22 @@ func (c *Core) HandlePreprepare(msg *pbfttypes.Message) error {
 func (c *Core) SendPreprepare(request *bft.Request) error {
 	var msg pbfttypes.Message
 	msg.Code = pbfttypes.MsgPreprepare
-	preprepare, err := pbfttypes.Encode(&bft.Preprepare{
+
+	preprepare := &bft.Preprepare{
 		View:     c.consensusState.getView(),
 		Sequence: c.consensusState.getSequence(),
 		Request:  *request,
-	})
+	}
+
+	encodedPreprepare, err := pbfttypes.Encode(preprepare)
 
 	// 打印使用
-	log.Printf("生成Preprepare：%+v", bft.Preprepare{
-		View:     c.consensusState.getView(),
-		Sequence: c.consensusState.getSequence(),
-		Request:  *request,
-	})
+	log.Printf("生成Preprepare：%+v", preprepare)
 
 	if err != nil {
 		return err
 	}
-	msg.Msg = preprepare
+	msg.Msg = encodedPreprepare
 	msg.Address = c.address
 	msg.Signature, err = c.SignMessage(&msg)
 	if err != nil {
