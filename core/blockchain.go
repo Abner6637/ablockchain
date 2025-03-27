@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"log"
 	"time"
+
+	"github.com/ethereum/go-ethereum/rlp"
 )
 
 const BlockInterval time.Duration = 5 * time.Second
@@ -14,7 +16,7 @@ const MinTransactionsPerBlock int = 2
 const MaxTransactionsPerBlock int = 10
 
 type Blockchain struct {
-	db        *storage.LevelDB
+	DB        *storage.LevelDB
 	TxPool    *TxPool
 	StateDB   *StateDB // 使用Merkle Patricia Tree来存储账户状态
 	StateRoot []byte   // Merkle Patricia Tree的根哈希
@@ -56,7 +58,7 @@ func NewBlockchain(cfg *cli.Config) (*Blockchain, error) {
 	stateRoot := stateDB.trie.RootHash()
 
 	return &Blockchain{
-		db:        db,
+		DB:        db,
 		TxPool:    txPool,
 		StateDB:   stateDB,
 		StateRoot: stateRoot,
@@ -99,7 +101,42 @@ func (bc *Blockchain) AddBlock(block *Block) {
 	str := fmt.Sprintf("%d", block.Header.Number)
 	fmt.Println(str)
 	block.PrintBlock()
-	bc.db.Put(str, block)
+	bc.DB.Put(str, block)
+}
+
+func (bc *Blockchain) PrintLatest() {
+	key, data, err := bc.DB.GetLatest()
+	if err == nil {
+		var value Block
+		err = rlp.DecodeBytes(data, &value)
+		if err == nil {
+			fmt.Printf("Latest Block: %s\n", key)
+			value.PrintBlock()
+		} else {
+			fmt.Println("RLP decode error:", err)
+		}
+	} else {
+		fmt.Println("No data found.")
+	}
+}
+
+func (bc *Blockchain) PrintAll() {
+	allData, err := bc.DB.GetAll()
+	if err == nil {
+		fmt.Println("All Blocks:")
+		for _, kv := range allData {
+			var value Block
+			err := rlp.DecodeBytes(kv.Value, &value)
+			if err == nil {
+				fmt.Printf("Block: %s\n", kv.Key)
+				value.PrintBlock()
+			} else {
+				fmt.Println("RLP decode error:", err)
+			}
+		}
+	} else {
+		fmt.Println("No data found.")
+	}
 }
 
 func NewTestBlockchain(DBPath string) (*Blockchain, error) {
@@ -133,7 +170,7 @@ func NewTestBlockchain(DBPath string) (*Blockchain, error) {
 	stateRoot := stateDB.trie.RootHash()
 
 	return &Blockchain{
-		db:        db,
+		DB:        db,
 		TxPool:    txPool,
 		StateDB:   stateDB,
 		StateRoot: stateRoot,
