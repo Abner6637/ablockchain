@@ -64,6 +64,12 @@ func (c *Commander) Run() {
 			c.sys.blockChain.StateDB.NewAccount()
 		case "accls":
 			c.sys.blockChain.StateDB.PrintAccounts()
+		case "printlatest":
+			c.sys.blockChain.PrintLatest()
+		case "printall":
+			c.sys.blockChain.PrintAll()
+		case "height":
+			c.sys.blockChain.DB.PrintCount()
 		case "startcons":
 			c.sys.consensus.Start()
 		case "stopcons":
@@ -136,6 +142,9 @@ func (c *Commander) printHelp() {
   peers                - 打印peers节点列表
   newacc               - 创建新账户
   accls                - 打印账户列表
+  printlatest          - 打印最新区块
+  printall             - 打印所有区块
+  height               - 总区块数
   testmine             - 测试共识
   exit                 - 退出程序
   help                 - 显示帮助`)
