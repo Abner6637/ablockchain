@@ -54,6 +54,12 @@ func (c *Commander) Run() {
 				continue
 			}
 			c.handleBroadcast(parts[1])
+		case "addval":
+			if len(parts) < 2 {
+				fmt.Println("用法: addval <address>")
+				continue
+			}
+			c.handleAddVal(parts[1])
 		case "newacc":
 			c.sys.blockChain.StateDB.NewAccount()
 		case "accls":
@@ -108,6 +114,10 @@ func (c *Commander) handleBroadcast(msg string) {
 	if err := c.sys.p2pNode.BroadcastMessage(msg); err != nil {
 		fmt.Printf("发送失败: %v\n", err)
 	}
+}
+
+func (c *Commander) handleAddVal(address string) {
+	// TODO
 }
 
 // 暂未使用

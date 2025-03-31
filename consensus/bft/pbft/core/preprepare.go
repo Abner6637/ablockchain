@@ -3,6 +3,7 @@ package pbftcore
 import (
 	"ablockchain/consensus/bft"
 	pbfttypes "ablockchain/consensus/bft/pbft/types"
+	"bytes"
 	"log"
 )
 
@@ -14,6 +15,11 @@ func (c *Core) HandlePreprepare(msg *pbfttypes.Message) error {
 		return err
 	}
 
+	if !bytes.Equal(msg.Address, c.Primary) {
+		log.Printf("警告：接收到的preprepare不来自主节点")
+		return nil
+	}
+
 	var preprepare *bft.Preprepare
 	err := msg.Decode(&preprepare) // 直接针对msg.Msg进行解码
 	if err != nil {
@@ -21,8 +27,8 @@ func (c *Core) HandlePreprepare(msg *pbfttypes.Message) error {
 	}
 	log.Printf("解码后得到的Preprepare：%+v", preprepare)
 
-	if preprepare.View.Cmp(c.consensusState.View) != 0 || preprepare.Sequence.Cmp(c.consensusState.Sequence) != 0 {
-		log.Printf("警告：接收到的preprepare的view或sequence不匹配")
+	if preprepare.View.Cmp(c.consensusState.View) != 0 {
+		log.Printf("警告：接收到的preprepare的view不匹配")
 		return nil
 	}
 

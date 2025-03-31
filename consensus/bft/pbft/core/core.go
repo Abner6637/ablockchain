@@ -10,9 +10,12 @@ import (
 	"ablockchain/p2p"
 	"bytes"
 	"crypto/ecdsa"
+	"encoding/hex"
 	"errors"
 	"log"
 	"math/big"
+	"sort"
+	"strings"
 
 	"github.com/ethereum/go-ethereum/common"
 )
@@ -32,20 +35,46 @@ type Core struct {
 
 	events []event.EventSubscription
 
-	Primary       string
-	NodeSet       []string // 通过config注入
+	Primary []byte   // 主节点暂且采用Valset经过sort后的顺序；如，view 0的时候，主节点为ValSet[0];view 1的时候，主节点为ValSet[1]
+	ValSet  []string // 通过config注入?
+
 	ByzantineSize int
+	NodeSize      int
 }
 
 func NewCore(cfg *cli.Config, p2pNode *p2p.Node) *Core {
+	address := crypto.PubkeyToAddress(p2pNode.PrivateKey.PublicKey).Bytes()
+
+	var valSet []string
+	if len(cfg.ValSet) != 0 {
+		for _, str := range cfg.ValSet {
+			str = strings.TrimPrefix(str, "0x")
+			strBytes, err := hex.DecodeString(str)
+			if err != nil {
+				log.Fatalf("地址转换失败: %v", err)
+			}
+			valSet = append(valSet, string(strBytes))
+		}
+	} else {
+		valSet = append(valSet, string(address))
+	}
+
+	sort.Strings(valSet)
+
+	log.Printf("ValSet: %v", valSet)
+	log.Printf("HexValSet: %x", valSet)
+
 	return &Core{
 		p2pNode:          p2pNode,
 		state:            pbfttypes.StateAcceptRequest,
 		privateKey:       p2pNode.PrivateKey,
 		address:          crypto.PubkeyToAddress(p2pNode.PrivateKey.PublicKey).Bytes(),
 		ByzantineSize:    (cfg.ConsensusNum - 1) / 3,
+		NodeSize:         cfg.ConsensusNum,
 		pendingRequests:  make(map[string]*bft.Request),
 		curCommitedBlock: &core.Block{},
+		ValSet:           valSet,
+		Primary:          address, // 初始化为自身的地址
 	}
 }
 
@@ -53,11 +82,29 @@ func (c *Core) Start() error {
 
 	log.Printf("start core-----------------")
 
+	// log.Printf("consensusAddress: %s\n", string(c.Address()))
+	log.Printf("HexAddress: 0x%x\n", c.Address())
+
+	//hexAddress := fmt.Sprintf("0x%x", c.Address())
+	// log.Printf("HexAddress2: %s\n", hexAddress)
+
+	//hexAddress = strings.TrimPrefix(hexAddress, "0x")
+
+	//addressBytes, err := hex.DecodeString(hexAddress)
+	//if err != nil {
+	//	log.Fatalf("地址转换失败: %v", err)
+	//}
+
+	//log.Printf("addressBytes: %s\n", string(addressBytes))
+	//log.Printf("addressBytesToAddress: 0x%x\n", addressBytes)
+
 	c.SubcribeEvents()
 
 	c.HandleEvents()
 
 	c.StartNewProcess(big.NewInt(0))
+
+	log.Printf("是否为主节点：%v", c.IsPrimary())
 
 	return nil
 }
@@ -70,6 +117,14 @@ func (c *Core) Stop() error {
 	log.Println("PBFT stop")
 
 	return nil
+}
+
+func (c *Core) Address() []byte {
+	return c.address
+}
+
+func (c *Core) AddVal(address string) {
+
 }
 
 func (c *Core) Broadcast(msg *pbfttypes.Message) error {
@@ -93,7 +148,7 @@ func (c *Core) Broadcast(msg *pbfttypes.Message) error {
 }
 
 func (c *Core) IsPrimary() bool {
-	return c.Primary == string(c.address)
+	return bytes.Equal(c.Primary, c.address)
 }
 
 func (c *Core) setState(state pbfttypes.State) {
@@ -110,6 +165,12 @@ func (c *Core) StartNewProcess(num *big.Int) {
 		c.consensusState = NewConsensusState(c.consensusState.getView(), big.NewInt(int64(c.curCommitedBlock.Header.Number)+1), nil)
 		log.Printf("更改共识状态：%+v", c.consensusState)
 	}
+
+	// 更新主节点（主节点随view编号变动）
+	res := new(big.Int)
+	res.Mod(c.consensusState.getView(), big.NewInt(int64(c.NodeSize)))
+	c.Primary = []byte(c.ValSet[int(res.Int64())])
+	log.Printf("当前主节点地址: 0x%x", string(c.Primary))
 }
 
 // 返回msg.Signature和err
