@@ -35,7 +35,7 @@ type Core struct {
 
 	events []event.EventSubscription
 
-	Primary []byte   // 主节点暂且采用Valset经过sort后的顺序；如，view 0的时候，主节点为ValSet[0];view 1的时候，主节点为ValSet[1]
+	Primary []byte   // 主节点采用Valset经过sort后的顺序；如，view 0的时候，主节点为ValSet[0];view 1的时候，主节点为ValSet[1]
 	ValSet  []string // 通过config注入?
 
 	ByzantineSize int
@@ -104,7 +104,7 @@ func (c *Core) Start() error {
 
 	c.StartNewProcess(big.NewInt(0))
 
-	log.Printf("是否为主节点：%v", c.IsPrimary())
+	// log.Printf("是否为主节点：%v", c.IsPrimary())
 
 	return nil
 }

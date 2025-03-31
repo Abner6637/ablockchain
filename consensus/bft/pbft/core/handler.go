@@ -35,6 +35,10 @@ func (c *Core) SubcribeEvents() {
 			Name:    "FinalCommitedBlock",
 			Channel: event.Bus.Subscribe("FinalCommitedBlock"),
 		},
+		{
+			Name:    "TimeoutEvent",
+			Channel: event.Bus.Subscribe("TimeoutEvent"),
+		},
 	}
 	log.Printf("订阅事件")
 }
@@ -46,6 +50,7 @@ func (c *Core) UnSubcribeEvents() {
 	log.Printf("取消订阅事件")
 }
 
+// TODO: add a timeoutevent, and it should be out of the c.events
 func (c *Core) HandleEvents() {
 	go func() {
 		log.Printf("开始处理事件")
@@ -126,6 +131,10 @@ func (c *Core) HandleEvents() {
 					c.setState(pbfttypes.StateAcceptRequest)
 
 				}
+			case "TimeoutEvent":
+				go func() {
+
+				}()
 			default:
 				log.Printf("consensus未知事件类型: %s", eventNames[chosen])
 			}

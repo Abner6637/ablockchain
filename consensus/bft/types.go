@@ -55,3 +55,15 @@ func (c *Commit) HashCommit() []byte {
 
 	return crypto.GlobalHashAlgorithm.Hash(buf.Bytes())
 }
+
+type ViewChange struct {
+	NextView *big.Int
+	Sequence *big.Int
+	Digest   []byte
+}
+
+type NewView struct {
+	NextView    *big.Int
+	NewSequence *big.Int
+	Preprepare  Preprepare
+}
