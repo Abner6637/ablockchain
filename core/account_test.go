@@ -17,7 +17,7 @@ func TestNewAccount(t *testing.T) {
 	assert.NotNil(t, account)
 	assert.NotEmpty(t, account.Address)
 	assert.NotEmpty(t, account.PublicKey)
-	assert.NotEmpty(t, account.SecretKey)
+	assert.NotEmpty(t, account.PrivateKey)
 	assert.Equal(t, uint64(0), account.Balance)
 
 	t.Logf("新账户创建成功: 地址 %s", account.Address)
@@ -73,4 +73,34 @@ func TestGetNonExistentAccount(t *testing.T) {
 	assert.Nil(t, account)
 
 	t.Log("查询不存在的账户，返回 nil")
+}
+
+func TestVerifySignature(t *testing.T) {
+	stateDB, err := NewStateDB("test_db")
+	assert.NoError(t, err)
+	defer stateDB.Close()
+
+	from, err := stateDB.NewAccount()
+	if err != nil {
+		return
+	}
+	to := "0x456"
+	value := uint64(100)
+	tx := NewTransaction(from, to, value)
+
+	// 签名交易
+	signature, err := from.SignTx(tx)
+	if err != nil {
+		t.Fatalf("Failed to sign transaction: %v", err)
+	}
+
+	// 验证签名
+	valid, err := tx.VerifySignature(signature)
+	if err != nil {
+		t.Fatalf("Failed to verify signature: %v", err)
+	}
+
+	if !valid {
+		t.Errorf("Signature verification failed")
+	}
 }

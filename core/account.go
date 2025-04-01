@@ -3,6 +3,7 @@ package core
 import (
 	"ablockchain/crypto"
 	"ablockchain/trie"
+	"crypto/ecdsa"
 	"fmt"
 	"log"
 	"sync"
@@ -11,11 +12,11 @@ import (
 )
 
 type Account struct {
-	Address   string
-	PublicKey []byte
-	SecretKey []byte
-	Balance   uint64
-	Nonce     uint64
+	Address    string
+	PublicKey  *ecdsa.PublicKey
+	PrivateKey *ecdsa.PrivateKey
+	Balance    uint64
+	Nonce      uint64
 }
 
 // StateDB 管理账户状态
@@ -38,25 +39,19 @@ func (s *StateDB) NewAccount() (*Account, error) {
 	if err != nil {
 		return nil, fmt.Errorf("生成私钥失败: %v", err)
 	}
-
-	privKeyBytes := crypto.FromECDSA(privKey)
-	pubKeyBytes := crypto.FromECDSAPub(&privKey.PublicKey)
 	address := crypto.PubkeyToAddress(privKey.PublicKey).Hex()
-
 	account := &Account{
-		Address:   address,
-		PublicKey: pubKeyBytes,
-		SecretKey: privKeyBytes,
-		Balance:   0,
-		Nonce:     0,
+		Address:    address,
+		PrivateKey: privKey,
+		PublicKey:  &privKey.PublicKey,
+		Balance:    0,
+		Nonce:      0,
 	}
-
 	// 存储账户到StateDB
 	err = s.UpdateAccount(account)
 	if err != nil {
 		return nil, err
 	}
-
 	log.Printf("创建新账户，地址: %s\n", address)
 	return account, nil
 }
@@ -113,3 +108,70 @@ func (s *StateDB) PrintAccounts() {
 		fmt.Printf("地址: %s | 余额: %d\n", account.Address, account.Balance)
 	}
 }
+
+// 对生成的交易进行签名
+func (a *Account) SignTx(tx *Transaction) ([]byte, error) {
+	encodetx, err := tx.EncodeTx() //rlp编码
+	if err != nil {
+		return nil, err
+	}
+	hashTx := crypto.GlobalHashAlgorithm.Hash(encodetx) //编码后计算hash
+	return crypto.Sign(hashTx, a.PrivateKey)
+}
+
+func (tx *Transaction) VerifySignature(signature []byte) (bool, error) {
+	encodedTx, err := tx.EncodeTx()
+	if err != nil {
+		return false, err
+	}
+	hashTx := crypto.GlobalHashAlgorithm.Hash(encodedTx)
+	// 从哈希和签名恢复出公钥
+	pubKey, err := crypto.SigToPub(hashTx, signature)
+	if err != nil {
+		return false, err
+	}
+	// 计算公钥对应的地址
+	recoveredAddress := crypto.PubkeyToAddress(*pubKey).Hex()
+	// 比对地址是否一致
+	return recoveredAddress == tx.From, nil
+}
+
+// func (a *Account) SignMessage(msg *pbfttypes.Message) ([]byte, error) {
+// 	// Sign message
+// 	data, err := msg.PayloadNoSig()
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	msg.Signature, err = c.Sign(data)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+
+// 	return msg.Signature, err
+// }
+
+// // 通过未经哈希的原数据和签名得到签名所用的公钥，再通过公钥得到签名地址
+// func GetSignatureAddress(data []byte, sig []byte) (common.Address, error) {
+// 	hashData := crypto.GlobalHashAlgorithm.Hash(data)
+
+// 	pubkey, err := crypto.SigToPub(hashData, sig)
+// 	if err != nil {
+// 		return common.Address{}, err
+// 	}
+// 	return crypto.PubkeyToAddress(*pubkey), nil
+// }
+
+// func VerifySignature(msg *pbfttypes.Message) error {
+// 	payloadNoSig, err := msg.PayloadNoSig()
+// 	if err != nil {
+// 		return err
+// 	}
+
+// 	signerAddress, err := GetSignatureAddress(payloadNoSig, msg.Signature)
+
+// 	// 比较签名地址和消息中的地址参数（即发送消息的地址）是否一致
+// 	if !bytes.Equal(signerAddress.Bytes(), msg.Address) {
+// 		return errors.New("invaid signer")
+// 	}
+// 	return nil
+// }
