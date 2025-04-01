@@ -189,6 +189,7 @@ func (c *Commander) printHelp() {
   peers                - 打印peers节点列表
   newacc               - 创建新账户
   accls                - 打印账户列表
+  tx <From(adress)> <To(adress)> <Value> -发送交易
   printlatest          - 打印最新区块
   printall             - 打印所有区块
   height               - 总区块数
