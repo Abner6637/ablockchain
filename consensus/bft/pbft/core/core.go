@@ -40,6 +40,8 @@ type Core struct {
 
 	ByzantineSize int
 	NodeSize      int
+
+	ViewChanges map[uint64]*messageSet // key: view; value: messageSet
 }
 
 func NewCore(cfg *cli.Config, p2pNode *p2p.Node) *Core {
@@ -151,25 +153,41 @@ func (c *Core) IsPrimary() bool {
 	return bytes.Equal(c.Primary, c.address)
 }
 
+func (c *Core) PrimaryFromView(view *big.Int) string {
+	res := new(big.Int)
+	res.Mod(view, big.NewInt(int64(c.NodeSize)))
+	return c.ValSet[int(res.Int64())]
+
+}
+
 func (c *Core) setState(state pbfttypes.State) {
 	c.state = state
 	log.Printf("共识state变更为：%d", c.state)
 }
 
+func (c *Core) addViewChange(view *big.Int, msg *pbfttypes.Message) {
+	newView := view.Uint64()
+	if c.ViewChanges[newView] == nil {
+		c.ViewChanges[newView] = NewMessageSet()
+	}
+	c.ViewChanges[newView].messages[string(msg.Address)] = msg
+}
+
 func (c *Core) StartNewProcess(num *big.Int) {
 	log.Printf("准备开始新一轮共识")
-	if c.consensusState == nil {
+	if c.consensusState == nil { // 初始化
 		c.consensusState = NewConsensusState(big.NewInt(0), big.NewInt(0), nil)
-		log.Printf("新的共识状态：%+v", c.consensusState)
 	} else {
-		c.consensusState = NewConsensusState(c.consensusState.getView(), big.NewInt(int64(c.curCommitedBlock.Header.Number)+1), nil)
-		log.Printf("更改共识状态：%+v", c.consensusState)
+		if num.Cmp(big.NewInt(0)) == 0 { // 没有视图切换
+			c.consensusState = NewConsensusState(c.consensusState.getView(), big.NewInt(int64(c.curCommitedBlock.Header.Number)+1), nil)
+		} else { // 发生视图切换
+			c.consensusState = NewConsensusState(num, c.consensusState.getSequence(), c.consensusState.Preprepare) // preprepare继续上一视图正在进行的
+		}
 	}
+	log.Printf("新的共识状态：%+v", c.consensusState)
 
 	// 更新主节点（主节点随view编号变动）
-	res := new(big.Int)
-	res.Mod(c.consensusState.getView(), big.NewInt(int64(c.NodeSize)))
-	c.Primary = []byte(c.ValSet[int(res.Int64())])
+	c.Primary = []byte(c.PrimaryFromView(c.consensusState.getView()))
 	log.Printf("当前主节点地址: 0x%x", string(c.Primary))
 }
 

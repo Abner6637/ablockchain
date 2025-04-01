@@ -121,3 +121,34 @@ func (s *consensusState) addCommit(msg *pbfttypes.Message) {
 
 	s.Commits.messages[string(msg.Address)] = msg
 }
+
+func (s *consensusState) getViewChange(newView *big.Int) *bft.ViewChange {
+	s.lock.RLock()
+	defer s.lock.RUnlock()
+
+	if s.Preprepare == nil {
+		return nil
+	}
+
+	digest := s.Preprepare.Request.HashReqeust()
+
+	return &bft.ViewChange{
+		View:     newView,
+		Sequence: new(big.Int).Set(s.Sequence),
+		Digest:   digest,
+	}
+}
+
+func (s *consensusState) getNewView(newView *big.Int) *bft.NewView {
+	s.lock.RLock()
+	defer s.lock.RUnlock()
+
+	if s.Preprepare == nil {
+		return nil
+	}
+
+	return &bft.NewView{
+		View:     newView,
+		Sequence: new(big.Int).Set(s.Sequence),
+	}
+}
