@@ -117,7 +117,7 @@ func (s *StateDB) PrintAccounts() {
 }
 
 // 对生成的交易进行签名, 返回rlp编码的SignedTx结构体
-func (a *Account) SignTx(tx *Transaction) ([]byte, error) {
+func (a *Account) SignTx(tx *Transaction) (*SignedTx, error) {
 	encodetx, err := tx.EncodeTx()
 	if err != nil {
 		return nil, err
@@ -135,8 +135,7 @@ func (a *Account) SignTx(tx *Transaction) ([]byte, error) {
 		Tx:   tx,
 		Sign: sign,
 	}
-	data, err := rlp.EncodeToBytes(signedTx)
-	return data, nil
+	return signedTx, nil
 }
 
 func DecodeSignTx(data []byte) (*SignedTx, error) {

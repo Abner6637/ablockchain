@@ -95,7 +95,7 @@ func TestVerifySignature(t *testing.T) {
 	}
 
 	// 验证签名
-	valid, err := tx.VerifySignature(signature)
+	valid, err := tx.VerifySignature(signature.Sign)
 	if err != nil {
 		t.Fatalf("Failed to verify signature: %v", err)
 	}

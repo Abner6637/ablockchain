@@ -2,6 +2,7 @@ package system
 
 import (
 	"ablockchain/core"
+	"ablockchain/event"
 	"ablockchain/p2p"
 	"bufio"
 	"fmt"
@@ -10,6 +11,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/ethereum/go-ethereum/rlp"
 )
 
 type Commander struct {
@@ -148,14 +151,17 @@ func (c *Commander) handleTx(from, to string, value uint64) {
 		fmt.Println("错误: 付款账户不存在")
 		return
 	}
+	acc.Nonce += 1
+	c.sys.blockChain.StateDB.UpdateAccount(acc)
 	tx := core.NewTransaction(acc, to, value)
 	signtx, err := acc.SignTx(tx)
+	data, err := rlp.EncodeToBytes(signtx)
 	if err != nil {
 		log.Fatalf("SignTx err", err)
 	}
 	p2pMsg := &p2p.Message{
 		Type: p2p.TransactionMessage,
-		Data: signtx,
+		Data: data,
 	}
 	encodedP2PMsg, err := p2pMsg.Encode()
 	if err != nil {
@@ -164,6 +170,7 @@ func (c *Commander) handleTx(from, to string, value uint64) {
 	if err := c.sys.p2pNode.BroadcastMessage(string(encodedP2PMsg)); err != nil {
 		fmt.Printf("发送失败: %v\n", err)
 	}
+	event.Bus.Publish("TransactionMessage", signtx) //自己节点也要把交易加入交易池
 }
 
 // 暂未使用

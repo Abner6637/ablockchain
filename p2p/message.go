@@ -57,10 +57,7 @@ func ProcessMessage(msg *Message) {
 		if err != nil {
 			fmt.Errorf("交易解码失败")
 		}
-		// tx.PrintTransaction()
 		event.Bus.Publish("TransactionMessage", signtx)
-		fmt.Println("##############处理交易信息")
-		signtx.Tx.PrintTransaction()
 
 	case BlockMessage:
 		fmt.Println("处理区块消息...")
