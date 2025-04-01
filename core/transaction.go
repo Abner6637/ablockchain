@@ -4,19 +4,35 @@ import (
 	"ablockchain/crypto"
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/libp2p/go-libp2p/core/network"
 )
 
 type Transaction struct {
-	Time uint64
-	Hash []byte
+	chainId uint64
+	Time    uint64
+	Hash    []byte
 
-	From  string
-	To    string
-	Value uint64
-	Gas   uint64
+	From     string
+	To       string
+	Value    uint64
+	Nonce    uint64
+	GasPrice uint64
+	GasLimit uint64
+	Gas      uint64
+}
+
+func NewTransaction(from *Account, to string, value uint64) *Transaction {
+	tx := &Transaction{
+		From:  from.Address,
+		To:    to,
+		Value: value,
+		Nonce: from.Nonce,
+		Time:  uint64(time.Now().Unix()),
+	}
+	return tx
 }
 
 func (tx *Transaction) EncodeTx() ([]byte, error) {
@@ -36,6 +52,21 @@ func DecodeTx(data []byte) (*Transaction, error) {
 		return nil, err
 	}
 	return &tx, nil
+}
+
+func (tx *Transaction) PrintTransaction() {
+	if tx == nil {
+		fmt.Println("Transaction is nil")
+		return
+	}
+	// 打印 Transaction 信息
+	fmt.Println("Transaction:")
+	fmt.Printf("  Hash: %x\n", tx.Hash) // 输出字节数组为十六进制
+	fmt.Printf("  From: %s\n", tx.From)
+	fmt.Printf("  To: %s\n", tx.To)
+	fmt.Printf("  Value: %d\n", tx.Value)
+	fmt.Printf("  Gas: %d\n", tx.Gas)
+	fmt.Printf("  Time: %v\n", tx.Time)
 }
 
 func ReceiveData(stream network.Stream) *Transaction {
@@ -61,20 +92,4 @@ func CalculateMerkleRoot(transactions []*Transaction) []byte {
 		txHashes = append(txHashes, tx.Hash)
 	}
 	return crypto.ComputeMerkleRoot(txHashes)
-}
-
-func (tx *Transaction) PrintTransaction() {
-	if tx == nil {
-		fmt.Println("Transaction is nil")
-		return
-	}
-
-	// 打印 Transaction 信息
-	fmt.Println("Transaction:")
-	fmt.Printf("  Hash: %x\n", tx.Hash) // 输出字节数组为十六进制
-	fmt.Printf("  From: %s\n", tx.From)
-	fmt.Printf("  To: %s\n", tx.To)
-	fmt.Printf("  Value: %d\n", tx.Value)
-	fmt.Printf("  Gas: %d\n", tx.Gas)
-	fmt.Printf("  Time: %v\n", tx.Time)
 }
