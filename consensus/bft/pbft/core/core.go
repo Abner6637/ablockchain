@@ -13,9 +13,11 @@ import (
 	"encoding/hex"
 	"errors"
 	"log"
+	"math"
 	"math/big"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 )
@@ -33,7 +35,8 @@ type Core struct {
 
 	pendingRequests map[string]*bft.Request
 
-	events []event.EventSubscription
+	events       []event.EventSubscription
+	timeoutEvent event.EventSubscription
 
 	Primary []byte   // 主节点采用Valset经过sort后的顺序；如，view 0的时候，主节点为ValSet[0];view 1的时候，主节点为ValSet[1]
 	ValSet  []string // 通过config注入?
@@ -41,7 +44,8 @@ type Core struct {
 	ByzantineSize int
 	NodeSize      int
 
-	ViewChanges map[uint64]*messageSet // key: view; value: messageSet
+	ViewChanges     map[uint64]*messageSet // key: view; value: messageSet
+	viewChangeTimer *time.Timer
 }
 
 func NewCore(cfg *cli.Config, p2pNode *p2p.Node) *Core {
@@ -189,6 +193,9 @@ func (c *Core) StartNewProcess(num *big.Int) {
 	// 更新主节点（主节点随view编号变动）
 	c.Primary = []byte(c.PrimaryFromView(c.consensusState.getView()))
 	log.Printf("当前主节点地址: 0x%x", string(c.Primary))
+
+	// 启动新的viewchange计时器
+	c.newViewChangeTimer()
 }
 
 // 返回msg.Signature和err
@@ -235,4 +242,21 @@ func VerifySignature(msg *pbfttypes.Message) error {
 		return errors.New("invaid signer")
 	}
 	return nil
+}
+
+func (c *Core) newViewChangeTimer() {
+	if c.viewChangeTimer != nil {
+		c.viewChangeTimer.Stop()
+	}
+
+	// 当10秒未收到主节点的request时，发起viewchange
+	// timeout会随着view的增加而逐渐增大（防止短时间内触发多个timeout事件）
+	timeout := time.Duration(10 * time.Second)
+	view := c.consensusState.getView().Uint64()
+	if view > 0 {
+		timeout += time.Duration(math.Pow(2, float64(view))) * time.Second
+	}
+	c.viewChangeTimer = time.AfterFunc(timeout, func() {
+		event.Bus.Publish("TimeoutEvent", nil)
+	})
 }

@@ -14,6 +14,7 @@ import (
 )
 
 func (c *Core) SubcribeEvents() {
+	log.Printf("订阅事件")
 	c.events = []event.EventSubscription{
 		{
 			Name:    "ConsensusStart",
@@ -35,19 +36,20 @@ func (c *Core) SubcribeEvents() {
 			Name:    "FinalCommitedBlock",
 			Channel: event.Bus.Subscribe("FinalCommitedBlock"),
 		},
-		{
-			Name:    "TimeoutEvent",
-			Channel: event.Bus.Subscribe("TimeoutEvent"),
-		},
 	}
-	log.Printf("订阅事件")
+
+	c.timeoutEvent = event.EventSubscription{
+		Name:    "TiemoutEvent",
+		Channel: event.Bus.Subscribe("TimeoutEvent"),
+	}
 }
 
 func (c *Core) UnSubcribeEvents() {
+	log.Printf("取消订阅事件")
 	for _, cEvent := range c.events {
 		event.Bus.Unsubscribe(cEvent.Name, cEvent.Channel)
 	}
-	log.Printf("取消订阅事件")
+	event.Bus.Unsubscribe(c.timeoutEvent.Name, c.timeoutEvent.Channel)
 }
 
 // TODO: add a timeoutevent, and it should be out of the c.events
@@ -65,6 +67,12 @@ func (c *Core) HandleEvents() {
 			}
 			eventNames[i] = sub.Name // 建立索引与名称的映射
 		}
+
+		cases = append(cases, reflect.SelectCase{
+			Dir:  reflect.SelectRecv,
+			Chan: reflect.ValueOf(c.timeoutEvent.Channel),
+		})
+		eventNames = append(eventNames, c.timeoutEvent.Name)
 
 		for {
 			// 阻塞监听事件
@@ -132,9 +140,8 @@ func (c *Core) HandleEvents() {
 
 				}
 			case "TimeoutEvent":
-				go func() {
-
-				}()
+				log.Printf("consensus检测到TimeoutEvent事件")
+				c.SendViewChange(new(big.Int).Add(c.consensusState.getView(), big.NewInt(1)))
 			default:
 				log.Printf("consensus未知事件类型: %s", eventNames[chosen])
 			}
