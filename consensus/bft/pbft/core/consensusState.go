@@ -70,6 +70,13 @@ func (s *consensusState) setPreprepare(preprepare *bft.Preprepare) {
 	s.Preprepare = preprepare
 }
 
+func (s *consensusState) getPreprepare() *bft.Preprepare {
+	s.lock.RLock()
+	defer s.lock.RUnlock()
+
+	return s.Preprepare
+}
+
 func (s *consensusState) getPrepare() *bft.Prepare {
 	s.lock.RLock()
 	defer s.lock.RUnlock()
@@ -126,26 +133,24 @@ func (s *consensusState) getViewChange(newView *big.Int) *bft.ViewChange {
 	s.lock.RLock()
 	defer s.lock.RUnlock()
 
-	if s.Preprepare == nil {
-		return nil
-	}
-
-	digest := s.Preprepare.Request.HashReqeust()
+	/*
+		if s.Preprepare == nil {
+			return &bft.ViewChange{
+				View:     newView,
+				Sequence: new(big.Int).Set(s.Sequence),
+			}
+		}
+	*/
 
 	return &bft.ViewChange{
 		View:     newView,
 		Sequence: new(big.Int).Set(s.Sequence),
-		Digest:   digest,
 	}
 }
 
 func (s *consensusState) getNewView(newView *big.Int) *bft.NewView {
 	s.lock.RLock()
 	defer s.lock.RUnlock()
-
-	if s.Preprepare == nil {
-		return nil
-	}
 
 	return &bft.NewView{
 		View:     newView,

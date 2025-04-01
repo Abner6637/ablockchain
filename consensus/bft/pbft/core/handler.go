@@ -39,7 +39,7 @@ func (c *Core) SubcribeEvents() {
 	}
 
 	c.timeoutEvent = event.EventSubscription{
-		Name:    "TiemoutEvent",
+		Name:    "TimeoutEvent",
 		Channel: event.Bus.Subscribe("TimeoutEvent"),
 	}
 }
@@ -165,6 +165,12 @@ func (c *Core) HandleMessage(payload []byte) error {
 		return err
 	case pbfttypes.MsgCommit:
 		err := c.HandleCommit(msg)
+		return err
+	case pbfttypes.MsgViewChange:
+		err := c.HandleViewChange(msg)
+		return err
+	case pbfttypes.MsgNewView:
+		err := c.HandleNewView(msg)
 		return err
 	}
 

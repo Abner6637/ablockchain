@@ -81,6 +81,7 @@ func NewCore(cfg *cli.Config, p2pNode *p2p.Node) *Core {
 		curCommitedBlock: &core.Block{},
 		ValSet:           valSet,
 		Primary:          address, // 初始化为自身的地址
+		ViewChanges:      make(map[uint64]*messageSet),
 	}
 }
 
@@ -161,7 +162,6 @@ func (c *Core) PrimaryFromView(view *big.Int) string {
 	res := new(big.Int)
 	res.Mod(view, big.NewInt(int64(c.NodeSize)))
 	return c.ValSet[int(res.Int64())]
-
 }
 
 func (c *Core) setState(state pbfttypes.State) {
@@ -193,6 +193,7 @@ func (c *Core) StartNewProcess(num *big.Int) {
 	// 更新主节点（主节点随view编号变动）
 	c.Primary = []byte(c.PrimaryFromView(c.consensusState.getView()))
 	log.Printf("当前主节点地址: 0x%x", string(c.Primary))
+	log.Printf("自己是否为主节点：%v", c.IsPrimary())
 
 	// 启动新的viewchange计时器
 	c.newViewChangeTimer()
@@ -249,13 +250,15 @@ func (c *Core) newViewChangeTimer() {
 		c.viewChangeTimer.Stop()
 	}
 
-	// 当10秒未收到主节点的request时，发起viewchange
+	// 当timeout时间内未收到主节点的request时，发起viewchange
 	// timeout会随着view的增加而逐渐增大（防止短时间内触发多个timeout事件）
-	timeout := time.Duration(10 * time.Second)
+	timeout := time.Duration(20 * time.Second)
 	view := c.consensusState.getView().Uint64()
 	if view > 0 {
 		timeout += time.Duration(math.Pow(2, float64(view))) * time.Second
 	}
+	log.Printf("启动新的viewChangeTimer，timeout时间为：%v", timeout)
+	log.Printf("--------------------------------------------------------------------")
 	c.viewChangeTimer = time.AfterFunc(timeout, func() {
 		event.Bus.Publish("TimeoutEvent", nil)
 	})

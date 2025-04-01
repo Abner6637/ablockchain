@@ -21,7 +21,7 @@ func (c *Core) HandleNewView(msg *pbfttypes.Message) error {
 	if err != nil {
 		return err
 	}
-	log.Printf("解码后得到的newview：%+v", newview)
+	log.Printf("解码后得到的NewView：%+v", newview)
 
 	if !bytes.Equal(msg.Address, []byte(c.PrimaryFromView(newview.View))) {
 		log.Printf("警告：接收到的newview不来自新的主节点")
@@ -29,9 +29,12 @@ func (c *Core) HandleNewView(msg *pbfttypes.Message) error {
 	}
 
 	c.StartNewProcess(newview.View)
-	c.setState(pbfttypes.StatePreprepared)
 
-	c.SendPrepare()
+	// 当有正在进行共识的区块时，向其他节点发送Preprepare消息，重新对该区块进行共识
+	if c.consensusState.getPreprepare() != nil {
+		c.setState(pbfttypes.StatePreprepared)
+		c.SendPrepare()
+	}
 
 	return nil
 }

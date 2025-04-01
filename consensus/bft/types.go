@@ -59,7 +59,6 @@ func (c *Commit) HashCommit() []byte {
 type ViewChange struct {
 	View     *big.Int // 新视图编号
 	Sequence *big.Int
-	Digest   []byte
 }
 
 type NewView struct {

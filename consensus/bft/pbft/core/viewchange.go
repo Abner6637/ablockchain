@@ -20,7 +20,7 @@ func (c *Core) HandleViewChange(msg *pbfttypes.Message) error {
 	if err != nil {
 		return err
 	}
-	log.Printf("解码后得到的Preprepare：%+v", viewchange)
+	log.Printf("解码后得到的ViewChange：%+v", viewchange)
 
 	newView := viewchange.View
 	c.addViewChange(newView, msg)
