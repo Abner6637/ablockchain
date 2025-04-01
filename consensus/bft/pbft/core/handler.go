@@ -137,7 +137,6 @@ func (c *Core) HandleEvents() {
 
 					// TODO: 状态是否是在这里修改为最初状态的呢？
 					c.setState(pbfttypes.StateAcceptRequest)
-
 				}
 			case "TimeoutEvent":
 				log.Printf("consensus检测到TimeoutEvent事件")

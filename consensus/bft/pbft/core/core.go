@@ -38,8 +38,8 @@ type Core struct {
 	events       []event.EventSubscription
 	timeoutEvent event.EventSubscription
 
-	Primary []byte   // 主节点采用Valset经过sort后的顺序；如，view 0的时候，主节点为ValSet[0];view 1的时候，主节点为ValSet[1]
-	ValSet  []string // 通过config注入?
+	Primary []byte // 主节点采用Valset经过sort后的顺序；如，view 0的时候，主节点为ValSet[0]; view 1的时候，主节点为ValSet[1]
+	ValSet  []string
 
 	ByzantineSize int
 	NodeSize      int
