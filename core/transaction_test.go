@@ -54,7 +54,7 @@ func TestEncodeDecodeTransaction(t *testing.T) {
 		t.Fatalf("Failed to decode transaction: %v", err)
 	}
 
-	if decodedTx.From != tx.From || decodedTx.To != tx.To || decodedTx.Value != tx.Value {
+	if string(decodedTx.TxHash) != string(tx.TxHash) || decodedTx.To != tx.To || decodedTx.Value != tx.Value {
 		t.Errorf("Decoded transaction does not match original")
 	}
 }
