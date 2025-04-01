@@ -99,11 +99,6 @@ func (c *Core) HandleEvents() {
 						Msg:  encodedBlock,
 						Time: uint64(time.Now().Unix()),
 					}
-					c.pendingRequests[string(encodedBlock)] = request
-					// c.pendingBlocks[string(block.Hash)] = block
-
-					// TODO，目前Request是直接由自己生成的（假设是主节点的话）
-					// 其次，目前还没有做主节点区分（怎么区分？）
 					c.HandleRequest(request)
 				}
 			case "ConsensusStop":
@@ -129,8 +124,8 @@ func (c *Core) HandleEvents() {
 					c.curCommitedBlock = block
 
 					// 待处理request中删除已经达成共识的request
-					encodedBlock, _ := block.EncodeBlock()
-					delete(c.pendingRequests, string(encodedBlock))
+					// encodedBlock, _ := block.EncodeBlock()
+					// delete(c.pendingRequests, string(encodedBlock))
 
 					// 更新共识状态，准备处理下一个区块
 					c.StartNewProcess(big.NewInt(0))

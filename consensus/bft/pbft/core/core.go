@@ -2,7 +2,6 @@ package pbftcore
 
 import (
 	"ablockchain/cli"
-	"ablockchain/consensus/bft"
 	pbfttypes "ablockchain/consensus/bft/pbft/types"
 	"ablockchain/core"
 	"ablockchain/crypto"
@@ -17,9 +16,11 @@ import (
 	"math/big"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
+	"gopkg.in/karalabe/cookiejar.v2/collections/prque"
 )
 
 type Core struct {
@@ -33,7 +34,8 @@ type Core struct {
 	state            pbfttypes.State
 	curCommitedBlock *core.Block
 
-	pendingRequests map[string]*bft.Request
+	pendingRequests   *prque.Prque
+	pendingRequestsMu *sync.Mutex
 
 	events       []event.EventSubscription
 	timeoutEvent event.EventSubscription
@@ -71,17 +73,18 @@ func NewCore(cfg *cli.Config, p2pNode *p2p.Node) *Core {
 	log.Printf("HexValSet: %x", valSet)
 
 	return &Core{
-		p2pNode:          p2pNode,
-		state:            pbfttypes.StateAcceptRequest,
-		privateKey:       p2pNode.PrivateKey,
-		address:          crypto.PubkeyToAddress(p2pNode.PrivateKey.PublicKey).Bytes(),
-		ByzantineSize:    (cfg.ConsensusNum - 1) / 3,
-		NodeSize:         cfg.ConsensusNum,
-		pendingRequests:  make(map[string]*bft.Request),
-		curCommitedBlock: &core.Block{},
-		ValSet:           valSet,
-		Primary:          address, // 初始化为自身的地址
-		ViewChanges:      make(map[uint64]*messageSet),
+		p2pNode:           p2pNode,
+		state:             pbfttypes.StateAcceptRequest,
+		privateKey:        p2pNode.PrivateKey,
+		address:           crypto.PubkeyToAddress(p2pNode.PrivateKey.PublicKey).Bytes(),
+		ByzantineSize:     (cfg.ConsensusNum - 1) / 3,
+		NodeSize:          cfg.ConsensusNum,
+		pendingRequests:   prque.New(),
+		pendingRequestsMu: new(sync.Mutex),
+		curCommitedBlock:  &core.Block{},
+		ValSet:            valSet,
+		Primary:           address, // 初始化为自身的地址（后续初始化过程中会更改）
+		ViewChanges:       make(map[uint64]*messageSet),
 	}
 }
 
@@ -184,6 +187,9 @@ func (c *Core) StartNewProcess(num *big.Int) {
 	} else {
 		if num.Cmp(big.NewInt(0)) == 0 { // 没有视图切换
 			c.consensusState = NewConsensusState(c.consensusState.getView(), big.NewInt(int64(c.curCommitedBlock.Header.Number)+1), nil)
+
+			// 正常共识完一个request后（没有视图转换等），开始处理队列中的下一个request（如果有的话）
+			c.ProcessRequest()
 		} else { // 发生视图切换
 			c.consensusState = NewConsensusState(num, c.consensusState.getSequence(), c.consensusState.Preprepare) // preprepare继续上一视图正在进行的
 		}
@@ -195,8 +201,10 @@ func (c *Core) StartNewProcess(num *big.Int) {
 	log.Printf("当前主节点地址: 0x%x", string(c.Primary))
 	log.Printf("自己是否为主节点：%v", c.IsPrimary())
 
-	// 启动新的viewchange计时器
-	c.newViewChangeTimer()
+	// 当自身不为主节点时，启动viewchange计时器（因为该计时器用于主节点轮换，主节点自己不需要轮换自己）
+	if !c.IsPrimary() {
+		c.newViewChangeTimer()
+	}
 }
 
 // 返回msg.Signature和err

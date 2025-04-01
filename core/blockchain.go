@@ -26,6 +26,7 @@ type Blockchain struct {
 	NewBlockChan     chan *Block
 }
 
+// TODO: 区块链侧可能也需要加一个计时器，当某个区块共识一直没好时，重新把这个区块发给共识模块
 func NewBlockchain(cfg *cli.Config) (*Blockchain, error) {
 	// path := "./block_storage"
 	DBPath := cfg.DBPath

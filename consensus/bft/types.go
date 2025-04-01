@@ -1,6 +1,7 @@
 package bft
 
 import (
+	"ablockchain/core"
 	"ablockchain/crypto"
 	"bytes"
 	"encoding/binary"
@@ -10,6 +11,16 @@ import (
 type Request struct {
 	Msg  []byte // 这里存储编码后的区块比存储区块的哈希更好，选择存储编码后的区块
 	Time uint64
+}
+
+func (r *Request) GetBlockNumber() uint64 {
+	block, _ := core.DecodeBlock(r.Msg)
+	return block.Header.Number
+}
+
+func (r *Request) GetBlock() *core.Block {
+	block, _ := core.DecodeBlock(r.Msg)
+	return block
 }
 
 func (r *Request) HashReqeust() []byte {
