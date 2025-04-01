@@ -24,12 +24,12 @@ func newTestBlock() *core.Block {
 
 func newTestTransaction() *core.Transaction {
 	return &core.Transaction{
-		Time:  uint64(time.Now().Unix()),
-		Hash:  []byte("test_hash"),
-		From:  "0xSenderAddress",
-		To:    "0xReceiverAddress",
-		Value: 100,
-		Gas:   200,
+		Time:   uint64(time.Now().Unix()),
+		TxHash: []byte("test_hash"),
+		From:   "0xSenderAddress",
+		To:     "0xReceiverAddress",
+		Value:  100,
+		Gas:    200,
 	}
 }
 

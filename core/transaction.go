@@ -13,12 +13,13 @@ import (
 type Transaction struct {
 	chainId uint64
 	Time    uint64
-	Hash    []byte
+	TxHash  []byte
 
-	From     string
-	To       string
-	Value    uint64
-	Nonce    uint64
+	From  string
+	To    string
+	Value uint64
+	Nonce uint64
+
 	GasPrice uint64
 	GasLimit uint64
 	Gas      uint64
@@ -32,6 +33,14 @@ func NewTransaction(from *Account, to string, value uint64) *Transaction {
 		Nonce: from.Nonce,
 		Time:  uint64(time.Now().Unix()),
 	}
+	encodeTx, err := tx.EncodeTx()
+	if err != nil {
+		log.Fatal("EncodeTx failed:", err)
+		return nil
+	}
+
+	hash := crypto.GlobalHashAlgorithm.Hash(encodeTx)
+	tx.TxHash = hash[:]
 	return tx
 }
 
@@ -61,7 +70,7 @@ func (tx *Transaction) PrintTransaction() {
 	}
 	// 打印 Transaction 信息
 	fmt.Println("Transaction:")
-	fmt.Printf("  Hash: %x\n", tx.Hash) // 输出字节数组为十六进制
+	fmt.Printf("  Hash: %x\n", tx.TxHash) // 输出字节数组为十六进制
 	fmt.Printf("  From: %s\n", tx.From)
 	fmt.Printf("  To: %s\n", tx.To)
 	fmt.Printf("  Value: %d\n", tx.Value)
@@ -89,7 +98,7 @@ func ReceiveData(stream network.Stream) *Transaction {
 func CalculateMerkleRoot(transactions []*Transaction) []byte {
 	var txHashes [][]byte
 	for _, tx := range transactions {
-		txHashes = append(txHashes, tx.Hash)
+		txHashes = append(txHashes, tx.TxHash)
 	}
 	return crypto.ComputeMerkleRoot(txHashes)
 }

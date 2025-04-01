@@ -42,9 +42,6 @@ func TestLevelDB_PutAndGet(t *testing.T) {
 	if value != "testValue" {
 		t.Errorf("Expected 'testValue', got '%s'", value)
 	}
-	db.PrintCount()
-	db.GetLatest()
-	db.GetAll()
 }
 
 // 测试存储整数
