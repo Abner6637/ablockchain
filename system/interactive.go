@@ -2,12 +2,18 @@ package system
 
 import (
 	"ablockchain/core"
+	"ablockchain/event"
+	"ablockchain/p2p"
 	"bufio"
 	"fmt"
+	"log"
 	"math/big"
 	"os"
+	"strconv"
 	"strings"
 	"time"
+
+	"github.com/ethereum/go-ethereum/rlp"
 )
 
 type Commander struct {
@@ -34,7 +40,8 @@ func (c *Commander) Run() {
 		fmt.Print("> ")
 		input, _ := c.reader.ReadString('\n')
 		input = strings.TrimSpace(input)
-		parts := strings.SplitN(input, " ", 2)
+		//parts := strings.SplitN(input, " ", 2)
+		parts := strings.Fields(input)
 
 		switch parts[0] {
 		case "connect":
@@ -65,6 +72,17 @@ func (c *Commander) Run() {
 			c.sys.blockChain.StateDB.NewAccount()
 		case "accls":
 			c.sys.blockChain.StateDB.PrintAccounts()
+		case "tx":
+			if len(parts) < 4 {
+				fmt.Println("用法: tx <From(adress)> <To(adress)> <Value>")
+				continue
+			}
+			value, err := strconv.ParseUint(parts[3], 10, 64) //字符串转为uint64类型, 10:十进制; 64:uint64
+			if err != nil {
+				fmt.Println("错误: Value 必须是有效的正整数")
+				continue
+			}
+			c.handleTx(parts[1], parts[2], value)
 		case "printlatest":
 			c.sys.blockChain.PrintLatest()
 		case "printall":
@@ -127,6 +145,35 @@ func (c *Commander) handleAddVal(address string) {
 	// TODO
 }
 
+// 发送交易
+func (c *Commander) handleTx(from, to string, value uint64) {
+	acc, ok := c.sys.blockChain.StateDB.GetAccount(from)
+	if !ok {
+		fmt.Println("错误: 付款账户不存在")
+		return
+	}
+	acc.Nonce += 1
+	c.sys.blockChain.StateDB.UpdateAccount(acc)
+	tx := core.NewTransaction(acc, to, value)
+	signtx, err := acc.SignTx(tx)
+	data, err := rlp.EncodeToBytes(signtx)
+	if err != nil {
+		log.Fatalf("SignTx err", err)
+	}
+	p2pMsg := &p2p.Message{
+		Type: p2p.TransactionMessage,
+		Data: data,
+	}
+	encodedP2PMsg, err := p2pMsg.Encode()
+	if err != nil {
+		log.Fatal("消息编码失败:encodedP2PMsg, err := p2pMsg.Encode()")
+	}
+	if err := c.sys.p2pNode.BroadcastMessage(string(encodedP2PMsg)); err != nil {
+		fmt.Printf("发送失败: %v\n", err)
+	}
+	event.Bus.Publish("TransactionMessage", signtx) //自己节点也要把交易加入交易池
+}
+
 // 暂未使用
 func (c *Commander) printIncomingMessages() {
 	c.sys.p2pNode.SetMessageHandler(func(msg string) {
@@ -143,6 +190,7 @@ func (c *Commander) printHelp() {
   peers                - 打印peers节点列表
   newacc               - 创建新账户
   accls                - 打印账户列表
+  tx <From(adress)> <To(adress)> <Value> -发送交易
   printlatest          - 打印最新区块
   printall             - 打印所有区块
   height               - 总区块数

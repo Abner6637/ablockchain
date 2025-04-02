@@ -53,12 +53,11 @@ func ProcessMessage(msg *Message) {
 	switch msg.Type {
 	case TransactionMessage:
 		fmt.Println("处理交易消息...")
-		tx, err := core.DecodeTx(msg.Data)
+		signtx, err := core.DecodeSignTx(msg.Data)
 		if err != nil {
 			fmt.Errorf("交易解码失败")
 		}
-		// tx.PrintTransaction()
-		event.Bus.Publish("TransactionMessage", tx)
+		event.Bus.Publish("TransactionMessage", signtx)
 
 	case BlockMessage:
 		fmt.Println("处理区块消息...")

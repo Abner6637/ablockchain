@@ -3,6 +3,7 @@ package core
 import (
 	"ablockchain/cli"
 	"ablockchain/config"
+	"ablockchain/event"
 	"ablockchain/storage"
 	"fmt"
 	"log"
@@ -70,19 +71,54 @@ func NewBlockchain(cfg *cli.Config) (*Blockchain, error) {
 	}, nil
 }
 
-// 开始一个异步的miner进程
+// 开始一个异步的矿工进程
 func (bc *Blockchain) StartMiner() {
+	// 订阅交易消息
+	txCh := event.Bus.Subscribe("TransactionMessage")
+
+	// 监听交易事件
 	go func() {
 		for {
-			if bc.TxPool.PendingSize() >= MinTransactionsPerBlock {
-				bc.mineNewBLock()
+			select {
+			case data := <-txCh:
+				fmt.Print("\n##Miner开始验证交易##")
+				signtx, ok := data.(*SignedTx)
+				if !ok {
+					log.Fatal("转换失败: 事件数据不是 *core.SignedTx 类型")
+				}
+				bc.handleTransaction(signtx) // 处理交易
+
+			default:
+				// 当交易池足够大时，打包区块
+				if bc.TxPool.PendingSize() >= MinTransactionsPerBlock {
+					bc.mineNewBlock()
+				}
+				time.Sleep(BlockInterval)
 			}
-			time.Sleep(BlockInterval)
 		}
 	}()
 }
 
-func (bc *Blockchain) mineNewBLock() (*Block, error) {
+// 处理收到的交易
+func (bc *Blockchain) handleTransaction(signtx *SignedTx) {
+	// 验证交易合法性
+	valid, err := signtx.Tx.VerifySignature(signtx.Sign)
+	if err != nil {
+		log.Fatal("\n验证签名失败:", err)
+	}
+	if valid {
+		fmt.Println("\n签名合法")
+		//TODO:查询账户余额是否充足
+		signtx.Tx.PrintTransaction()
+
+		// 交易加入交易池
+		bc.TxPool.AddTx(signtx.Tx)
+	} else {
+		log.Fatal("\n非法签名")
+	}
+}
+
+func (bc *Blockchain) mineNewBlock() (*Block, error) {
 	txs := bc.TxPool.GetTxs()
 	if len(txs) == 0 {
 		return nil, fmt.Errorf("no transaction!")

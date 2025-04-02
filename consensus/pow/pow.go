@@ -223,7 +223,6 @@ func (pow *ProofOfWork) HandleEvents() {
 				if !ok {
 					log.Fatal("转换失败: 事件数据不是 *core.Block 类型")
 				}
-				block.PrintBlock()
 				if Validate(block) {
 					fmt.Println("\n外部区块合法")
 					pow.stopcount = true //停止本轮计算

@@ -84,7 +84,7 @@ func StartListen(cfg *cli.Config) *p2p.Node {
 
 func ListenNewBlocks(bc *core.Blockchain) {
 	consensusfinish := event.Bus.Subscribe("ConsensusFinish")
-
+	// publishTx := event.Bus.Subscribe("PublishTx")
 	go func() {
 		for {
 			select {
@@ -97,10 +97,20 @@ func ListenNewBlocks(bc *core.Blockchain) {
 				Block, ok := msg.(*core.Block)
 				if !ok {
 					log.Fatal("转换失败: 事件数据不是 *core.Block 类型")
+					continue
 				}
 				fmt.Println("\n##提交区块##")
 				bc.AddBlock(Block)
 				bc.CurBlockNum = Block.Header.Number
+
+				// case signtx := <-publishTx:
+				// 	txBytes, ok := signtx.([]byte)
+				// 	if !ok {
+				// 		log.Fatal("收到无效的交易数据，期望类型: []byte")
+				// 		continue
+				// 	}
+				// 	fmt.Println("\n##广播新交易##")
+				// 	handlePublishTx(txBytes)
 			}
 		}
 	}()
@@ -108,5 +118,4 @@ func ListenNewBlocks(bc *core.Blockchain) {
 
 func handleNewBlock(block *core.Block) {
 	event.Bus.Publish("ConsensusStart", block)
-
 }

@@ -3,7 +3,6 @@ package core
 import (
 	"ablockchain/crypto"
 	"ablockchain/trie"
-	"crypto/ecdsa"
 	"fmt"
 	"log"
 	"sync"
@@ -13,8 +12,8 @@ import (
 
 type Account struct {
 	Address    string
-	PublicKey  *ecdsa.PublicKey
-	PrivateKey *ecdsa.PrivateKey
+	PublicKey  []byte //由于*ecdsa.PublicKey不支持rlp编码,必须使用[]byte
+	PrivateKey []byte
 	Balance    uint64
 	Nonce      uint64
 }
@@ -23,6 +22,12 @@ type Account struct {
 type StateDB struct {
 	trie *trie.Trie
 	lock sync.RWMutex
+}
+
+// 打包签名和交易
+type SignedTx struct {
+	Tx   *Transaction
+	Sign []byte
 }
 
 func NewStateDB(dbPath string) (*StateDB, error) {
@@ -40,17 +45,19 @@ func (s *StateDB) NewAccount() (*Account, error) {
 		return nil, fmt.Errorf("生成私钥失败: %v", err)
 	}
 	address := crypto.PubkeyToAddress(privKey.PublicKey).Hex()
+	privKeyBytes := crypto.FromECDSA(privKey)
+	pubKeyBytes := crypto.FromECDSAPub(&privKey.PublicKey)
 	account := &Account{
 		Address:    address,
-		PrivateKey: privKey,
-		PublicKey:  &privKey.PublicKey,
+		PrivateKey: privKeyBytes,
+		PublicKey:  pubKeyBytes,
 		Balance:    0,
 		Nonce:      0,
 	}
 	// 存储账户到StateDB
-	err = s.UpdateAccount(account)
+	err = s.UpdateAccount(account) //RLP编码, 不支持*ecdsa.PrivateKey类型
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("存储账户到StateDB失败: %v", err)
 	}
 	log.Printf("创建新账户，地址: %s\n", address)
 	return account, nil
@@ -83,7 +90,7 @@ func (s *StateDB) GetAccount(address string) (*Account, bool) {
 	if err := rlp.DecodeBytes(data, &account); err != nil {
 		return nil, false
 	}
-	fmt.Printf("账户地址: %s, 账户余额: %d", account.Address, account.Balance)
+	fmt.Printf("账户地址: %s, 账户余额: %d\n", account.Address, account.Balance)
 	return &account, true
 }
 
@@ -109,69 +116,34 @@ func (s *StateDB) PrintAccounts() {
 	}
 }
 
-// 对生成的交易进行签名
-func (a *Account) SignTx(tx *Transaction) ([]byte, error) {
-	encodetx, err := tx.EncodeTx() //rlp编码
+// 对生成的交易进行签名, 返回rlp编码的SignedTx结构体
+func (a *Account) SignTx(tx *Transaction) (*SignedTx, error) {
+	encodetx, err := tx.EncodeTx()
 	if err != nil {
 		return nil, err
 	}
 	hashTx := crypto.GlobalHashAlgorithm.Hash(encodetx) //编码后计算hash
-	return crypto.Sign(hashTx, a.PrivateKey)
+	privk, err := crypto.ToECDSA(a.PrivateKey)
+	if err != nil {
+		return nil, err
+	}
+	sign, err := crypto.Sign(hashTx, privk)
+	if err != nil {
+		return nil, err
+	}
+	signedTx := &SignedTx{
+		Tx:   tx,
+		Sign: sign,
+	}
+	return signedTx, nil
 }
 
-func (tx *Transaction) VerifySignature(signature []byte) (bool, error) {
-	encodedTx, err := tx.EncodeTx()
+func DecodeSignTx(data []byte) (*SignedTx, error) {
+	var signtx SignedTx
+	err := rlp.DecodeBytes(data, &signtx)
 	if err != nil {
-		return false, err
+		log.Fatal("Failed to decode RLP SignedTx:", err)
+		return nil, err
 	}
-	hashTx := crypto.GlobalHashAlgorithm.Hash(encodedTx)
-	// 从哈希和签名恢复出公钥
-	pubKey, err := crypto.SigToPub(hashTx, signature)
-	if err != nil {
-		return false, err
-	}
-	// 计算公钥对应的地址
-	recoveredAddress := crypto.PubkeyToAddress(*pubKey).Hex()
-	// 比对地址是否一致
-	return recoveredAddress == tx.From, nil
+	return &signtx, nil
 }
-
-// func (a *Account) SignMessage(msg *pbfttypes.Message) ([]byte, error) {
-// 	// Sign message
-// 	data, err := msg.PayloadNoSig()
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	msg.Signature, err = c.Sign(data)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	return msg.Signature, err
-// }
-
-// // 通过未经哈希的原数据和签名得到签名所用的公钥，再通过公钥得到签名地址
-// func GetSignatureAddress(data []byte, sig []byte) (common.Address, error) {
-// 	hashData := crypto.GlobalHashAlgorithm.Hash(data)
-
-// 	pubkey, err := crypto.SigToPub(hashData, sig)
-// 	if err != nil {
-// 		return common.Address{}, err
-// 	}
-// 	return crypto.PubkeyToAddress(*pubkey), nil
-// }
-
-// func VerifySignature(msg *pbfttypes.Message) error {
-// 	payloadNoSig, err := msg.PayloadNoSig()
-// 	if err != nil {
-// 		return err
-// 	}
-
-// 	signerAddress, err := GetSignatureAddress(payloadNoSig, msg.Signature)
-
-// 	// 比较签名地址和消息中的地址参数（即发送消息的地址）是否一致
-// 	if !bytes.Equal(signerAddress.Bytes(), msg.Address) {
-// 		return errors.New("invaid signer")
-// 	}
-// 	return nil
-// }

@@ -74,8 +74,25 @@ func (tx *Transaction) PrintTransaction() {
 	fmt.Printf("  From: %s\n", tx.From)
 	fmt.Printf("  To: %s\n", tx.To)
 	fmt.Printf("  Value: %d\n", tx.Value)
-	fmt.Printf("  Gas: %d\n", tx.Gas)
+	fmt.Printf("  Nonce: %d\n", tx.Nonce)
 	fmt.Printf("  Time: %v\n", tx.Time)
+}
+
+func (tx *Transaction) VerifySignature(signature []byte) (bool, error) {
+	encodedTx, err := tx.EncodeTx()
+	if err != nil {
+		return false, err
+	}
+	hashTx := crypto.GlobalHashAlgorithm.Hash(encodedTx)
+	// 从哈希和签名恢复出公钥
+	pubKey, err := crypto.SigToPub(hashTx, signature)
+	if err != nil {
+		return false, err
+	}
+	// 计算公钥对应的地址
+	recoveredAddress := crypto.PubkeyToAddress(*pubKey).Hex()
+	// 比对地址是否一致
+	return recoveredAddress == tx.From, nil
 }
 
 func ReceiveData(stream network.Stream) *Transaction {
