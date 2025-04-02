@@ -108,11 +108,12 @@ func (bc *Blockchain) handleTransaction(signtx *SignedTx) {
 	}
 	if valid {
 		fmt.Println("\n签名合法")
-		//TODO:查询账户余额是否充足
+
 		signtx.Tx.PrintTransaction()
 
 		// 交易加入交易池
 		bc.TxPool.AddTx(signtx.Tx)
+		fmt.Println("交易池累计交易数：\n", bc.TxPool.PendingSize())
 	} else {
 		log.Fatal("\n非法签名")
 	}
@@ -125,13 +126,14 @@ func (bc *Blockchain) mineNewBlock() (*Block, error) {
 	}
 
 	// 创建新区块（该部分的difficulty需要进一步修改）
-	header := NewBlockHeader(bc.CurrentBlockHash, uint64(1), new(big.Int).Add(bc.CurBlockNum, big.NewInt(1)))
+	header := NewBlockHeader(bc.CurrentBlockHash, uint64(2), new(big.Int).Add(bc.CurBlockNum, big.NewInt(1)))
 	block := NewBlock(header, txs)
 
 	// bc.AddBlock(block)
 	bc.NewBlockChan <- block // 将新区块发送到通道
 
 	bc.TxPool.ClearPackedTxs(block.Transactions)
+	fmt.Println("打包区块，交易池：\n", bc.TxPool.PendingSize())
 	return block, nil
 }
 
@@ -139,7 +141,10 @@ func (bc *Blockchain) AddBlock(block *Block) {
 	str := fmt.Sprintf("%d", block.Header.Number)
 	fmt.Println(str)
 	block.PrintBlock()
+	bc.StateDB.ConfirmBlock(block) //修改账户状态
 	bc.DB.Put(str, block)
+	bc.TxPool.ClearPackedTxs(block.Transactions)
+	fmt.Println("上链，交易池：\n", bc.TxPool.PendingSize())
 }
 
 func (bc *Blockchain) PrintLatest() {

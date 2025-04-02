@@ -63,11 +63,16 @@ func (c *Commander) Run() {
 			}
 			c.handleBroadcast(parts[1])
 		case "addval":
-			if len(parts) < 2 {
-				fmt.Println("用法: addval <address>")
+			if len(parts) < 3 {
+				fmt.Println("用法: addval <address> <value>")
 				continue
 			}
-			c.handleAddVal(parts[1])
+			value, err := strconv.ParseUint(parts[2], 10, 64) //字符串转为uint64类型, 10:十进制; 64:uint64
+			if err != nil {
+				fmt.Println("错误: Value 必须是有效的正整数")
+				continue
+			}
+			c.handleAddVal(parts[1], value)
 		case "newacc":
 			c.sys.blockChain.StateDB.NewAccount()
 		case "accls":
@@ -141,8 +146,14 @@ func (c *Commander) handleBroadcast(msg string) {
 	}
 }
 
-func (c *Commander) handleAddVal(address string) {
-	// TODO
+func (c *Commander) handleAddVal(address string, value uint64) {
+	acc, ok := c.sys.blockChain.StateDB.GetAccount(address)
+	if !ok {
+		fmt.Println("错误: 账户不存在")
+		return
+	}
+	acc.Balance += value
+	c.sys.blockChain.StateDB.UpdateAccount(acc)
 }
 
 // 发送交易
@@ -152,7 +163,11 @@ func (c *Commander) handleTx(from, to string, value uint64) {
 		fmt.Println("错误: 付款账户不存在")
 		return
 	}
-	acc.Nonce += 1
+	if acc.Balance < value {
+		fmt.Println("错误: 付款账户余额不足")
+		return
+	}
+	acc.Nonce += 1 //Nonce在这里增加：防止一个区块中有多个相同用户的交易导致错误(不正规)
 	c.sys.blockChain.StateDB.UpdateAccount(acc)
 	tx := core.NewTransaction(acc, to, value)
 	signtx, err := acc.SignTx(tx)
@@ -168,10 +183,10 @@ func (c *Commander) handleTx(from, to string, value uint64) {
 	if err != nil {
 		log.Fatal("消息编码失败:encodedP2PMsg, err := p2pMsg.Encode()")
 	}
+	event.Bus.Publish("TransactionMessage", signtx) //自己节点也要把交易加入交易池,blockchain.StartMiner中处理
 	if err := c.sys.p2pNode.BroadcastMessage(string(encodedP2PMsg)); err != nil {
 		fmt.Printf("发送失败: %v\n", err)
 	}
-	event.Bus.Publish("TransactionMessage", signtx) //自己节点也要把交易加入交易池
 }
 
 // 暂未使用

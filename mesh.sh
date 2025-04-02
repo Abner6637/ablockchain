@@ -30,7 +30,7 @@ for ((i=1; i<=NODE_COUNT; i++)); do
     tmux new-session -d -s "node${i}" "go run main.go --db $NODE_DB --listen $NODE_LISTEN --consensus pow --nodekey $NODE_NODEKEY 2>&1 | tee $NODE_LOG"
 
     # 确保节点启动完成
-    sleep 5
+    sleep 3
 
     # 解析节点 P2P ID
     NODE_PEER_ID=$(grep -oP 'ID:\s+\K[a-zA-Z0-9]+' $NODE_LOG | tail -1)
