@@ -13,7 +13,7 @@ type Request struct {
 	Time uint64
 }
 
-func (r *Request) GetBlockNumber() uint64 {
+func (r *Request) GetBlockNumber() *big.Int {
 	block, _ := core.DecodeBlock(r.Msg)
 	return block.Header.Number
 }

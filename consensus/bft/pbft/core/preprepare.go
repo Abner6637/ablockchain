@@ -74,7 +74,10 @@ func (c *Core) SendPreprepare(request *bft.Request) error {
 
 	log.Printf("广播Preprepare消息：%+v", msg)
 
-	c.Broadcast(&msg)
+	if err := c.Broadcast(&msg); err != nil {
+		log.Printf("广播出现错误：%v", err)
+		return err
+	}
 
 	// 只有主节点会发送Preprepare，
 	// 主节点在SendPreprepare中存储Preprepare，

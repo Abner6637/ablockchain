@@ -6,6 +6,7 @@ import (
 	"ablockchain/storage"
 	"fmt"
 	"log"
+	"math/big"
 	"time"
 
 	"github.com/ethereum/go-ethereum/rlp"
@@ -22,7 +23,7 @@ type Blockchain struct {
 	StateRoot []byte   // Merkle Patricia Tree的根哈希
 
 	CurrentBlockHash []byte
-	CurBlockNum      uint64
+	CurBlockNum      *big.Int
 	NewBlockChan     chan *Block
 }
 
@@ -51,7 +52,7 @@ func NewBlockchain(cfg *cli.Config) (*Blockchain, error) {
 
 	// 创建创世区块
 	genesisBlock := NewGenesisBlock(genensisConfig.Difficulty)
-	curBlockNum := uint64(0)
+	curBlockNum := big.NewInt(0)
 	log.Printf("创建创世区块……\n")
 	db.Put("0", genesisBlock)
 
@@ -88,7 +89,7 @@ func (bc *Blockchain) mineNewBLock() (*Block, error) {
 	}
 
 	// 创建新区块（该部分的difficulty需要进一步修改）
-	header := NewBlockHeader(bc.CurrentBlockHash, uint64(1), bc.CurBlockNum+1)
+	header := NewBlockHeader(bc.CurrentBlockHash, uint64(1), new(big.Int).Add(bc.CurBlockNum, big.NewInt(1)))
 	block := NewBlock(header, txs)
 
 	// bc.AddBlock(block)
@@ -163,7 +164,7 @@ func NewTestBlockchain(DBPath string) (*Blockchain, error) {
 
 	// 创建创世区块
 	genesisBlock := NewGenesisBlock(genensisConfig.Difficulty)
-	curBlockNum := uint64(0)
+	curBlockNum := big.NewInt(0)
 	log.Printf("创建创世区块……\n")
 	db.Put("0", genesisBlock)
 

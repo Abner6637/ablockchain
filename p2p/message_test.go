@@ -2,6 +2,7 @@ package p2p
 
 import (
 	"ablockchain/core"
+	"math/big"
 	"testing"
 	"time"
 
@@ -17,7 +18,7 @@ func newTestBlock() *core.Block {
 			Time:       uint64(time.Now().Unix()),
 			Difficulty: 1,
 			Nonce:      0,
-			Number:     13,
+			Number:     big.NewInt(13),
 		},
 	}
 }

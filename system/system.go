@@ -36,7 +36,6 @@ func StartSystem(cfg *cli.Config) *System {
 	// 	log.Printf("cannot create new account: %v", err)
 	// }
 	// accountManager.Accounts[account.Address] = account
-	// // TODO: account的地址如何获取，account的各个参数如何设置，如公私钥、balance
 
 	bc, err := core.NewBlockchain(cfg)
 	if err != nil {
@@ -57,7 +56,8 @@ func StartSystem(cfg *cli.Config) *System {
 	sys.consensus.Start()
 	log.Printf("开启共识模块……\n")
 
-	// TODO：如对于PBFT算法，非主节点应该不需要开启挖矿进程？
+	// 对于PBFT算法，非主节点应该不需要开启挖矿进程？
+	// 但其实正常开启没有问题。只要其他节点不接受来自非主节点的区块就可以了
 	bc.StartMiner()     // 异步进程，开启判断是否要打包交易生成区块
 	ListenNewBlocks(bc) // 异步进程，监听是否有新区块生成，若有则处理
 

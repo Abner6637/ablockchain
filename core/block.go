@@ -6,6 +6,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"log"
+	"math/big"
 	"time"
 
 	"github.com/ethereum/go-ethereum/rlp"
@@ -16,12 +17,12 @@ type BlockHeader struct {
 	Time       uint64
 
 	Difficulty uint64
-	Number     uint64
+	Number     *big.Int
 	MerkleRoot []byte
 	Nonce      uint64 // PoW 计算用的随机数
 }
 
-func NewBlockHeader(parentHash []byte, dif uint64, num uint64) *BlockHeader {
+func NewBlockHeader(parentHash []byte, dif uint64, num *big.Int) *BlockHeader {
 	return &BlockHeader{
 		ParentHash: parentHash,
 		Time:       uint64(time.Now().Unix()),
@@ -86,7 +87,7 @@ func NewGenesisBlock(dif uint64) *Block {
 			ParentHash: []byte("0"),
 			Time:       uint64(time.Now().Unix()),
 			Difficulty: dif,
-			Number:     0,
+			Number:     big.NewInt(0),
 		},
 	}
 }

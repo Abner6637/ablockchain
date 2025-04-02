@@ -4,6 +4,7 @@ import (
 	"ablockchain/core"
 	"bufio"
 	"fmt"
+	"math/big"
 	"os"
 	"strings"
 	"time"
@@ -163,7 +164,7 @@ func newTestBlock() *core.Block {
 			Time:       uint64(time.Now().Unix()),
 			Difficulty: 2,
 			Nonce:      0,
-			Number:     13,
+			Number:     big.NewInt(13),
 		},
 	}
 }

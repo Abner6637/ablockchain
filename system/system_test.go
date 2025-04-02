@@ -6,6 +6,7 @@ import (
 	"ablockchain/p2p"
 	"fmt"
 	"log"
+	"math/big"
 	"testing"
 	"time"
 
@@ -68,7 +69,7 @@ func newTestBlockForSystem() *core.Block {
 			Time:       uint64(time.Now().Unix()),
 			Difficulty: 2,
 			Nonce:      0,
-			Number:     1,
+			Number:     big.NewInt(1),
 		},
 	}
 }

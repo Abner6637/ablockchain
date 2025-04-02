@@ -14,15 +14,13 @@ import (
 	"time"
 )
 
-func newTestBlock() *core.Block {
+func newTestBlock(num *big.Int) *core.Block {
 	return &core.Block{
 		Header: &core.BlockHeader{
-			ParentHash: []byte("0df9a8f4a2f2fc354c3c8aa5e837d4db137f20ccbf3d8336e4c95ac9d0e2943e"),
-			MerkleRoot: []byte("1cdfdf5680f2a639732f6aae64a8b96c10a913b46c8fcd908c9eb95925979974"),
 			Time:       uint64(time.Now().Unix()),
-			Difficulty: 2,
+			Difficulty: 0,
 			Nonce:      0,
-			Number:     1,
+			Number:     num,
 		},
 	}
 }

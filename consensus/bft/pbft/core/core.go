@@ -152,7 +152,11 @@ func (c *Core) Broadcast(msg *pbfttypes.Message) error {
 		return err
 	}
 
-	c.p2pNode.BroadcastMessage(string(encodedP2PMsg))
+	if c.p2pNode != nil {
+		c.p2pNode.BroadcastMessage(string(encodedP2PMsg))
+	} else {
+		return errors.New("不存在共识模块对应的p2pNode!")
+	}
 
 	return nil
 }
@@ -186,7 +190,7 @@ func (c *Core) StartNewProcess(num *big.Int) {
 		c.consensusState = NewConsensusState(big.NewInt(0), big.NewInt(0), nil)
 	} else {
 		if num.Cmp(big.NewInt(0)) == 0 { // 没有视图切换
-			c.consensusState = NewConsensusState(c.consensusState.getView(), big.NewInt(int64(c.curCommitedBlock.Header.Number)+1), nil)
+			c.consensusState = NewConsensusState(c.consensusState.getView(), new(big.Int).Add(c.curCommitedBlock.Header.Number, big.NewInt(1)), nil)
 
 			// 正常共识完一个request后（没有视图转换等），开始处理队列中的下一个request（如果有的话）
 			c.ProcessRequest()
