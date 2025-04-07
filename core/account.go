@@ -51,7 +51,7 @@ func (s *StateDB) NewAccount() (*Account, error) {
 		Address:    address,
 		PrivateKey: privKeyBytes,
 		PublicKey:  pubKeyBytes,
-		Balance:    0,
+		Balance:    100,
 		Nonce:      0,
 	}
 	// 存储账户到StateDB
@@ -73,6 +73,8 @@ func (s *StateDB) UpdateAccount(account *Account) error {
 	if err != nil {
 		return err
 	}
+	fmt.Printf("$$ 账户信息更新: \n")
+	fmt.Printf("地址: %s | 余额: %d | Nonce: %d\n", account.Address, account.Balance, account.Nonce)
 	return s.trie.Insert(account.Address, data)
 }
 
@@ -85,12 +87,10 @@ func (s *StateDB) GetAccount(address string) (*Account, bool) {
 	if err != nil {
 		return nil, false
 	}
-
 	var account Account
 	if err := rlp.DecodeBytes(data, &account); err != nil {
 		return nil, false
 	}
-	fmt.Printf("账户地址: %s, 账户余额: %d\n", account.Address, account.Balance)
 	return &account, true
 }
 
@@ -112,7 +112,7 @@ func (s *StateDB) PrintAccounts() {
 			log.Printf("账户解码失败: %v", err)
 			continue
 		}
-		fmt.Printf("地址: %s | 余额: %d\n", account.Address, account.Balance)
+		fmt.Printf("地址: %s | 余额: %d | Nonce: %d\n", account.Address, account.Balance, account.Nonce)
 	}
 }
 
@@ -146,4 +146,24 @@ func DecodeSignTx(data []byte) (*SignedTx, error) {
 		return nil, err
 	}
 	return &signtx, nil
+}
+
+// 区块上链后，改变账户状态
+// TODO: 验证交易与账户的nonce信息，是否按顺序进行
+func (s *StateDB) ConfirmBlock(block *Block) error {
+	for _, tx := range block.Transactions {
+		from, ok := s.GetAccount(tx.From)
+		if ok {
+			from.Balance -= tx.Value
+			from.Nonce += 1
+			s.UpdateAccount(from)
+		}
+		to, ok := s.GetAccount(tx.To)
+		if ok {
+			to.Balance += tx.Value
+			s.UpdateAccount(to)
+		}
+		//TODO:判断用户是否存在，前提：statedb的同步
+	}
+	return nil
 }
