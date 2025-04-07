@@ -5,11 +5,12 @@ import (
 
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/syndtr/goleveldb/leveldb"
+	"github.com/syndtr/goleveldb/leveldb/util"
 )
 
 // LevelDBStorage 实现 Storage 接口
 type LevelDB struct {
-	count uint64 // 计数器
+	Count uint64 // 计数器
 	db    *leveldb.DB
 }
 
@@ -19,7 +20,7 @@ func NewLevelDB(path string) (*LevelDB, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &LevelDB{db: db, count: 0}, nil
+	return &LevelDB{db: db, Count: 0}, nil
 }
 
 // Put 存储数据
@@ -28,7 +29,7 @@ func (s *LevelDB) Put(key string, value interface{}) error {
 	if err != nil {
 		return err
 	}
-	s.count++
+	s.Count++
 	return s.db.Put([]byte(key), data, nil)
 }
 
@@ -44,13 +45,13 @@ func (s *LevelDB) Get(key string, value interface{}) error {
 
 // Delete 删除键
 func (s *LevelDB) Delete(key string) error {
-	s.count--
+	s.Count--
 	return s.db.Delete([]byte(key), nil)
 }
 
 // 打印键值对总数
 func (s *LevelDB) PrintCount() {
-	fmt.Printf("Total: %d\n", s.count)
+	fmt.Printf("Total: %d\n", s.Count)
 }
 
 // 返回rlp编码，手动进行解析（block或transaction等)
@@ -95,6 +96,18 @@ func (s *LevelDB) GetAll() ([]struct {
 		return nil, leveldb.ErrNotFound
 	}
 	return result, nil
+}
+
+// 迭代器
+func (s *LevelDB) ForEach(fn func(key string, value []byte)) {
+	iter := s.db.NewIterator(&util.Range{}, nil)
+	defer iter.Release()
+
+	for iter.Next() {
+		key := string(iter.Key())
+		value := iter.Value()
+		fn(key, value)
+	}
 }
 
 // Close 关闭数据库

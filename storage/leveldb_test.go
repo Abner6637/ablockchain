@@ -3,6 +3,8 @@ package storage
 import (
 	"os"
 	"testing"
+
+	"github.com/ethereum/go-ethereum/rlp"
 )
 
 // 创建临时数据库路径
@@ -109,4 +111,56 @@ func TestMain(m *testing.M) {
 
 	// 退出测试
 	os.Exit(code)
+}
+
+// 假设你有一个结构体用于测试
+type testAccount struct {
+	Address string
+	Balance uint64
+}
+
+func TestLevelDB_ForEach(t *testing.T) {
+	// 创建临时数据库路径
+	dbPath := t.TempDir()
+
+	defer os.RemoveAll(dbPath) // 测试完成后清理
+
+	db, err := NewLevelDB(dbPath)
+	if err != nil {
+		t.Fatalf("打开 LevelDB 失败: %v", err)
+	}
+	defer db.Close()
+
+	// 准备测试数据
+	accounts := []testAccount{
+		{"0x123", 100},
+		{"0x456", 200},
+	}
+
+	// 存入测试数据
+	for _, acc := range accounts {
+		data, err := rlp.EncodeToBytes(acc)
+		if err != nil {
+			t.Fatalf("编码失败: %v", err)
+		}
+		if err := db.Put(acc.Address, data); err != nil {
+			t.Fatalf("存入失败: %v", err)
+		}
+	}
+
+	// 遍历验证
+	found := make(map[string]bool)
+	db.ForEach(func(key string, value []byte) {
+		var acc testAccount
+		if err := rlp.DecodeBytes(value, &acc); err == nil {
+			found[acc.Address] = true
+		}
+	})
+
+	// 验证是否都找到了
+	for _, acc := range accounts {
+		if !found[acc.Address] {
+			t.Errorf("未找到账户: %s", acc.Address)
+		}
+	}
 }

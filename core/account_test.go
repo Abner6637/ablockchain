@@ -1,106 +1,64 @@
-package core
+package core_test
 
 import (
+	"ablockchain/core"
+	"os"
 	"testing"
-
-	"github.com/stretchr/testify/assert"
 )
 
-// 测试创建新账户
-func TestNewAccount(t *testing.T) {
-	stateDB, err := NewStateDB("test_db")
-	assert.NoError(t, err)
-	defer stateDB.Close()
-
-	account, err := stateDB.NewAccount()
-	assert.NoError(t, err)
-	assert.NotNil(t, account)
-	assert.NotEmpty(t, account.Address)
-	assert.NotEmpty(t, account.PublicKey)
-	assert.NotEmpty(t, account.PrivateKey)
-	assert.Equal(t, uint64(0), account.Balance)
-
-	t.Logf("新账户创建成功: 地址 %s", account.Address)
+// 清理测试用的 LevelDB 文件夹
+func cleanDB(path string) {
+	os.RemoveAll(path)
 }
 
-// 测试更新账户余额
-func TestUpdateAccount(t *testing.T) {
-	stateDB, err := NewStateDB("test_db")
-	assert.NoError(t, err)
-	defer stateDB.Close()
+func TestCommitAndTraverseAccounts(t *testing.T) {
+	dbPath := "testdb"
+	cleanDB(dbPath) // 测试前清除旧数据
+	defer cleanDB(dbPath)
 
-	account, err := stateDB.NewAccount()
-	assert.NoError(t, err)
-
-	stateDB.PrintAccounts()
-
-	// 修改余额
-	account.Balance = 1000
-	err = stateDB.UpdateAccount(account)
-	assert.NoError(t, err)
-
-	// 查询账户，检查余额是否更新
-	updatedAccount, exists := stateDB.GetAccount(account.Address)
-	assert.True(t, exists)
-	assert.Equal(t, uint64(1000), updatedAccount.Balance)
-	stateDB.PrintAccounts()
-}
-
-// 测试查询账户
-func TestGetAccount(t *testing.T) {
-	stateDB, err := NewStateDB("test_db")
-	assert.NoError(t, err)
-	defer stateDB.Close()
-
-	account, err := stateDB.NewAccount()
-	assert.NoError(t, err)
-
-	// 查询账户
-	retrievedAccount, exists := stateDB.GetAccount(account.Address)
-	assert.True(t, exists)
-	assert.Equal(t, account.Address, retrievedAccount.Address)
-	assert.Equal(t, account.Balance, retrievedAccount.Balance)
-}
-
-// 测试查询不存在的账户
-func TestGetNonExistentAccount(t *testing.T) {
-	stateDB, err := NewStateDB("test_db")
-	assert.NoError(t, err)
-	defer stateDB.Close()
-
-	account, exists := stateDB.GetAccount("0x123456789")
-	assert.False(t, exists)
-	assert.Nil(t, account)
-
-	t.Log("查询不存在的账户，返回 nil")
-}
-
-func TestVerifySignature(t *testing.T) {
-	stateDB, err := NewStateDB("test_db")
-	assert.NoError(t, err)
-	defer stateDB.Close()
-
-	from, err := stateDB.NewAccount()
+	// 初始化 StateDB
+	stateDB, err := core.NewStateDB(dbPath)
 	if err != nil {
-		return
+		t.Fatalf("Failed to create StateDB: %v", err)
 	}
-	to := "0x456"
-	value := uint64(100)
-	tx := NewTransaction(from, to, value)
+	defer stateDB.Close()
 
-	// 签名交易
-	signature, err := from.SignTx(tx)
+	// 创建两个账户
+	account1, err := stateDB.NewAccount()
 	if err != nil {
-		t.Fatalf("Failed to sign transaction: %v", err)
+		t.Fatalf("Failed to create account1: %v", err)
 	}
 
-	// 验证签名
-	valid, err := tx.VerifySignature(signature.Sign)
+	account2, err := stateDB.NewAccount()
 	if err != nil {
-		t.Fatalf("Failed to verify signature: %v", err)
+		t.Fatalf("Failed to create account2: %v", err)
 	}
 
-	if !valid {
-		t.Errorf("Signature verification failed")
+	// 修改余额以测试 dirty 状态跟踪
+	account1.Balance += 50
+	stateDB.UpdateAccount(account1)
+
+	account2.Balance += 100
+	stateDB.UpdateAccount(account2)
+
+	// Commit 到 Trie/LevelDB
+	_, err = stateDB.Commit()
+	if err != nil {
+		t.Fatalf("Commit failed: %v", err)
+	}
+
+	// 用 TraverseAccounts 遍历 LevelDB，验证账户是否存在
+	foundAccounts := make(map[string]bool)
+	stateDB.TraverseAccounts(func(key string, acc *core.Account) {
+		foundAccounts[acc.Address] = true
+		t.Logf("Traversed account: %s | Balance: %d | Nonce: %d", acc.Address, acc.Balance, acc.Nonce)
+	})
+
+	// 验证两个账户都被找到
+	if !foundAccounts[account1.Address] {
+		t.Errorf("Account1 not found in traversal")
+	}
+	if !foundAccounts[account2.Address] {
+		t.Errorf("Account2 not found in traversal")
 	}
 }

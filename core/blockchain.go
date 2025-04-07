@@ -59,14 +59,14 @@ func NewBlockchain(cfg *cli.Config) (*Blockchain, error) {
 	log.Printf("创建创世区块……\n")
 	db.Put("0", genesisBlock)
 
-	// 计算初始 stateRoot
-	stateRoot := stateDB.trie.RootHash()
+	// // 计算初始 stateRoot
+	// stateRoot := stateDB.trie.RootHash()
 
 	return &Blockchain{
 		DB:        db,
 		TxPool:    txPool,
 		StateDB:   stateDB,
-		StateRoot: stateRoot,
+		StateRoot: nil,
 		//currentBlockHash: currentBlockHash,
 		CurBlockNum:  curBlockNum,
 		NewBlockChan: make(chan *Block, 10),
@@ -211,14 +211,11 @@ func NewTestBlockchain(DBPath string) (*Blockchain, error) {
 	log.Printf("创建创世区块……\n")
 	db.Put("0", genesisBlock)
 
-	// 计算初始 stateRoot
-	stateRoot := stateDB.trie.RootHash()
-
 	return &Blockchain{
 		DB:        db,
 		TxPool:    txPool,
 		StateDB:   stateDB,
-		StateRoot: stateRoot,
+		StateRoot: nil,
 		//currentBlockHash: currentBlockHash,
 		CurBlockNum:  curBlockNum,
 		NewBlockChan: make(chan *Block, 10),
