@@ -25,6 +25,7 @@ type Node struct {
 // 创建新的p2p节点并开始监听
 func NewNode(listenAddress string, privateKey *ecdsa.PrivateKey) (*Node, error) {
 	node, err := libp2p.New(libp2p.ListenAddrStrings(listenAddress))
+
 	if err != nil {
 		return nil, err
 	}

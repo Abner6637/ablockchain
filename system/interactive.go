@@ -43,6 +43,10 @@ func (c *Commander) Run() {
 		//parts := strings.SplitN(input, " ", 2)
 		parts := strings.Fields(input)
 
+		if len(parts) == 0 {
+			fmt.Println("请输入命令，或输入 'help' 查看可用命令")
+			continue
+		}
 		switch parts[0] {
 		case "connect":
 			if len(parts) < 2 {
@@ -124,20 +128,20 @@ func (c *Commander) handleConnect(addr string) {
 }
 
 func (c *Commander) handleSend(msg string) {
-	if len(c.sys.p2pNode.Host.Peerstore().Peers()) < 2 {
+	if len(c.sys.p2pNode.Peers()) < 1 {
 		fmt.Println("错误: 未连接任何节点")
 		return
 	}
 
 	// 发送给第一个连接的节点（实际应用可扩展选择机制）
-	targetPeer := c.sys.p2pNode.Host.Peerstore().Peers()[1]
+	targetPeer := c.sys.p2pNode.Peers()[0]
 	if err := c.sys.p2pNode.SendMessage(targetPeer, msg); err != nil {
 		fmt.Printf("发送失败: %v\n", err)
 	}
 }
 
 func (c *Commander) handleBroadcast(msg string) {
-	if len(c.sys.p2pNode.Host.Peerstore().Peers()) < 2 {
+	if len(c.sys.p2pNode.Peers()) < 1 {
 		fmt.Println("错误: 未连接任何节点")
 		return
 	}

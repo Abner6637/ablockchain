@@ -1,0 +1,48 @@
+version: '3.9'
+
+services:
+  node0:
+    image: ablockchain:0.0.0
+    container_name: node0
+    networks:
+      customnet:
+        ipv4_address: 172.28.0.10
+    ports:
+      - "32000:32000"
+    # command: ./ablockchain --listen /ip4/0.0.0.0/tcp/32000
+
+  node1:
+    image: ablockchain:0.0.0
+    container_name: node1
+    networks:
+      customnet:
+        ipv4_address: 172.28.0.11
+    ports:
+      - "32001:32000"
+    # command: ./ablockchain --listen /ip4/0.0.0.0/tcp/32000
+  node2:
+    image: ablockchain:0.0.0
+    container_name: node2
+    networks:
+      customnet:
+        ipv4_address: 172.28.0.12
+    ports:
+      - "32002:32000"
+    # command: ./ablockchain --listen /ip4/0.0.0.0/tcp/32000
+
+  node3:
+    image: ablockchain:0.0.0
+    container_name: node3
+    networks:
+      customnet:
+        ipv4_address: 172.28.0.13
+    ports:
+      - "32003:32000"
+    # command: ./ablockchain --listen /ip4/0.0.0.0/tcp/32000
+
+networks:
+  customnet:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16

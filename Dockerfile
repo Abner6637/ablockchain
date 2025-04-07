@@ -2,8 +2,11 @@
 # 使用带有所需Go版本的Alpine基础镜像以减小体积
 FROM golang:1.23-alpine AS builder
 
+# 安装 C 编译环境和依赖
+RUN apk add --no-cache gcc musl-dev linux-headers git
+
 # 设置工作目录以避免路径冲突
-WORKDIR /app
+WORKDIR /ablockchain
 
 # 首先复制依赖文件以利用Docker缓存层
 COPY go.mod go.sum ./
@@ -15,7 +18,7 @@ RUN GOPROXY=https://goproxy.cn,direct GOSUMDB=off go mod download
 COPY . .
 
 # 编译静态二进制文件（禁用CGO，适配Alpine）
-RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o /app/myapp ./main.go
+RUN go build -o /ablockchain/ablockchain ./main.go
 
 # 第二阶段：构建轻量级生产镜像
 FROM alpine:latest
@@ -31,18 +34,18 @@ ENV TZ=Asia/Shanghai
 RUN apk add bash
 
 # 创建工作目录并确保权限正确
-WORKDIR /app
+WORKDIR /ablockchain
 
 # 从构建阶段复制编译好的二进制文件
-COPY --from=builder /app/myapp .
-COPY --from=builder /app/genesis.json .
+COPY --from=builder /ablockchain/ablockchain .
+COPY --from=builder /ablockchain/genesis.json .
 
 
 # 暴露应用程序使用的端口（根据实际情况修改）
 EXPOSE 32000
 
-COPY entrypoint.sh /app/entrypoint.sh
-RUN chmod +x /app/entrypoint.sh
+COPY entrypoint.sh /ablockchain/entrypoint.sh
+RUN chmod +x /ablockchain/entrypoint.sh
 
 # 启动应用程序
-ENTRYPOINT ["/app/entrypoint.sh"]
+ENTRYPOINT ["/ablockchain/entrypoint.sh"]
