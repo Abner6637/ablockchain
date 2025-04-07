@@ -11,6 +11,7 @@
 /bin/
 /pkg/
 /block_storage/
+/block_storage_state/
 /key_store/
 /core/test_db/
 /testStore/
