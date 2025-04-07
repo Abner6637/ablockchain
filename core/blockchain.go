@@ -40,6 +40,8 @@ func NewBlockchain(cfg *cli.Config) (*Blockchain, error) {
 	txPool := NewTxPool()
 
 	// 加载创世配置（需要在启动的目录下有一个创世文件
+	// TODO 将genesis的路径作为一个可选参数放进cli里
+	// default在项目目录下
 	genensisConfig, err := config.LoadGenesisConfig("./genesis.json")
 	if err != nil {
 		return nil, err

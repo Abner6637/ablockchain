@@ -60,7 +60,7 @@ func TestProcessRequest(t *testing.T) {
 
 }
 
-func (c *Core) handleRequestForTest(request *bft.Request) error {
+func (c *Core) testHandleRequestForRequest(request *bft.Request) error {
 	log.Printf("开始处理Request：%+v", request)
 
 	if request.GetBlockNumber().Cmp(c.consensusState.getSequence()) < 0 {
@@ -74,12 +74,6 @@ func (c *Core) handleRequestForTest(request *bft.Request) error {
 		// 对于改事件的处理会重新调用c.ProcessRequest()  （因为没有视图切换）
 		event.Bus.Publish("FinalCommitedBlock", request.GetBlock())
 	}
-
-	/*
-		if c.IsPrimary() {
-			c.SendPreprepare(request)
-		}
-	*/
 
 	return nil
 }
@@ -129,7 +123,7 @@ func (c *Core) testHandleEventsForRequest() {
 					Msg:  encodedBlock,
 					Time: uint64(time.Now().Unix()),
 				}
-				c.handleRequestForTest(request)
+				c.testHandleRequestForRequest(request)
 			}
 		case "MessageEvent":
 			log.Printf("consensus检测到MessageEvent事件")

@@ -40,6 +40,9 @@ func (tp *TxPool) PendingSize() int {
 
 // 交易池中清除已经打包的区块
 func (tp *TxPool) ClearPackedTxs(txs []*Transaction) {
+	tp.lock.Lock()
+	defer tp.lock.Unlock()
+
 	for i := 0; i < len(tp.TxQueue); i++ {
 		for _, tx := range txs {
 			if tp.TxQueue[i] == tx {

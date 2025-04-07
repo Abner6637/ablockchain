@@ -1,0 +1,20 @@
+**/*_test.go
+
+# 忽略编译生成的二进制文件
+*.exe
+*.out
+*.o
+*.a
+*.so
+/ablockchain
+
+# Go 的缓存文件和依赖
+/vendor/
+/bin/
+/pkg/
+/block_storage/
+/core/test_db/
+/testStore/
+
+# 日志和临时文件
+*.log
