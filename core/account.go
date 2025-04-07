@@ -164,7 +164,6 @@ func (s *StateDB) ConfirmBlock(block *Block) error {
 		from, ok := s.GetAccount(tx.From)
 		if ok {
 			from.Balance -= tx.Value
-			from.Nonce += 1
 			s.UpdateAccount(from)
 		}
 		to, ok := s.GetAccount(tx.To)
@@ -207,8 +206,6 @@ func (s *StateDB) TraverseAccounts(fn func(key string, account *Account)) {
 	if s.trie.DB == nil {
 		return
 	}
-	fmt.Println(">>> 遍历 LevelDB 内容中账户信息：")
-
 	s.trie.DB.ForEach(func(key string, value []byte) {
 		account, ok := s.GetAccount(key)
 		if ok && account.Address != "" {
