@@ -35,7 +35,7 @@ func main() {
 
 	exitEvent := event.Bus.Subscribe("ExitEvent")
 
-	log.Printf("is attach: %v", isAttach)
+	// log.Printf("is attach: %v", isAttach)
 
 	if !isAttach {
 		system.StartSystem(cfg)

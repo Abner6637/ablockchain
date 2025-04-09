@@ -6,7 +6,6 @@ import (
 	"ablockchain/p2p"
 	"bufio"
 	"fmt"
-	"io"
 	"log"
 	"math/big"
 	"os"
@@ -21,144 +20,111 @@ type Commander struct {
 	sys     *System
 	reader  *bufio.Reader
 	running bool
-	cmdCh   chan string
-	input   io.Reader
-	output  io.Writer
 }
 
-func NewCommander(sys *System, in io.Reader, out io.Writer) *Commander {
+func NewCommander(sys *System) *Commander {
 	return &Commander{
 		sys:     sys,
 		reader:  bufio.NewReader(os.Stdin),
 		running: true,
-		cmdCh:   make(chan string),
-		input:   in,
-		output:  out,
 	}
 }
 
 func (c *Commander) Run() {
-	c.output.Write([]byte("输入 'help' 查看可用命令\n"))
-	c.output.Write([]byte("> "))
+	fmt.Println("输入 'help' 查看可用命令")
+
 	// 启动消息接收协程
 	//go c.printIncomingMessages()
 
-	go c.listenForCommands()
-
 	for c.running {
-		select {
-		case cmd := <-c.cmdCh:
-			c.executeCommand(cmd)
-			c.output.Write([]byte("> "))
-		}
-	}
-}
+		fmt.Print("> ")
+		input, _ := c.reader.ReadString('\n')
+		input = strings.TrimSpace(input)
+		//parts := strings.SplitN(input, " ", 2)
+		parts := strings.Fields(input)
 
-func (c *Commander) listenForCommands() {
-
-	scanner := bufio.NewScanner(c.input)
-	// 持续监听 attach 进程的输入并将命令传递给 main goroutine
-	for scanner.Scan() {
-
-		cmd := scanner.Text()
-		input := strings.TrimSpace(cmd)
-		if len(input) == 0 {
-			c.output.Write([]byte("请输入命令，或输入 'help' 查看可用命令\n"))
-			c.output.Write([]byte("> "))
+		if len(parts) == 0 {
+			fmt.Println("请输入命令，或输入 'help' 查看可用命令")
 			continue
 		}
-
-		// c.conn.Write([]byte("发送数据" + input + "给主进程"))
-		c.cmdCh <- input // 将命令传递给主进程
+		switch parts[0] {
+		case "connect":
+			if len(parts) < 2 {
+				fmt.Println("用法: connect <multiaddr>")
+				continue
+			}
+			c.handleConnect(parts[1])
+		case "send":
+			if len(parts) < 2 {
+				fmt.Println("用法: send <message>")
+				continue
+			}
+			c.handleSend(parts[1])
+		case "broadcast":
+			if len(parts) < 2 {
+				fmt.Println("用法: broadcast <message>")
+				continue
+			}
+			c.handleBroadcast(parts[1])
+		case "addval":
+			if len(parts) < 3 {
+				fmt.Println("用法: addval <address> <value>")
+				continue
+			}
+			value, err := strconv.ParseUint(parts[2], 10, 64) //字符串转为uint64类型, 10:十进制; 64:uint64
+			if err != nil {
+				fmt.Println("错误: Value 必须是有效的正整数")
+				continue
+			}
+			c.handleAddVal(parts[1], value)
+		case "newacc":
+			c.sys.blockChain.StateDB.NewAccount()
+		case "accls":
+			c.sys.blockChain.StateDB.PrintAccounts()
+		case "tx":
+			if len(parts) < 4 {
+				fmt.Println("用法: tx <From(adress)> <To(adress)> <Value>")
+				continue
+			}
+			value, err := strconv.ParseUint(parts[3], 10, 64) //字符串转为uint64类型, 10:十进制; 64:uint64
+			if err != nil {
+				fmt.Println("错误: Value 必须是有效的正整数")
+				continue
+			}
+			c.handleTx(parts[1], parts[2], value)
+		case "printlatest":
+			c.sys.blockChain.PrintLatest()
+		case "printall":
+			c.sys.blockChain.PrintAll()
+		case "height":
+			c.sys.blockChain.DB.PrintCount()
+		case "startcons":
+			c.sys.consensus.Start()
+		case "stopcons":
+			c.sys.consensus.Stop()
+		case "testmine":
+			c.testmine()
+		case "peers":
+			c.sys.p2pNode.PrintPeers()
+		case "exit":
+			c.running = false
+		case "help":
+			c.printHelp()
+		default:
+			fmt.Println("未知命令")
+		}
 	}
-}
 
-func (c *Commander) executeCommand(cmd string) {
-	parts := strings.Fields(cmd)
-	if len(parts) == 0 {
-		return
-	}
-	switch parts[0] {
-	case "connect":
-		if len(parts) < 2 {
-			c.output.Write([]byte("用法: connect <multiaddr>\n"))
-			return
-		}
-		c.handleConnect(parts[1])
-	case "send":
-		if len(parts) < 2 {
-			c.output.Write([]byte("用法: send <message>\n"))
-			return
-		}
-		c.handleSend(parts[1])
-	case "broadcast":
-		if len(parts) < 2 {
-			c.output.Write([]byte("用法: broadcast <message>\n"))
-			return
-		}
-		c.handleBroadcast(parts[1])
-	case "addval":
-		if len(parts) < 3 {
-			c.output.Write([]byte("用法: addval <address> <value>\n"))
-			return
-		}
-		value, err := strconv.ParseUint(parts[2], 10, 64) //字符串转为uint64类型, 10:十进制; 64:uint64
-		if err != nil {
-			c.output.Write([]byte("错误: Value 必须是有效的正整数\n"))
-			return
-		}
-		c.handleAddVal(parts[1], value)
-	case "newacc":
-		c.sys.blockChain.StateDB.NewAccount()
-	case "accls":
-		c.sys.blockChain.StateDB.PrintAccounts()
-	case "tx":
-		if len(parts) < 4 {
-			c.output.Write([]byte("用法: tx <From(adress)> <To(adress)> <Value>\n"))
-			return
-		}
-		value, err := strconv.ParseUint(parts[3], 10, 64) //字符串转为uint64类型, 10:十进制; 64:uint64
-		if err != nil {
-			c.output.Write([]byte("错误: Value 必须是有效的正整数\n"))
-			return
-		}
-		c.handleTx(parts[1], parts[2], value)
-	case "printlatest":
-		c.sys.blockChain.PrintLatest()
-	case "printall":
-		c.sys.blockChain.PrintAll()
-	case "height":
-		c.sys.blockChain.DB.PrintCount()
-	case "startcons":
-		c.sys.consensus.Start()
-	case "stopcons":
-		c.sys.consensus.Stop()
-	case "testmine":
-		c.testmine()
-	case "peers":
-		c.PrintPeers()
-	case "exit":
-		c.running = false
+	fmt.Println("正在关闭节点...")
+	c.sys.p2pNode.Host.Close()
 
-		c.output.Write([]byte("正在关闭节点...\n"))
-		c.sys.p2pNode.Host.Close()
-
-		event.Bus.Publish("ExitEvent", true)
-		// log.Printf("发布ExitEvent事件")
-
-		c.sys.consensus.Stop()
-
-	case "help":
-		c.printHelp()
-	default:
-		c.output.Write([]byte("未知命令\n"))
-	}
+	event.Bus.Publish("ExitEvent", true)
+	c.sys.consensus.Stop()
 }
 
 func (c *Commander) handleConnect(addr string) {
 	if err := c.sys.p2pNode.ConnectToPeer(addr); err != nil {
-		str := fmt.Sprintf("连接失败: %v\n", err)
-		c.output.Write([]byte(str))
+		fmt.Printf("连接失败: %v\n", err)
 	} else {
 		fmt.Println("连接成功")
 	}
@@ -166,7 +132,7 @@ func (c *Commander) handleConnect(addr string) {
 
 func (c *Commander) handleSend(msg string) {
 	if len(c.sys.p2pNode.Peers()) < 1 {
-		c.output.Write([]byte("错误: 未连接任何节点\n"))
+		fmt.Println("错误: 未连接任何节点")
 		return
 	}
 
@@ -238,7 +204,7 @@ func (c *Commander) printIncomingMessages() {
 }
 
 func (c *Commander) printHelp() {
-	c.output.Write([]byte(`
+	fmt.Println(`
 可用命令:
   connect <multiaddr>  - 连接到指定节点
   send <message>       - 发送消息
@@ -252,22 +218,7 @@ func (c *Commander) printHelp() {
   height               - 总区块数
   testmine             - 测试共识
   exit                 - 退出程序
-  help                 - 显示帮助` + "\n"))
-}
-
-func (c *Commander) PrintPeers() {
-	peers := c.sys.p2pNode.Peers() // 获取当前连接的所有对等节点
-
-	if len(peers) == 0 {
-		c.output.Write([]byte("当前没有连接的对等节点\n"))
-		return
-	}
-
-	c.output.Write([]byte("当前连接的对等节点:\n"))
-	for _, peerID := range peers {
-		str := fmt.Sprintf("- %v\n", peerID)
-		c.output.Write([]byte(str))
-	}
+  help                 - 显示帮助`)
 }
 
 func (c *Commander) testmine() {

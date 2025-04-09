@@ -19,6 +19,7 @@ type Config struct {
 	AddressFile   string   // 存储节点地址的文件
 	P2PIDFile     string   // 存储节点P2P ID的文件
 	ValSet        []string // 参加共识节点的地址集合
+	IfBackend     bool     // 是否以后台模式启动
 }
 
 // 定义一个自定义类型，用于支持多次传入的字符串参数
@@ -45,6 +46,7 @@ func ParseFlags() (*Config, bool) {
 	flag.StringVar(&cfg.NodeKeyFile, "nodekey", "./key_store/nodekey", "私钥存储地址")
 	flag.StringVar(&cfg.AddressFile, "address", "./key_store/address", "节点地址存储地址")
 	flag.StringVar(&cfg.AddressFile, "p2p", "./key_store/p2pID", "节点p2p ID存储地址")
+	flag.BoolVar(&cfg.IfBackend, "backend", false, "是否以后台方式运行")
 
 	// 定义一个自定义类型变量，用于接收额外的字符串参数
 	var valAddresses stringSlice

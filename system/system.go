@@ -62,12 +62,14 @@ func StartSystem(cfg *cli.Config) *System {
 	bc.StartMiner()     // 异步进程，开启判断是否要打包交易生成区块
 	ListenNewBlocks(bc) // 异步进程，监听是否有新区块生成，若有则处理
 
-	// 进入交互命令行
-	// cmd := NewCommander(&sys)
-	// cmd.Run() // 等待用户输入命令
-
-	log.Printf("开启IPC Server")
-	go startIPCServer(&sys)
+	if cfg.IfBackend {
+		log.Printf("开启IPC Server")
+		go startIPCServer(&sys)
+	} else {
+		// 进入交互命令行
+		cmd := NewCommander(&sys)
+		cmd.Run() // 等待用户输入命令
+	}
 
 	return &sys
 }
@@ -142,7 +144,7 @@ func startIPCServer(sys *System) {
 			continue
 		}
 
-		cmd := NewCommander(sys, conn, conn)
+		cmd := NewIPCCommander(sys, conn, conn)
 		go cmd.Run()
 	}
 }
