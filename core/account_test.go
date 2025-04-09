@@ -35,11 +35,11 @@ func TestCommitAndTraverseAccounts(t *testing.T) {
 	}
 
 	// 修改余额以测试 dirty 状态跟踪
-	account1.Balance += 50
-	stateDB.UpdateAccount(account1)
+	account1.State.Balance += 50
+	stateDB.UpdateAccState(account1.State)
 
-	account2.Balance += 100
-	stateDB.UpdateAccount(account2)
+	account2.State.Balance += 100
+	stateDB.UpdateAccState(account2.State)
 
 	// Commit 到 Trie/LevelDB
 	_, err = stateDB.Commit()
@@ -49,16 +49,16 @@ func TestCommitAndTraverseAccounts(t *testing.T) {
 
 	// 用 TraverseAccounts 遍历 LevelDB，验证账户是否存在
 	foundAccounts := make(map[string]bool)
-	stateDB.TraverseAccounts(func(key string, acc *core.Account) {
+	stateDB.TraverseAccState(func(key string, acc *core.AccState) {
 		foundAccounts[acc.Address] = true
 		t.Logf("Traversed account: %s | Balance: %d | Nonce: %d", acc.Address, acc.Balance, acc.Nonce)
 	})
 
 	// 验证两个账户都被找到
-	if !foundAccounts[account1.Address] {
+	if !foundAccounts[account1.State.Address] {
 		t.Errorf("Account1 not found in traversal")
 	}
-	if !foundAccounts[account2.Address] {
+	if !foundAccounts[account2.State.Address] {
 		t.Errorf("Account2 not found in traversal")
 	}
 }

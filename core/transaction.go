@@ -27,10 +27,10 @@ type Transaction struct {
 
 func NewTransaction(from *Account, to string, value uint64) *Transaction {
 	tx := &Transaction{
-		From:  from.Address,
+		From:  from.State.Address,
 		To:    to,
 		Value: value,
-		Nonce: from.Nonce,
+		Nonce: from.State.Nonce,
 		Time:  uint64(time.Now().Unix()),
 	}
 	encodeTx, err := tx.EncodeTx()

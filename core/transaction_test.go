@@ -21,8 +21,8 @@ func TestNewTransaction(t *testing.T) {
 	value := uint64(100)
 	tx := NewTransaction(from, to, value)
 
-	if tx.From != from.Address {
-		t.Errorf("Expected From: %s, got: %s", from.Address, tx.From)
+	if tx.From != from.State.Address {
+		t.Errorf("Expected From: %s, got: %s", from.State.Address, tx.From)
 	}
 	if tx.To != to {
 		t.Errorf("Expected To: %s, got: %s", to, tx.To)

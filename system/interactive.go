@@ -151,28 +151,28 @@ func (c *Commander) handleBroadcast(msg string) {
 }
 
 func (c *Commander) handleAddVal(address string, value uint64) {
-	acc, ok := c.sys.blockChain.StateDB.GetAccount(address)
+	acc, ok := c.sys.blockChain.StateDB.GetAccState(address)
 	if !ok {
 		fmt.Println("错误: 账户不存在")
 		return
 	}
 	acc.Balance += value
-	c.sys.blockChain.StateDB.UpdateAccount(acc)
+	c.sys.blockChain.StateDB.UpdateAccState(acc)
 }
 
 // 发送交易
 func (c *Commander) handleTx(from, to string, value uint64) {
-	acc, ok := c.sys.blockChain.StateDB.GetAccount(from)
-	if !ok {
+	acc, err := c.sys.blockChain.StateDB.GetAccount(from)
+	if err != nil {
 		fmt.Println("错误: 付款账户不存在")
 		return
 	}
-	if acc.Balance < value {
+	if acc.State.Balance < value {
 		fmt.Println("错误: 付款账户余额不足")
 		return
 	}
-	acc.Nonce += 1 //Nonce在这里增加：防止一个区块中有多个相同用户的交易导致错误(不正规)
-	c.sys.blockChain.StateDB.UpdateAccount(acc)
+	acc.State.Nonce += 1 //Nonce在这里增加：防止一个区块中有多个相同用户的交易导致错误(不正规)
+	c.sys.blockChain.StateDB.UpdateAccState(acc.State)
 	tx := core.NewTransaction(acc, to, value)
 	signtx, err := acc.SignTx(tx)
 	data, err := rlp.EncodeToBytes(signtx)
