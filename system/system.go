@@ -9,6 +9,7 @@ import (
 	"ablockchain/event"
 	"ablockchain/p2p"
 	"fmt"
+	"net"
 	"os"
 
 	"log"
@@ -62,8 +63,11 @@ func StartSystem(cfg *cli.Config) *System {
 	ListenNewBlocks(bc) // 异步进程，监听是否有新区块生成，若有则处理
 
 	// 进入交互命令行
-	cmd := NewCommander(&sys)
-	cmd.Run() // 等待用户输入命令
+	// cmd := NewCommander(&sys)
+	// cmd.Run() // 等待用户输入命令
+
+	log.Printf("开启IPC Server")
+	go startIPCServer(&sys)
 
 	return &sys
 }
@@ -118,4 +122,27 @@ func ListenNewBlocks(bc *core.Blockchain) {
 
 func handleNewBlock(block *core.Block) {
 	event.Bus.Publish("ConsensusStart", block)
+}
+
+func startIPCServer(sys *System) {
+	socketPath := "/tmp/ablockchain.sock"
+	os.Remove(socketPath) // 防止已有的阻塞
+
+	ln, err := net.Listen("unix", socketPath)
+	if err != nil {
+		log.Fatalf("监听 socket 失败: %v", err)
+	}
+	defer ln.Close()
+
+	fmt.Println("交互接口监听中：", socketPath)
+
+	for {
+		conn, err := ln.Accept()
+		if err != nil {
+			continue
+		}
+
+		cmd := NewCommander(sys, conn, conn)
+		go cmd.Run()
+	}
 }
