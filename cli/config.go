@@ -17,6 +17,7 @@ type Config struct {
 	ConsensusNum  int      // 参加共识节点的数目
 	NodeKeyFile   string   // 存储节点私钥的文件
 	AddressFile   string   // 存储节点地址的文件
+	P2PIDFile     string   // 存储节点P2P ID的文件
 	ValSet        []string // 参加共识节点的地址集合
 }
 
@@ -43,6 +44,7 @@ func ParseFlags() (*Config, bool) {
 	flag.IntVar(&cfg.ConsensusNum, "consensusnum", 4, "共识节点数目")
 	flag.StringVar(&cfg.NodeKeyFile, "nodekey", "./key_store/nodekey", "私钥存储地址")
 	flag.StringVar(&cfg.AddressFile, "address", "./key_store/address", "节点地址存储地址")
+	flag.StringVar(&cfg.AddressFile, "p2p", "./key_store/p2pID", "节点p2p ID存储地址")
 
 	// 定义一个自定义类型变量，用于接收额外的字符串参数
 	var valAddresses stringSlice
@@ -92,6 +94,9 @@ func (c *Config) NodeKey() *ecdsa.PrivateKey {
 	}
 
 	c.WriteAddress(key)
+
+	// libPrivateKey, err := crypto.ConvertEthToLibPrivateKey(key)
+
 	return key
 }
 

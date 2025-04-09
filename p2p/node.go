@@ -1,6 +1,7 @@
 package p2p
 
 import (
+	"ablockchain/crypto"
 	"context"
 	"crypto/ecdsa"
 	"fmt"
@@ -8,6 +9,7 @@ import (
 	"log"
 
 	"github.com/libp2p/go-libp2p"
+
 	"github.com/libp2p/go-libp2p/core/host"
 	"github.com/libp2p/go-libp2p/core/network"
 	"github.com/libp2p/go-libp2p/core/peer"
@@ -24,7 +26,16 @@ type Node struct {
 
 // 创建新的p2p节点并开始监听
 func NewNode(listenAddress string, privateKey *ecdsa.PrivateKey) (*Node, error) {
-	node, err := libp2p.New(libp2p.ListenAddrStrings(listenAddress))
+
+	// 将私钥转化为适用于libp2p的私钥
+	libPrivateKey, err := crypto.ConvertEthToLibPrivateKey(privateKey)
+	if err != nil {
+		log.Fatalf("invaid privatekey for libp2p")
+	}
+
+	node, err := libp2p.New(libp2p.ListenAddrStrings(listenAddress),
+		libp2p.Identity(libPrivateKey),
+	)
 
 	if err != nil {
 		return nil, err

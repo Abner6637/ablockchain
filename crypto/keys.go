@@ -2,6 +2,7 @@ package crypto
 
 import (
 	"bufio"
+	"bytes"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"encoding/hex"
@@ -15,6 +16,7 @@ import (
 	"github.com/ethereum/go-ethereum/common/math"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/crypto/secp256k1"
+	libcrypto "github.com/libp2p/go-libp2p/core/crypto"
 )
 
 var (
@@ -148,4 +150,15 @@ func FromECDSAPub(pub *ecdsa.PublicKey) []byte {
 		return nil
 	}
 	return elliptic.Marshal(S256(), pub.X, pub.Y)
+}
+
+func ConvertEthToLibPrivateKey(priv *ecdsa.PrivateKey) (libcrypto.PrivKey, error) {
+	// 提取D值并填充为32字节
+	dBytes := priv.D.Bytes()
+	padded := make([]byte, 32)
+	copy(padded[32-len(dBytes):], dBytes)
+
+	// 解析为libp2p的secp256k1私钥
+	privKey, _, err := libcrypto.GenerateSecp256k1Key(bytes.NewReader(padded))
+	return privKey, err
 }
