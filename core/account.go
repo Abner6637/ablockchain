@@ -76,7 +76,7 @@ func (s *StateDB) NewAccount() (*Account, error) {
 	return account, nil
 }
 
-// 更新账户状态(StateDB)
+// 更新账户状态(StateDB),避免重复提交
 func (s *StateDB) UpdateAccount(account *Account) error {
 	s.lock.Lock()
 	defer s.lock.Unlock()
@@ -172,9 +172,17 @@ func (s *StateDB) ConfirmBlock(block *Block) error {
 		if ok {
 			to.Balance += tx.Value
 			s.UpdateAccount(to)
+		} else { //若mpt中没有，说明是新建的账户
+			acc := &Account{
+				Address: tx.To,
+				Balance: tx.Value,
+				Nonce:   0,
+			}
+			s.UpdateAccount(acc)
 		}
 		//TODO:判断用户是否存在，前提：statedb的同步
 	}
+	s.Commit() //更新MPT
 	return nil
 }
 

@@ -1,5 +1,5 @@
 {
-  "difficulty": 1,
+  "difficulty": 2,
   "chainId": 1234,
   "alloc": {
     "0xee4d6f2ead0926ea0bd3c4719ef0ddff455e38aa": 100000,
