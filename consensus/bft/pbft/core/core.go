@@ -48,6 +48,8 @@ type Core struct {
 
 	ViewChanges     map[uint64]*messageSet // key: view; value: messageSet
 	viewChangeTimer *time.Timer
+
+	wg *sync.WaitGroup
 }
 
 func NewCore(cfg *cli.Config, p2pNode *p2p.Node) *Core {
@@ -85,6 +87,7 @@ func NewCore(cfg *cli.Config, p2pNode *p2p.Node) *Core {
 		ValSet:            valSet,
 		Primary:           address, // 初始化为自身的地址（后续初始化过程中会更改）
 		ViewChanges:       make(map[uint64]*messageSet),
+		wg:                &sync.WaitGroup{},
 	}
 }
 
@@ -110,7 +113,8 @@ func (c *Core) Start() error {
 
 	c.SubcribeEvents()
 
-	c.HandleEvents()
+	c.wg.Add(1)
+	go c.HandleEvents()
 
 	c.StartNewProcess(big.NewInt(0))
 
@@ -121,6 +125,8 @@ func (c *Core) Start() error {
 
 func (c *Core) Stop() error {
 	event.Bus.Publish("ConsensusStop", true)
+
+	c.wg.Wait()
 
 	c.UnSubcribeEvents()
 

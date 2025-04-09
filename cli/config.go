@@ -34,7 +34,7 @@ func (s *stringSlice) Set(value string) error {
 	return nil
 }
 
-func ParseFlags() *Config {
+func ParseFlags() (*Config, bool) {
 	cfg := &Config{}
 	// 添加 -db 选项，默认为 "./block_storage"
 	flag.StringVar(&cfg.DBPath, "db", "./block_storage", "数据库存储路径")
@@ -52,11 +52,20 @@ func ParseFlags() *Config {
 		fmt.Printf("Usage: %s [options]\n", os.Args[0])
 		flag.PrintDefaults()
 	}
+
+	attach := flag.Bool("attach", false, "附加到已运行的节点进程")
+
 	flag.Parse()
 
 	cfg.ValSet = valAddresses
 
-	return cfg
+	for _, arg := range os.Args[1:] {
+		if arg == "attach" {
+			*attach = true
+		}
+	}
+
+	return cfg, *attach
 }
 
 func (c *Config) NodeKey() *ecdsa.PrivateKey {
