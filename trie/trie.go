@@ -9,6 +9,8 @@ import (
 	"github.com/ethereum/go-ethereum/rlp"
 )
 
+// 简化的trie（弃用）
+
 type TrieNode struct {
 	Children map[byte]*TrieNode // 子节点
 	Value    []byte             // 存储账户数据
@@ -38,7 +40,7 @@ func hashNode(node *TrieNode) string {
 	return hex.EncodeToString(hash[:])
 }
 
-// 插入或更新账户信息
+// 插入或更新账户信息(内存操作)
 func (t *Trie) Insert(key string, value []byte) error {
 	node := t.Root
 	for i := 0; i < len(key); i++ {
@@ -50,7 +52,30 @@ func (t *Trie) Insert(key string, value []byte) error {
 	node.Value = value
 	node.Hash = hashNode(node)
 
-	return t.DB.Put(key, value)
+	return nil
+}
+
+// 从内存提交到leveldb，持久化存储
+func (t *Trie) Commit() error {
+	return t.commitNode(t.Root, "")
+}
+
+func (t *Trie) commitNode(node *TrieNode, prefix string) error {
+	if node == nil {
+		return nil
+	}
+	if node.Value != nil {
+		// 把当前账户信息写入 LevelDB
+		if err := t.DB.Put(prefix, node.Value); err != nil {
+			return err
+		}
+	}
+	for key, child := range node.Children {
+		if err := t.commitNode(child, prefix+string(key)); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // 查找账户信息
