@@ -19,7 +19,7 @@ type Account struct {
 	Nonce      uint64
 }
 
-// StateDB 管理账户状态
+// StateDB 管理账户状态(内存操作，提交到Trie后才是持久化存储)
 type StateDB struct {
 	trie *mpt.Trie
 	lock sync.RWMutex
@@ -46,7 +46,7 @@ func NewStateDB(dbPath string) (*StateDB, error) {
 	}, nil
 }
 
-// 创建新账户
+// 创建新账户(暂存在内存中，只有进行交易后才加入MPT)
 func (s *StateDB) NewAccount() (*Account, error) {
 	privKey, err := crypto.GenerateKey()
 	if err != nil {
@@ -62,19 +62,21 @@ func (s *StateDB) NewAccount() (*Account, error) {
 		Balance:    100,
 		Nonce:      0,
 	}
-	// 存储账户到内存（脏标记）
-	err = s.UpdateAccount(account) //RLP编码, 不支持*ecdsa.PrivateKey类型
-	if err != nil {
-		return nil, fmt.Errorf("存储账户到StateDB失败: %v", err)
-	}
+	// 账户标记
+	// err = s.UpdateAccount(account) //RLP编码, 不支持*ecdsa.PrivateKey类型
+	// if err != nil {
+	// 	return nil, fmt.Errorf("存储账户到StateDB失败: %v", err)
+	// }
 	// 存到mpt和leveldb
-	s.Commit()
+	// s.Commit()
 
-	log.Printf("创建新账户，地址: %s, 账户数：%d\n", address, s.trie.DB.Count)
+	s.stateObjects[account.Address] = account //暂存到内存中，不提交（产生交易后才提交）
+
+	log.Printf("创建新账户，地址: %s\n", address)
 	return account, nil
 }
 
-// 更新账户状态(内存)
+// 更新账户状态(StateDB)
 func (s *StateDB) UpdateAccount(account *Account) error {
 	s.lock.Lock()
 	defer s.lock.Unlock()
@@ -110,12 +112,12 @@ func (s *StateDB) GetAccount(address string) (*Account, bool) {
 
 // 打印 StateDB 中的所有账户及其余额
 func (s *StateDB) PrintAccounts() {
-	fmt.Println("=== 内存中账户 ===")
+	fmt.Println("=== StateDB中的账户 ===")
 	for _, acc := range s.stateObjects {
 		fmt.Printf("地址: %s | 余额: %d | Nonce: %d\n", acc.Address, acc.Balance, acc.Nonce)
 	}
 
-	fmt.Println("=== LevelDB中提交的账户 ===")
+	fmt.Println("=== MPT中的账户 ===")
 	s.TraverseAccounts(func(key string, account *Account) {
 		fmt.Printf("地址: %s | 余额: %d | Nonce: %d\n", account.Address, account.Balance, account.Nonce)
 	})
