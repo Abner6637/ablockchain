@@ -45,7 +45,7 @@ func ParseFlags() (*Config, bool) {
 	flag.IntVar(&cfg.ConsensusNum, "consensusnum", 4, "共识节点数目")
 	flag.StringVar(&cfg.NodeKeyFile, "nodekey", "./key_store/nodekey", "私钥存储地址")
 	flag.StringVar(&cfg.AddressFile, "address", "./key_store/address", "节点地址存储地址")
-	flag.StringVar(&cfg.AddressFile, "p2p", "./key_store/p2pID", "节点p2p ID存储地址")
+	flag.StringVar(&cfg.P2PIDFile, "p2p", "./key_store/p2pID", "节点p2p ID存储地址")
 	flag.BoolVar(&cfg.IfBackend, "backend", false, "是否以后台方式运行")
 
 	// 定义一个自定义类型变量，用于接收额外的字符串参数
@@ -82,6 +82,7 @@ func (c *Config) NodeKey() *ecdsa.PrivateKey {
 
 	if key, err := crypto.LoadECDSA(keyfile); err == nil {
 		c.WriteAddress(key)
+
 		return key
 	}
 
@@ -96,8 +97,6 @@ func (c *Config) NodeKey() *ecdsa.PrivateKey {
 	}
 
 	c.WriteAddress(key)
-
-	// libPrivateKey, err := crypto.ConvertEthToLibPrivateKey(key)
 
 	return key
 }

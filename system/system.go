@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"path/filepath"
 
 	"log"
 )
@@ -28,6 +29,7 @@ func StartSystem(cfg *cli.Config) *System {
 	// 启动 P2P 节点
 	node := StartListen(cfg)
 	sys.p2pNode = node
+	WriteP2PID(cfg, node)
 
 	// // 初始化账户管理和账户
 	// accountManager := core.NewAccountManager()
@@ -66,9 +68,9 @@ func StartSystem(cfg *cli.Config) *System {
 		log.Printf("开启IPC Server")
 		go startIPCServer(&sys)
 	} else {
-		// 进入交互命令行
+		// 若在前台运行，直接进入交互命令行
 		cmd := NewCommander(&sys)
-		cmd.Run() // 等待用户输入命令
+		cmd.Run()
 	}
 
 	return &sys
@@ -82,6 +84,7 @@ func StartListen(cfg *cli.Config) *p2p.Node {
 		fmt.Printf("启动节点失败: %v\n", err)
 		os.Exit(1)
 	}
+
 	fmt.Printf("节点已启动 ID: %s\n", node.ID)
 	fmt.Printf("监听地址: %v\n", node.Host.Addrs())
 
@@ -124,6 +127,18 @@ func ListenNewBlocks(bc *core.Blockchain) {
 
 func handleNewBlock(block *core.Block) {
 	event.Bus.Publish("ConsensusStart", block)
+}
+
+func WriteP2PID(c *cli.Config, node *p2p.Node) {
+	p2pfile := c.P2PIDFile
+	p2pDir := filepath.Dir(p2pfile)
+	if err := os.MkdirAll(p2pDir, os.ModePerm); err != nil { // 创建目录
+		log.Fatalf("Failed to create key directory %s: %v", p2pDir, err)
+	}
+
+	if err := os.WriteFile(p2pfile, []byte(node.ID), 0644); err != nil {
+		log.Fatalf("Failed to persist node address: %v\n", err)
+	}
 }
 
 func startIPCServer(sys *System) {
