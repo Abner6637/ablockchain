@@ -9,7 +9,9 @@ services:
         ipv4_address: 172.28.0.10
     ports:
       - "32000:32000"
-    command: ./ablockchain --listen /ip4/0.0.0.0/tcp/32000 --backend true
+    volumes:
+      - ./key_store/nodekey1:/ablockchain/key_store/nodekey1
+    command: ./ablockchain --listen /ip4/0.0.0.0/tcp/32000 --backend true --nodekey ./key_store/nodekey1
 
   node1:
     image: ablockchain:0.0.0

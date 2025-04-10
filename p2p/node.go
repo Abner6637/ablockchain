@@ -30,7 +30,7 @@ func NewNode(listenAddress string, privateKey *ecdsa.PrivateKey) (*Node, error) 
 	// 将私钥转化为适用于libp2p的私钥
 	libPrivateKey, err := crypto.ConvertEthToLibPrivateKey(privateKey)
 	if err != nil {
-		log.Fatalf("invaid privatekey for libp2p")
+		log.Fatalf("invalid privatekey for libp2p")
 	}
 
 	node, err := libp2p.New(libp2p.ListenAddrStrings(listenAddress),
@@ -46,6 +46,8 @@ func NewNode(listenAddress string, privateKey *ecdsa.PrivateKey) (*Node, error) 
 		ID:         node.ID().String(),
 		PrivateKey: privateKey,
 	}
+
+	go setupMDNS(n.Host, "my-libp2p-network")
 
 	// 设置协议处理器
 	node.SetStreamHandler(ProtocolID, n.handleStream)
