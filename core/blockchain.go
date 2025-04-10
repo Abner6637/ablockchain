@@ -122,7 +122,7 @@ func (bc *Blockchain) handleTransaction(signtx *SignedTx) {
 }
 
 func (bc *Blockchain) mineNewBlock(miner string) (*Block, error) {
-	txs := bc.TxPool.GetTxs()
+	txs := bc.TxPool.GetPendingTxs()
 	if len(txs) == 0 {
 		return nil, fmt.Errorf("no transaction!")
 	}
