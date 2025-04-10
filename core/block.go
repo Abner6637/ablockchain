@@ -20,14 +20,16 @@ type BlockHeader struct {
 	Number     *big.Int
 	MerkleRoot []byte
 	Nonce      uint64 // PoW 计算用的随机数
+	Coinbase   string // 矿工地址，用于接收奖励
 }
 
-func NewBlockHeader(parentHash []byte, dif uint64, num *big.Int) *BlockHeader {
+func NewBlockHeader(parentHash []byte, dif uint64, num *big.Int, coinbase string) *BlockHeader {
 	return &BlockHeader{
 		ParentHash: parentHash,
 		Time:       uint64(time.Now().Unix()),
 		Difficulty: dif,
 		Number:     num,
+		Coinbase:   coinbase,
 	}
 }
 

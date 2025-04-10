@@ -74,7 +74,7 @@ func NewBlockchain(cfg *cli.Config) (*Blockchain, error) {
 }
 
 // 开始一个异步的矿工进程
-func (bc *Blockchain) StartMiner() {
+func (bc *Blockchain) StartMiner(miner string) {
 	// 订阅交易消息
 	txCh := event.Bus.Subscribe("TransactionMessage")
 
@@ -93,7 +93,7 @@ func (bc *Blockchain) StartMiner() {
 			default:
 				// 当交易池足够大时，打包区块
 				if bc.TxPool.PendingSize() >= MinTransactionsPerBlock {
-					bc.mineNewBlock()
+					bc.mineNewBlock(miner)
 				}
 				time.Sleep(BlockInterval)
 			}
@@ -121,14 +121,14 @@ func (bc *Blockchain) handleTransaction(signtx *SignedTx) {
 	}
 }
 
-func (bc *Blockchain) mineNewBlock() (*Block, error) {
+func (bc *Blockchain) mineNewBlock(miner string) (*Block, error) {
 	txs := bc.TxPool.GetTxs()
 	if len(txs) == 0 {
 		return nil, fmt.Errorf("no transaction!")
 	}
 
 	// 创建新区块（该部分的difficulty需要进一步修改）
-	header := NewBlockHeader(bc.CurrentBlockHash, uint64(2), new(big.Int).Add(bc.CurBlockNum, big.NewInt(1)))
+	header := NewBlockHeader(bc.CurrentBlockHash, uint64(2), new(big.Int).Add(bc.CurBlockNum, big.NewInt(1)), miner)
 	block := NewBlock(header, txs)
 
 	// bc.AddBlock(block)
@@ -143,7 +143,7 @@ func (bc *Blockchain) AddBlock(block *Block) {
 	str := fmt.Sprintf("%d", block.Header.Number)
 	fmt.Println(str)
 	block.PrintBlock()
-	bc.StateDB.ConfirmBlock(block) //修改账户状态
+	bc.StateDB.ConfirmBlock(block) //修改账户状态MPT
 	bc.DB.Put(str, block)
 	bc.TxPool.ClearPackedTxs(block.Transactions)
 	fmt.Println("上链，交易池：\n", bc.TxPool.PendingSize())
