@@ -74,7 +74,7 @@ func ParseFlags() (*Config, bool) {
 
 func (c *Config) NodeKey() *ecdsa.PrivateKey {
 	keyfile := c.NodeKeyFile
-
+	log.Printf("keyfile path: %s", keyfile)
 	dir := filepath.Dir(keyfile)
 	if err := os.MkdirAll(dir, os.ModePerm); err != nil { // 创建目录
 		log.Fatalf("Failed to create key directory %s: %v", dir, err)

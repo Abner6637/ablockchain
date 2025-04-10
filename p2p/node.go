@@ -35,6 +35,7 @@ func NewNode(listenAddress string, privateKey *ecdsa.PrivateKey) (*Node, error) 
 
 	node, err := libp2p.New(libp2p.ListenAddrStrings(listenAddress),
 		libp2p.Identity(libPrivateKey),
+		libp2p.NoSecurity,
 	)
 
 	if err != nil {
@@ -47,7 +48,11 @@ func NewNode(listenAddress string, privateKey *ecdsa.PrivateKey) (*Node, error) 
 		PrivateKey: privateKey,
 	}
 
+	// 启动两次MDNS，尽量连通吧……
+	// TODO: 理应来讲应该不需要使用goroutine，保证连通了之后，再开启共识等
+	// 但是会和mesh.sh冲突
 	go setupMDNS(n.Host, "my-libp2p-network")
+	// setupMDNS(n.Host, "my-libp2p-network2")
 
 	// 设置协议处理器
 	node.SetStreamHandler(ProtocolID, n.handleStream)

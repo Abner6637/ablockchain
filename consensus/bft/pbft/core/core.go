@@ -213,7 +213,7 @@ func (c *Core) StartNewProcess(num *big.Int) {
 
 	// 当自身不为主节点时，启动viewchange计时器（因为该计时器用于主节点轮换，主节点自己不需要轮换自己）
 	if !c.IsPrimary() {
-		c.newViewChangeTimer()
+		// c.newViewChangeTimer()
 	}
 }
 

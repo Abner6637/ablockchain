@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/libp2p/go-libp2p/core/host"
+	"github.com/libp2p/go-libp2p/core/network"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/libp2p/go-libp2p/p2p/discovery/mdns"
 )
@@ -28,16 +29,17 @@ func (n *discoveryNotifee) HandlePeerFound(pi peer.AddrInfo) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	if err := n.host.Connect(ctx, pi); err != nil {
-		fmt.Printf("Failed to connect to %s: %v\n", pi.ID, err)
-	} else {
-		fmt.Printf("Successfully connected to %s\n", pi.ID)
+	if n.host.Network().Connectedness(pi.ID) != network.Connected {
+		if err := n.host.Connect(ctx, pi); err != nil {
+			fmt.Printf("Failed to connect to %v: %v\n", pi.Addrs, err)
+		} else {
+			fmt.Printf("Successfully connected to %v\n", pi.Addrs)
+		}
 	}
 }
 
 // 设置 mDNS 服务
 func setupMDNS(h host.Host, serviceTag string) {
-	// 创建 mDNS 服务实例（5秒轮询一次）
 	service := mdns.NewMdnsService(h, serviceTag, &discoveryNotifee{host: h})
 
 	// 启动服务
@@ -46,8 +48,8 @@ func setupMDNS(h host.Host, serviceTag string) {
 	}
 	defer service.Close()
 	select {
-	case <-time.After(15 * time.Second):
-		fmt.Println("Stopping mDNS discovery after 15 seconds...")
+	case <-time.After(2 * time.Second):
+		fmt.Println("Stopping mDNS discovery after 2 seconds...")
 		return
 	}
 }

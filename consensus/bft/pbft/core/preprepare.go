@@ -37,7 +37,7 @@ func (c *Core) HandlePreprepare(msg *pbfttypes.Message) error {
 		return nil
 	}
 	// 接收到有效的Preprepare后，重新计时ViewChangeTimer
-	c.newViewChangeTimer()
+	//c.newViewChangeTimer()
 
 	c.consensusState.setPreprepare(preprepare)
 	c.setState(pbfttypes.StatePreprepared)
