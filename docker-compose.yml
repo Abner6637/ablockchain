@@ -8,17 +8,17 @@ services:
       customnet:
         ipv4_address: 172.28.0.10
     ports:
-      - "32000:32000"
+      - "33000:32000"
     volumes:
       - ./key_store/nodekey1:/ablockchain/key_store/nodekey1
     command: >
       ./ablockchain 
       --listen /ip4/0.0.0.0/tcp/32000 
       --nodekey ./key_store/nodekey1 
-      --valaddress 0x3fbc8cbaf8afdec1db89f0eb511de224cd229754 
-      --valaddress 0x1b578639ae9e5bd7a0061bb6b6518e53c88e8283 
-      --valaddress 0x2ded54ccba5b38cf1ff4b0c2049e5222f9609f16 
-      --valaddress 0x5fdc950ab93b4748593aed584c32c1ed708834a9
+      --valaddress 0x11820fda9ed706f0b98140e3b3b8b92208fac562 
+      --valaddress 0xd870276849a24fac70f2509e5d352f7dd9ebb49b
+      --valaddress 0x8dff8c16895f70fa9646b57932ae0d6c16427b05 
+      --valaddress 0x2e299955f9d591d9013d1ebba36eeab07797e9a8
       --backend=true 
 
   node1:
@@ -28,17 +28,17 @@ services:
       customnet:
         ipv4_address: 172.28.0.11
     ports:
-      - "32001:32000"
+      - "33001:32000"
     volumes:
       - ./key_store/nodekey2:/ablockchain/key_store/nodekey2
     command: >
       ./ablockchain 
       --listen /ip4/0.0.0.0/tcp/32000 
       --nodekey ./key_store/nodekey2
-      --valaddress 0x3fbc8cbaf8afdec1db89f0eb511de224cd229754 
-      --valaddress 0x1b578639ae9e5bd7a0061bb6b6518e53c88e8283 
-      --valaddress 0x2ded54ccba5b38cf1ff4b0c2049e5222f9609f16 
-      --valaddress 0x5fdc950ab93b4748593aed584c32c1ed708834a9
+      --valaddress 0x11820fda9ed706f0b98140e3b3b8b92208fac562 
+      --valaddress 0xd870276849a24fac70f2509e5d352f7dd9ebb49b
+      --valaddress 0x8dff8c16895f70fa9646b57932ae0d6c16427b05 
+      --valaddress 0x2e299955f9d591d9013d1ebba36eeab07797e9a8
       --backend=true 
   node2:
     image: ablockchain:0.0.0
@@ -47,17 +47,17 @@ services:
       customnet:
         ipv4_address: 172.28.0.12
     ports:
-      - "32002:32000"
+      - "33002:32000"
     volumes:
       - ./key_store/nodekey3:/ablockchain/key_store/nodekey3
     command: >
       ./ablockchain 
       --listen /ip4/0.0.0.0/tcp/32000 
       --nodekey ./key_store/nodekey3 
-      --valaddress 0x3fbc8cbaf8afdec1db89f0eb511de224cd229754 
-      --valaddress 0x1b578639ae9e5bd7a0061bb6b6518e53c88e8283 
-      --valaddress 0x2ded54ccba5b38cf1ff4b0c2049e5222f9609f16 
-      --valaddress 0x5fdc950ab93b4748593aed584c32c1ed708834a9
+      --valaddress 0x11820fda9ed706f0b98140e3b3b8b92208fac562 
+      --valaddress 0xd870276849a24fac70f2509e5d352f7dd9ebb49b
+      --valaddress 0x8dff8c16895f70fa9646b57932ae0d6c16427b05 
+      --valaddress 0x2e299955f9d591d9013d1ebba36eeab07797e9a8
       --backend=true 
 
   node3:
@@ -67,17 +67,17 @@ services:
       customnet:
         ipv4_address: 172.28.0.13
     ports:
-      - "32003:32000"
+      - "33003:32000"
     volumes:
       - ./key_store/nodekey4:/ablockchain/key_store/nodekey4
     command: >
       ./ablockchain 
       --listen /ip4/0.0.0.0/tcp/32000 
       --nodekey ./key_store/nodekey4 
-      --valaddress 0x3fbc8cbaf8afdec1db89f0eb511de224cd229754 
-      --valaddress 0x1b578639ae9e5bd7a0061bb6b6518e53c88e8283 
-      --valaddress 0x2ded54ccba5b38cf1ff4b0c2049e5222f9609f16 
-      --valaddress 0x5fdc950ab93b4748593aed584c32c1ed708834a9
+      --valaddress 0x11820fda9ed706f0b98140e3b3b8b92208fac562 
+      --valaddress 0xd870276849a24fac70f2509e5d352f7dd9ebb49b
+      --valaddress 0x8dff8c16895f70fa9646b57932ae0d6c16427b05 
+      --valaddress 0x2e299955f9d591d9013d1ebba36eeab07797e9a8
       --backend=true 
 
 networks:

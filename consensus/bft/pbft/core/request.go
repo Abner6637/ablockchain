@@ -11,8 +11,10 @@ func (c *Core) HandleRequest(request *bft.Request) error {
 	log.Printf("开始处理Request：%+v", request)
 
 	if request.GetBlockNumber().Cmp(c.consensusState.getSequence()) < 0 {
+		log.Printf("编号为%v的request已经完成共识，舍弃", request.GetBlockNumber())
 		return errors.New("old message")
 	} else if request.GetBlockNumber().Cmp(c.consensusState.getSequence()) > 0 {
+		log.Printf("编号为%v的request是未来的request，存入队列中", request.GetBlockNumber())
 		c.storeRequest(request)
 	} else {
 		c.SendPreprepare(request)

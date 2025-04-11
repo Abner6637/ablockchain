@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"math/big"
 	"os"
 	"strconv"
 	"strings"
@@ -132,9 +133,20 @@ func (c *IPCCommander) executeCommand(cmd string) {
 	case "stopcons":
 		c.sys.consensus.Stop()
 	case "testmine":
-		c.testmine()
+		if len(parts) < 2 {
+			c.output.Write([]byte("用法: testmine <blockNumber>\n"))
+			return
+		}
+		n := new(big.Int)
+		n, _ = n.SetString(parts[1], 10)
+		c.testmine(n)
 	case "peers":
 		c.PrintPeers()
+	case "id":
+		str1 := fmt.Sprintf("listenAddr: %v\n", c.sys.p2pNode.Host.Addrs())
+		str2 := fmt.Sprintf("p2pID:%s\n", c.sys.p2pNode.ID)
+		c.output.Write([]byte(str1))
+		c.output.Write([]byte(str2))
 	case "exit":
 		c.running = false
 
@@ -268,7 +280,7 @@ func (c *IPCCommander) PrintPeers() {
 	}
 }
 
-func (c *IPCCommander) testmine() {
-	c.sys.blockChain.NewBlockChan <- newTestBlock()
+func (c *IPCCommander) testmine(num *big.Int) {
+	c.sys.blockChain.NewBlockChan <- newTestBlock(num)
 
 }

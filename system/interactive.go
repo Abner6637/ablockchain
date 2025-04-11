@@ -103,9 +103,18 @@ func (c *Commander) Run() {
 		case "stopcons":
 			c.sys.consensus.Stop()
 		case "testmine":
-			c.testmine()
+			if len(parts) < 2 {
+				fmt.Println("用法: testmine <blockNumber>")
+				continue
+			}
+			n := new(big.Int)
+			n, _ = n.SetString(parts[1], 10)
+			c.testmine(n)
 		case "peers":
 			c.sys.p2pNode.PrintPeers()
+		case "id":
+			fmt.Printf("listenAddr: %v\n", c.sys.p2pNode.Host.Addrs())
+			fmt.Printf("p2pID:%s", c.sys.p2pNode.ID)
 		case "exit":
 			c.running = false
 		case "help":
@@ -221,12 +230,12 @@ func (c *Commander) printHelp() {
   help                 - 显示帮助`)
 }
 
-func (c *Commander) testmine() {
-	c.sys.blockChain.NewBlockChan <- newTestBlock()
+func (c *Commander) testmine(num *big.Int) {
+	c.sys.blockChain.NewBlockChan <- newTestBlock(num)
 
 }
 
-func newTestBlock() *core.Block {
+func newTestBlock(num *big.Int) *core.Block {
 	return &core.Block{
 		Header: &core.BlockHeader{
 			ParentHash: []byte("0df9a8f4a2f2fc354c3c8aa5e837d4db137f20ccbf3d8336e4c95ac9d0e2943e"),
@@ -234,7 +243,7 @@ func newTestBlock() *core.Block {
 			Time:       uint64(time.Now().Unix()),
 			Difficulty: 2,
 			Nonce:      0,
-			Number:     big.NewInt(13),
+			Number:     num,
 		},
 	}
 }

@@ -133,8 +133,14 @@ docker-compose rm
 docker-compose start
 ```
 
-进入交互界面：
+* **进入交互界面：**
 
 ```sh
 docker exec -it node1 ./ablockchain attach
+```
+
+* **查看节点日志**
+
+```sh
+docker logs -f node1
 ```
