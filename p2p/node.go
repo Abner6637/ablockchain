@@ -25,16 +25,10 @@ type Node struct {
 }
 
 // 创建新的p2p节点并开始监听
-func NewNode(listenAddress string, privateKey *ecdsa.PrivateKey) (*Node, error) {
-
-	// 将私钥转化为适用于libp2p的私钥
-	libPrivateKey, err := crypto.ConvertEthToLibPrivateKey(privateKey)
-	if err != nil {
-		log.Fatalf("invalid privatekey for libp2p")
-	}
+func NewNode(listenAddress string, privateKey *ecdsa.PrivateKey, libPriv crypto.LibPrivKey) (*Node, error) {
 
 	node, err := libp2p.New(libp2p.ListenAddrStrings(listenAddress),
-		libp2p.Identity(libPrivateKey),
+		libp2p.Identity(libPriv),
 		libp2p.NoSecurity,
 	)
 

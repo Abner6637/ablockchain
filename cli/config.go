@@ -8,6 +8,8 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+
+	"github.com/libp2p/go-libp2p/core/peer"
 )
 
 type Config struct {
@@ -72,7 +74,7 @@ func ParseFlags() (*Config, bool) {
 	return cfg, *attach
 }
 
-func (c *Config) NodeKey() *ecdsa.PrivateKey {
+func (c *Config) NodeKey() (*ecdsa.PrivateKey, crypto.LibPrivKey) {
 	keyfile := c.NodeKeyFile
 	log.Printf("keyfile path: %s", keyfile)
 	dir := filepath.Dir(keyfile)
@@ -83,7 +85,10 @@ func (c *Config) NodeKey() *ecdsa.PrivateKey {
 	if key, err := crypto.LoadECDSA(keyfile); err == nil {
 		c.WriteAddress(key)
 
-		return key
+		libPriv, _ := crypto.ConvertEthToLibPrivateKey(key)
+		c.WriteP2PID(libPriv)
+
+		return key, libPriv
 	}
 
 	key, err := crypto.GenerateKey()
@@ -98,7 +103,10 @@ func (c *Config) NodeKey() *ecdsa.PrivateKey {
 
 	c.WriteAddress(key)
 
-	return key
+	libPriv, _ := crypto.ConvertEthToLibPrivateKey(key)
+	c.WriteP2PID(libPriv)
+
+	return key, libPriv
 }
 
 func (c *Config) WriteAddress(key *ecdsa.PrivateKey) {
@@ -111,6 +119,20 @@ func (c *Config) WriteAddress(key *ecdsa.PrivateKey) {
 	address := crypto.PubkeyToAddress(key.PublicKey).Bytes()
 	hexAddress := fmt.Sprintf("0x%x", address)
 	if err := os.WriteFile(addressfile, []byte(hexAddress), 0644); err != nil {
+		log.Fatalf("Failed to persist node address: %v\n", err)
+	}
+}
+
+func (c *Config) WriteP2PID(libPriv crypto.LibPrivKey) {
+	p2pfile := c.P2PIDFile
+	p2pDir := filepath.Dir(p2pfile)
+	if err := os.MkdirAll(p2pDir, os.ModePerm); err != nil { // 创建目录
+		log.Fatalf("Failed to create key directory %s: %v", p2pDir, err)
+	}
+
+	p2pID, _ := peer.IDFromPrivateKey(libPriv)
+
+	if err := os.WriteFile(p2pfile, []byte(p2pID.String()), 0644); err != nil {
 		log.Fatalf("Failed to persist node address: %v\n", err)
 	}
 }

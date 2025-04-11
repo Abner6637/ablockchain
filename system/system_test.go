@@ -20,7 +20,9 @@ func newTestNode() (*p2p.Node, error) {
 		return nil, err
 	}
 
-	node, err := p2p.NewNode("/ip4/127.0.0.1/tcp/0", privateKey)
+	libPriv, _ := crypto.ConvertEthToLibPrivateKey(privateKey)
+
+	node, err := p2p.NewNode("/ip4/127.0.0.1/tcp/0", privateKey, libPriv)
 	if err != nil {
 		log.Printf("启动节点1失败: %v\n", err)
 		return nil, err

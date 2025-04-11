@@ -2,7 +2,6 @@ package crypto
 
 import (
 	"bufio"
-	"bytes"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"encoding/hex"
@@ -23,6 +22,8 @@ var (
 	secp256k1N, _  = new(big.Int).SetString("fffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141", 16)
 	secp256k1halfN = new(big.Int).Div(secp256k1N, big.NewInt(2))
 )
+
+type LibPrivKey libcrypto.PrivKey
 
 func GenerateKey() (*ecdsa.PrivateKey, error) {
 	return ethcrypto.GenerateKey()
@@ -152,13 +153,22 @@ func FromECDSAPub(pub *ecdsa.PublicKey) []byte {
 	return elliptic.Marshal(S256(), pub.X, pub.Y)
 }
 
-func ConvertEthToLibPrivateKey(priv *ecdsa.PrivateKey) (libcrypto.PrivKey, error) {
-	// 提取D值并填充为32字节
-	dBytes := priv.D.Bytes()
+func ConvertEthToLibPrivateKey(ethPriv *ecdsa.PrivateKey) (libcrypto.PrivKey, error) {
+	// 验证曲线是否为 secp256k1
+	if ethPriv.Curve != secp256k1.S256() {
+		return nil, fmt.Errorf("invalid curve type, expected secp256k1")
+	}
+
+	// 提取 D 值并填充到 32 字节
+	dBytes := ethPriv.D.Bytes()
 	padded := make([]byte, 32)
 	copy(padded[32-len(dBytes):], dBytes)
 
-	// 解析为libp2p的secp256k1私钥
-	privKey, _, err := libcrypto.GenerateSecp256k1Key(bytes.NewReader(padded))
-	return privKey, err
+	// 从二进制反序列化私钥
+	libPrivKey, err := libcrypto.UnmarshalSecp256k1PrivateKey(padded)
+	if err != nil {
+		return nil, fmt.Errorf("unmarshal failed: %w", err)
+	}
+
+	return libPrivKey, nil
 }
