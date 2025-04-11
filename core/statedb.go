@@ -11,8 +11,9 @@ import (
 	"github.com/ethereum/go-ethereum/rlp"
 )
 
-var oribalance = uint64(100)
+var oribalance = uint64(1000)
 var privkeyaddr = "./privkey"
+var reward = uint64(10)
 
 // StateDB 管理账户状态(内存操作，提交到Trie后才是持久化存储)
 type StateDB struct {
@@ -96,7 +97,7 @@ func (s *StateDB) NewAccount() (*Account, error) {
 }
 
 // 更新账户状态(StateDB),避免重复提交
-func (s *StateDB) UpdateAccState(accstate *AccState) error {
+func (s *StateDB) UpdateAccState(accstate *AccState) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
@@ -104,7 +105,6 @@ func (s *StateDB) UpdateAccState(accstate *AccState) error {
 	s.stateObjectsDirty[accstate.Address] = struct{}{}
 
 	fmt.Printf("$$ 账户信息更新: 地址: %s | 余额: %d | Nonce: %d\n", accstate.Address, accstate.Balance, accstate.Nonce)
-	return nil
 }
 
 // 查询账户，并解码 RLP
@@ -131,6 +131,25 @@ func (s *StateDB) GetAccState(address string) (*AccState, bool) {
 	return &accstate, true
 }
 
+// 验证交易是否合法（付款账户是否存在？余额是否充足？nonce是否一致）
+// func (s *StateDB) VeruifyTx(tx *Transaction) bool {
+// 	acc, ok := s.GetAccState(tx.From)
+// 	if !ok {
+// 		fmt.Printf("付款账户不存在\n")
+// 		return false
+// 	}
+// 	if acc.Balance < tx.Value {
+// 		fmt.Printf("付款账户余额不足\n")
+// 		return false
+// 	}
+// 	if acc.Nonce != tx.Nonce {
+// 		fmt.Printf("Nonce不匹配\n")
+// 		return false
+// 	}
+
+// 	return true
+// }
+
 // 打印 StateDB 中的所有账户及其余额
 func (s *StateDB) PrintAccounts() {
 	fmt.Println("=== StateDB中的账户 ===")
@@ -156,6 +175,13 @@ func (s *StateDB) ConfirmBlock(block *Block) error {
 		if ok {
 			from.Balance -= tx.Value
 			s.UpdateAccState(from)
+		} else { // ###########实际情况下不应该记录from账户，因为初始余额为0不可能发起交易#####
+			accs := &AccState{
+				Address: tx.From,
+				Balance: oribalance - tx.Value,
+				Nonce:   1,
+			}
+			s.UpdateAccState(accs)
 		}
 		to, ok := s.GetAccState(tx.To)
 		if ok {
@@ -164,7 +190,19 @@ func (s *StateDB) ConfirmBlock(block *Block) error {
 		} else { //若mpt中没有，说明是新建的账户
 			accs := &AccState{
 				Address: tx.To,
-				Balance: tx.Value,
+				Balance: oribalance + tx.Value,
+				Nonce:   0,
+			}
+			s.UpdateAccState(accs)
+		}
+		miner, ok := s.GetAccState(block.Header.Coinbase)
+		if ok {
+			miner.Balance += reward
+			s.UpdateAccState(miner)
+		} else { //若mpt中没有，说明是新建的账户
+			accs := &AccState{
+				Address: block.Header.Coinbase,
+				Balance: oribalance + reward,
 				Nonce:   0,
 			}
 			s.UpdateAccState(accs)

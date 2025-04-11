@@ -111,6 +111,13 @@ func (c *IPCCommander) executeCommand(cmd string) {
 		c.sys.blockChain.StateDB.NewAccount()
 	case "accls":
 		c.sys.blockChain.StateDB.PrintAccounts()
+	case "miner":
+		if len(parts) < 2 {
+			c.output.Write([]byte("用法: miner <miner address>\n"))
+			return
+		}
+		c.sys.blockChain.StartMiner(parts[1])
+		fmt.Println("开启挖矿，矿工账户地址：", parts[1])
 	case "tx":
 		if len(parts) < 4 {
 			c.output.Write([]byte("用法: tx <From(adress)> <To(adress)> <Value>\n"))
