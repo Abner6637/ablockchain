@@ -55,7 +55,7 @@ func ProcessMessage(msg *Message) {
 		fmt.Println("处理交易消息...")
 		signtx, err := core.DecodeSignTx(msg.Data)
 		if err != nil {
-			fmt.Errorf("交易解码失败")
+			fmt.Printf("交易解码失败: %v\n", err)
 		}
 		event.Bus.Publish("TransactionMessage", signtx)
 
@@ -63,7 +63,7 @@ func ProcessMessage(msg *Message) {
 		fmt.Println("处理区块消息...")
 		block, err := core.DecodeBlock(msg.Data)
 		if err != nil {
-			fmt.Errorf("区块解码失败")
+			fmt.Printf("区块解码失败: %v\n", err)
 		}
 		// block.PrintBlock()
 		event.Bus.Publish("BlockMessage", block)

@@ -231,7 +231,7 @@ func (c *IPCCommander) handleTx(from, to string, value uint64) {
 	signtx, err := acc.SignTx(tx)
 	data, err := rlp.EncodeToBytes(signtx)
 	if err != nil {
-		log.Fatalf("SignTx err", err)
+		log.Fatalf("SignTx err: %v", err)
 	}
 	p2pMsg := &p2p.Message{
 		Type: p2p.TransactionMessage,
