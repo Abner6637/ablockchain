@@ -2,83 +2,76 @@ version: '3.9'
 
 services:
   node0:
-    image: ablockchain:0.0.0
     container_name: node0
+    image: ablockchain:0.0.0
     networks:
       customnet:
         ipv4_address: 172.28.0.10
     ports:
       - "33000:32000"
     volumes:
-      - ./key_store/nodekey1:/ablockchain/key_store/nodekey1
+      - ./key_store/nodekey0:/ablockchain/key_store/nodekey0
+      - ./genesis.json:/ablockchain/genesis.json
     command: >
       ./ablockchain 
       --listen /ip4/0.0.0.0/tcp/32000 
-      --nodekey ./key_store/nodekey1 
-      --valaddress 0x11820fda9ed706f0b98140e3b3b8b92208fac562 
-      --valaddress 0xd870276849a24fac70f2509e5d352f7dd9ebb49b
-      --valaddress 0x8dff8c16895f70fa9646b57932ae0d6c16427b05 
-      --valaddress 0x2e299955f9d591d9013d1ebba36eeab07797e9a8
-      --backend=true 
+      --nodekey ./key_store/nodekey0 
+      --valaddress 0x8b4dfbf2790b9f0e22712b18cf9c6cf91141bfb6 --valaddress 0x1754c361b69fb63a4a0512cd1511e260eb379819 --valaddress 0xa464d98443c44cf4f0de9598e2c30ed903a0c55a --valaddress 0xaf55e5ba20c3c8d2d7e1645470365b0fdbaa9528 
+      --backend=true
 
   node1:
-    image: ablockchain:0.0.0
     container_name: node1
+    image: ablockchain:0.0.0
     networks:
       customnet:
         ipv4_address: 172.28.0.11
     ports:
       - "33001:32000"
     volumes:
-      - ./key_store/nodekey2:/ablockchain/key_store/nodekey2
+      - ./key_store/nodekey1:/ablockchain/key_store/nodekey1
+      - ./genesis.json:/ablockchain/genesis.json
     command: >
       ./ablockchain 
       --listen /ip4/0.0.0.0/tcp/32000 
-      --nodekey ./key_store/nodekey2
-      --valaddress 0x11820fda9ed706f0b98140e3b3b8b92208fac562 
-      --valaddress 0xd870276849a24fac70f2509e5d352f7dd9ebb49b
-      --valaddress 0x8dff8c16895f70fa9646b57932ae0d6c16427b05 
-      --valaddress 0x2e299955f9d591d9013d1ebba36eeab07797e9a8
-      --backend=true 
+      --nodekey ./key_store/nodekey1 
+      --valaddress 0x8b4dfbf2790b9f0e22712b18cf9c6cf91141bfb6 --valaddress 0x1754c361b69fb63a4a0512cd1511e260eb379819 --valaddress 0xa464d98443c44cf4f0de9598e2c30ed903a0c55a --valaddress 0xaf55e5ba20c3c8d2d7e1645470365b0fdbaa9528 
+      --backend=true
+
   node2:
-    image: ablockchain:0.0.0
     container_name: node2
+    image: ablockchain:0.0.0
     networks:
       customnet:
         ipv4_address: 172.28.0.12
     ports:
       - "33002:32000"
     volumes:
-      - ./key_store/nodekey3:/ablockchain/key_store/nodekey3
+      - ./key_store/nodekey2:/ablockchain/key_store/nodekey2
+      - ./genesis.json:/ablockchain/genesis.json
     command: >
       ./ablockchain 
       --listen /ip4/0.0.0.0/tcp/32000 
-      --nodekey ./key_store/nodekey3 
-      --valaddress 0x11820fda9ed706f0b98140e3b3b8b92208fac562 
-      --valaddress 0xd870276849a24fac70f2509e5d352f7dd9ebb49b
-      --valaddress 0x8dff8c16895f70fa9646b57932ae0d6c16427b05 
-      --valaddress 0x2e299955f9d591d9013d1ebba36eeab07797e9a8
-      --backend=true 
+      --nodekey ./key_store/nodekey2 
+      --valaddress 0x8b4dfbf2790b9f0e22712b18cf9c6cf91141bfb6 --valaddress 0x1754c361b69fb63a4a0512cd1511e260eb379819 --valaddress 0xa464d98443c44cf4f0de9598e2c30ed903a0c55a --valaddress 0xaf55e5ba20c3c8d2d7e1645470365b0fdbaa9528 
+      --backend=true
 
   node3:
-    image: ablockchain:0.0.0
     container_name: node3
+    image: ablockchain:0.0.0
     networks:
       customnet:
         ipv4_address: 172.28.0.13
     ports:
       - "33003:32000"
     volumes:
-      - ./key_store/nodekey4:/ablockchain/key_store/nodekey4
+      - ./key_store/nodekey3:/ablockchain/key_store/nodekey3
+      - ./genesis.json:/ablockchain/genesis.json
     command: >
       ./ablockchain 
       --listen /ip4/0.0.0.0/tcp/32000 
-      --nodekey ./key_store/nodekey4 
-      --valaddress 0x11820fda9ed706f0b98140e3b3b8b92208fac562 
-      --valaddress 0xd870276849a24fac70f2509e5d352f7dd9ebb49b
-      --valaddress 0x8dff8c16895f70fa9646b57932ae0d6c16427b05 
-      --valaddress 0x2e299955f9d591d9013d1ebba36eeab07797e9a8
-      --backend=true 
+      --nodekey ./key_store/nodekey3 
+      --valaddress 0x8b4dfbf2790b9f0e22712b18cf9c6cf91141bfb6 --valaddress 0x1754c361b69fb63a4a0512cd1511e260eb379819 --valaddress 0xa464d98443c44cf4f0de9598e2c30ed903a0c55a --valaddress 0xaf55e5ba20c3c8d2d7e1645470365b0fdbaa9528 
+      --backend=true
 
 networks:
   customnet:

@@ -133,6 +133,6 @@ func (c *Config) WriteP2PID(libPriv crypto.LibPrivKey) {
 	p2pID, _ := peer.IDFromPrivateKey(libPriv)
 
 	if err := os.WriteFile(p2pfile, []byte(p2pID.String()), 0644); err != nil {
-		log.Fatalf("Failed to persist node address: %v\n", err)
+		log.Fatalf("Failed to persist node P2PID: %v\n", err)
 	}
 }
