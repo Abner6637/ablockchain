@@ -14,7 +14,7 @@ import (
 )
 
 const BlockInterval time.Duration = 5 * time.Second
-const MinTransactionsPerBlock int = 2
+const MinTransactionsPerBlock int = 2 // 目前将区块交易数量固定为 MinTransactionsPerBlock
 const MaxTransactionsPerBlock int = 10
 
 type Blockchain struct {
@@ -114,15 +114,37 @@ func (bc *Blockchain) handleTransaction(signtx *SignedTx) {
 		signtx.Tx.PrintTransaction()
 
 		// 交易加入交易池
-		bc.TxPool.AddTx(signtx.Tx)
-		fmt.Println("交易池累计交易数：\n", bc.TxPool.PendingSize())
+		bc.addTx(signtx.Tx)
+		fmt.Printf("交易池累计交易数：\n Pending: %d, Queued: %d\n", bc.TxPool.PendingSize(), bc.TxPool.QueuedSize())
 	} else {
 		log.Fatal("\n非法签名")
 	}
 }
 
+// 将交易加入交易池，根据nonce判断加入Pending或Queued
+func (bc *Blockchain) addTx(tx *Transaction) {
+	maxNonce := bc.TxPool.GetMaxNonce(tx.From)
+	if tx.Nonce == maxNonce+1 {
+		bc.TxPool.AddPending(tx)
+	} else {
+		bc.TxPool.AddQueued(tx)
+		return
+	}
+	// 尝试从 Queued 中连续推进 Pending
+	nextNonce := tx.Nonce + 1
+	for {
+		nextTx := bc.TxPool.FindQueuedTxByNonce(tx.From, nextNonce)
+		if nextTx == nil {
+			break
+		}
+		bc.TxPool.AddPending(nextTx)
+		bc.TxPool.RemoveQueued(nextTx)
+		nextNonce++
+	}
+}
+
 func (bc *Blockchain) mineNewBlock(miner string) (*Block, error) {
-	txs := bc.TxPool.GetPendingTxs()
+	txs := bc.TxPool.GetPendingTxs(MinTransactionsPerBlock)
 	if len(txs) == 0 {
 		return nil, fmt.Errorf("no transaction!")
 	}
@@ -135,7 +157,7 @@ func (bc *Blockchain) mineNewBlock(miner string) (*Block, error) {
 	bc.NewBlockChan <- block // 将新区块发送到通道
 
 	bc.TxPool.ClearPackedTxs(block.Transactions)
-	fmt.Println("打包区块，交易池：\n", bc.TxPool.PendingSize())
+	fmt.Printf("打包区块，交易池：\n Pending: %d, Queued: %d\n", bc.TxPool.PendingSize(), bc.TxPool.QueuedSize())
 	return block, nil
 }
 
@@ -146,7 +168,7 @@ func (bc *Blockchain) AddBlock(block *Block) {
 	bc.StateDB.ConfirmBlock(block) //修改账户状态MPT
 	bc.DB.Put(str, block)
 	bc.TxPool.ClearPackedTxs(block.Transactions)
-	fmt.Println("上链，交易池：\n", bc.TxPool.PendingSize())
+	fmt.Printf("上链，交易池：\n Pending: %d, Queued: %d\n", bc.TxPool.PendingSize(), bc.TxPool.QueuedSize())
 }
 
 func (bc *Blockchain) PrintLatest() {

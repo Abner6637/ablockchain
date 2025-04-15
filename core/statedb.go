@@ -131,6 +131,36 @@ func (s *StateDB) GetAccState(address string) (*AccState, bool) {
 	return &accstate, true
 }
 
+// 查询账户 StateDB
+func (s *StateDB) GetAccStateFromStateDB(address string) (*AccState, bool) {
+	s.lock.RLock()
+	defer s.lock.RUnlock()
+
+	if accs, ok := s.stateObjects[address]; ok {
+		return accs, true
+	}
+
+	return nil, false
+}
+
+// 查询账户 MPT
+func (s *StateDB) GetAccStateFromMPT(address string) (*AccState, bool) {
+	s.lock.RLock()
+	defer s.lock.RUnlock()
+
+	data, err := s.trie.Get(address)
+	if err != nil || data == nil {
+		return nil, false
+	}
+	var accstate AccState
+	if err := rlp.DecodeBytes(data, &accstate); err != nil {
+		return nil, false
+	}
+
+	s.stateObjects[address] = &accstate
+	return &accstate, true
+}
+
 // 验证交易是否合法（付款账户是否存在？余额是否充足？nonce是否一致）
 // func (s *StateDB) VeruifyTx(tx *Transaction) bool {
 // 	acc, ok := s.GetAccState(tx.From)
@@ -167,15 +197,31 @@ func (s *StateDB) Close() {
 	s.trie.DB.Close()
 }
 
-// 区块上链后，改变账户状态
+// 区块上链后，根据区块信息改变账户状态，并提交至MPT
 // TODO: 验证交易与账户的nonce信息，是否按顺序进行
 func (s *StateDB) ConfirmBlock(block *Block) error {
+	//读取mpt信息并以此初始化账户（主要是将账户nonce值恢复）
+	for _, tx := range block.Transactions {
+		from, ok := s.GetAccStateFromMPT(tx.From)
+		if ok {
+			s.UpdateAccState(from) //发送交易时更改了statedb中账户的nonce，这里要改回原始状态
+		} else {
+			accs := &AccState{
+				Address: tx.From,
+				Balance: oribalance,
+				Nonce:   0,
+			}
+			s.UpdateAccState(accs)
+		}
+	}
+
 	for _, tx := range block.Transactions {
 		from, ok := s.GetAccState(tx.From)
 		if ok {
 			from.Balance -= tx.Value
+			from.Nonce += 1
 			s.UpdateAccState(from)
-		} else { // ###########实际情况下不应该记录from账户，因为初始余额为0不可能发起交易#####
+		} else { // ###########实际情况下不应该记录from账户，因为初始余额为0不可能发起交易##### 正确做法是触发同步
 			accs := &AccState{
 				Address: tx.From,
 				Balance: oribalance - tx.Value,

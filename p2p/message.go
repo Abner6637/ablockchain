@@ -57,7 +57,7 @@ func ProcessMessage(msg *Message) {
 		if err != nil {
 			fmt.Printf("交易解码失败: %v\n", err)
 		}
-		event.Bus.Publish("TransactionMessage", signtx)
+		event.Bus.Publish("TransactionMessage", signtx) //blockchain.StartMiner中处理
 
 	case BlockMessage:
 		fmt.Println("处理区块消息...")
