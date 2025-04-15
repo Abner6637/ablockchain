@@ -11,13 +11,13 @@ WORKDIR /ablockchain
 # 首先复制依赖文件以利用Docker缓存层
 COPY go.mod go.sum ./
 
-# 下载依赖（若go.mod未更改则跳过此步骤）
+# 下载依赖（国内可能需要在"go mode download"前增加"GOPROXY=https://goproxy.cn,direct GOSUMDB=off"）
 RUN GOPROXY=https://goproxy.cn,direct GOSUMDB=off go mod download
 
 # 复制项目所有源代码到容器
 COPY . .
 
-# 编译静态二进制文件（禁用CGO，适配Alpine）
+# 编译静态二进制文件
 RUN go build -o /ablockchain/ablockchain ./main.go
 
 # 第二阶段：构建轻量级生产镜像

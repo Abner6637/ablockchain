@@ -22,6 +22,9 @@ type Config struct {
 	P2PIDFile     string   // 存储节点P2P ID的文件
 	ValSet        []string // 参加共识节点的地址集合
 	IfBackend     bool     // 是否以后台模式启动
+	BootNode      string
+	IsBoot        string
+	PeerAddrs     []string
 }
 
 // 定义一个自定义类型，用于支持多次传入的字符串参数
@@ -49,10 +52,15 @@ func ParseFlags() (*Config, bool) {
 	flag.StringVar(&cfg.AddressFile, "address", "./key_store/address", "节点地址存储地址")
 	flag.StringVar(&cfg.P2PIDFile, "p2p", "./key_store/p2pID", "节点p2p ID存储地址")
 	flag.BoolVar(&cfg.IfBackend, "backend", false, "是否以后台方式运行")
+	flag.StringVar(&cfg.BootNode, "bootnode", "", "bootnode的multiAddr")
+	flag.StringVar(&cfg.IsBoot, "isboot", "false", "启动的节点是否是bootnode")
 
 	// 定义一个自定义类型变量，用于接收额外的字符串参数
 	var valAddresses stringSlice
 	flag.Var(&valAddresses, "valaddress", "参与共识的节点地址，以'0x'开头，可以多次指定，比如 -valaddress param1 -valaddress param2")
+
+	var peerAddresses stringSlice
+	flag.Var(&peerAddresses, "peer", "peer的Address，如 /ip4/x.x.x.x/tcp/x/p2p/x, 可以多次指定，比如 -peer param1 -peer param2")
 
 	flag.Usage = func() {
 		fmt.Printf("Usage: %s [options]\n", os.Args[0])
@@ -64,6 +72,7 @@ func ParseFlags() (*Config, bool) {
 	flag.Parse()
 
 	cfg.ValSet = valAddresses
+	cfg.PeerAddrs = peerAddresses
 
 	for _, arg := range os.Args[1:] {
 		if arg == "attach" {

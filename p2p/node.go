@@ -45,8 +45,8 @@ func NewNode(listenAddress string, privateKey *ecdsa.PrivateKey, libPriv crypto.
 	// 启动两次MDNS，尽量连通吧……
 	// TODO: 理应来讲应该不需要使用goroutine，保证连通了之后，再开启共识等
 	// 但是会和mesh.sh冲突
-	go setupMDNS(n.Host, "my-libp2p-network")
-	go setupMDNS(n.Host, "my-libp2p-network2")
+	// go setupMDNS(n.Host, "my-libp2p-network")
+	// go setupMDNS(n.Host, "my-libp2p-network2")
 
 	// 设置协议处理器
 	node.SetStreamHandler(ProtocolID, n.handleStream)
@@ -129,6 +129,11 @@ func (n *Node) ConnectToPeer(peerAddress string) error {
 	peerInfo, err := peer.AddrInfoFromP2pAddr(peerAddr)
 	if err != nil {
 		return fmt.Errorf("failed to extract peer info: %v", err)
+	}
+
+	if peerInfo.ID == peer.ID(n.ID) {
+		// 欲连接的节点为自身，return
+		return nil
 	}
 
 	// 连接到peer节点

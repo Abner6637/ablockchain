@@ -144,3 +144,14 @@ docker exec -it node1 ./ablockchain attach
 ```sh
 docker logs -f node1
 ```
+
+## 自动化指定节点数量和生成Docker网络
+运行shell文件生成Dockerfile
+``` sh
+bash generate_compose.sh
+# 随后输入网络中的节点数量
+```
+运行Docker-compose启动网络
+``` sh
+docker-compose up -d
+```

@@ -8,11 +8,19 @@ import (
 	"ablockchain/core"
 	"ablockchain/event"
 	"ablockchain/p2p"
+	"context"
 	"fmt"
+	"log"
 	"net"
 	"os"
+	"time"
 
-	"log"
+	"github.com/ipfs/go-cid"
+	dht "github.com/libp2p/go-libp2p-kad-dht"
+	"github.com/libp2p/go-libp2p/core/host"
+	"github.com/libp2p/go-libp2p/core/network"
+	"github.com/libp2p/go-libp2p/core/peerstore"
+	"github.com/multiformats/go-multihash"
 )
 
 type System struct {
@@ -28,6 +36,19 @@ func StartSystem(cfg *cli.Config) *System {
 	// 启动 P2P 节点
 	node := StartListen(cfg)
 	sys.p2pNode = node
+
+	if len(cfg.PeerAddrs) != 0 {
+		// 阻塞两秒，等待其他节点启动再连接
+		select {
+		case <-time.After(2 * time.Second):
+			fmt.Println("Start to connect to peers...")
+		}
+		for _, peerAddr := range cfg.PeerAddrs {
+			sys.p2pNode.ConnectToPeer(peerAddr)
+		}
+	} else {
+		log.Printf("peer address length: 0")
+	}
 
 	// // 初始化账户管理和账户
 	// accountManager := core.NewAccountManager()
@@ -85,6 +106,40 @@ func StartListen(cfg *cli.Config) *p2p.Node {
 
 	fmt.Printf("节点已启动 ID: %s\n", node.ID)
 	fmt.Printf("监听地址: %v\n", node.Host.Addrs())
+
+	/*
+		if cfg.IsBoot == "true" {
+			kad, _ := dht.New(context.Background(), node.Host, dht.Mode(dht.ModeServer))
+			_ = kad.Bootstrap(context.Background())
+			RegisterMyselfInDHT(kad)
+			log.Printf("bootnode启动DHT")
+		}
+
+		if cfg.BootNode != "" && cfg.IsBoot == "false" {
+			ctx := context.Background()
+			log.Printf("bootnode addr:%s", cfg.BootNode)
+			bootAddr, err := multiaddr.NewMultiaddr(cfg.BootNode)
+			if err != nil {
+				log.Printf("failed to parse peer address: %v", err)
+			}
+			bootInfo, err := peer.AddrInfoFromP2pAddr(bootAddr)
+			if err != nil {
+				log.Printf("failed to extract peer info: %v", err)
+			}
+			if err := node.Host.Connect(ctx, *bootInfo); err != nil {
+				log.Printf("无法连接bootnode：%v", err)
+			}
+			log.Printf("连接bootnode")
+			kad, _ := dht.New(ctx, node.Host)
+			_ = kad.Bootstrap(ctx)
+			RegisterMyselfInDHT(kad)
+			log.Printf("启动DHT")
+
+			log.Printf("start a discovery")
+			go DiscoverAndConnectToOthers(kad, node.Host)
+			go StartAutoDiscovery(ctx, kad, node.Host, time.Duration(15*time.Second))
+		}
+	*/
 
 	return node
 }
@@ -147,5 +202,47 @@ func startIPCServer(sys *System) {
 
 		cmd := NewIPCCommander(sys, conn, conn)
 		go cmd.Run()
+	}
+}
+
+func RegisterMyselfInDHT(kad *dht.IpfsDHT) {
+	content := []byte("libp2p-group")
+	hash, _ := multihash.Sum(content, multihash.SHA2_256, -1)
+	cid := cid.NewCidV1(cid.Raw, hash)
+	kad.Provide(context.Background(), cid, true)
+}
+
+func DiscoverAndConnectToOthers(kad *dht.IpfsDHT, h host.Host) {
+	content := []byte("libp2p-group")
+	hash, _ := multihash.Sum(content, multihash.SHA2_256, -1)
+	cid := cid.NewCidV1(cid.Raw, hash)
+	peers := kad.FindProvidersAsync(context.Background(), cid, 50)
+	for p := range peers {
+		if p.ID == h.ID() {
+			continue
+		}
+		h.Peerstore().AddAddrs(p.ID, p.Addrs, peerstore.TempAddrTTL)
+		if h.Network().Connectedness(p.ID) != network.Connected {
+			fmt.Println("Connecting to discovered peer:", p.ID)
+			if err := h.Connect(context.Background(), p); err != nil {
+				fmt.Println("Connect failed:", err)
+			}
+		}
+	}
+}
+
+func StartAutoDiscovery(ctx context.Context, kad *dht.IpfsDHT, h host.Host, interval time.Duration) {
+	ticker := time.NewTicker(interval)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			fmt.Println("🔌 AutoDiscovery stopped.")
+			return
+		case <-ticker.C:
+			log.Printf("start a discovery")
+			DiscoverAndConnectToOthers(kad, h)
+		}
 	}
 }

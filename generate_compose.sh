@@ -13,6 +13,12 @@ for ((i=0; i<NODE_COUNT; i++)); do
   VALADDR_ARGS+="--valaddress ${ADDRESS} "
 done
 
+PEERADDR_ARGS=""
+for ((i=0; i<NODE_COUNT; i++)); do
+  PEERADDR=$(cat ./key_store/p2pID${i})
+  PEERADDR_ARGS+="--peer /ip4/172.28.0.$((START_IP + i))/tcp/32000/p2p/${PEERADDR} "
+done
+
 # 3. 写入 docker-compose.yml 头部
 cat > docker-compose.yml <<EOF
 version: '3.9'
@@ -26,7 +32,9 @@ for ((i=0; i<NODE_COUNT; i++)); do
   cat >> docker-compose.yml <<EOF
   node${i}:
     container_name: node${i}
-    image: ablockchain:0.0.0
+    depends_on:
+      - bootnode
+    image: ablockchain:0.0.1
     networks:
       customnet:
         ipv4_address: 172.28.0.${node_ip}
@@ -40,8 +48,8 @@ for ((i=0; i<NODE_COUNT; i++)); do
       --listen /ip4/0.0.0.0/tcp/32000 
       --nodekey ./key_store/nodekey${i} 
       ${VALADDR_ARGS}
+      ${PEERADDR_ARGS}
       --backend=true
-
 EOF
 done
 
