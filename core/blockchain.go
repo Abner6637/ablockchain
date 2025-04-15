@@ -124,6 +124,13 @@ func (bc *Blockchain) handleTransaction(signtx *SignedTx) {
 // 将交易加入交易池，根据nonce判断加入Pending或Queued
 func (bc *Blockchain) addTx(tx *Transaction) {
 	maxNonce := bc.TxPool.GetMaxNonce(tx.From)
+	// 若交易池中没有，要检查MPT中的nonce值（防止交易提交后，后面的交易nonce接不上）
+	if maxNonce == 0 {
+		from, ok := bc.StateDB.GetAccStateFromMPT(tx.From)
+		if ok {
+			maxNonce = from.Nonce
+		}
+	}
 	if tx.Nonce == maxNonce+1 {
 		bc.TxPool.AddPending(tx)
 	} else {

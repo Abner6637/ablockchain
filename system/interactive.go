@@ -99,6 +99,17 @@ func (c *Commander) Run() {
 				continue
 			}
 			c.handleTx(parts[1], parts[2], value)
+		case "tx2":
+			if len(parts) < 4 {
+				fmt.Println("用法: tx2 <From(adress)> <To(adress)> <Value>")
+				continue
+			}
+			value, err := strconv.ParseUint(parts[3], 10, 64) //字符串转为uint64类型, 10:十进制; 64:uint64
+			if err != nil {
+				fmt.Println("错误: Value 必须是有效的正整数")
+				continue
+			}
+			c.handleTx2(parts[1], parts[2], value)
 		case "printlatest":
 			c.sys.blockChain.PrintLatest()
 		case "printall":
@@ -191,6 +202,38 @@ func (c *Commander) handleTx(from, to string, value uint64) {
 		return
 	}
 	acc.State.Nonce += 1 //Nonce在这里增加：防止一个区块中有多个相同用户的交易导致错误
+	c.sys.blockChain.StateDB.UpdateAccState(acc.State)
+	tx := core.NewTransaction(acc, to, value)
+	signtx, err := acc.SignTx(tx)
+	data, err := rlp.EncodeToBytes(signtx)
+	if err != nil {
+		log.Fatalf("SignTx err: %v", err)
+	}
+	p2pMsg := &p2p.Message{
+		Type: p2p.TransactionMessage,
+		Data: data,
+	}
+	encodedP2PMsg, err := p2pMsg.Encode()
+	if err != nil {
+		log.Fatal("消息编码失败:encodedP2PMsg, err := p2pMsg.Encode()")
+	}
+	event.Bus.Publish("TransactionMessage", signtx) //自己节点也要把交易加入交易池,blockchain.StartMiner中处理
+	if err := c.sys.p2pNode.BroadcastMessage(string(encodedP2PMsg)); err != nil {
+		fmt.Printf("发送失败: %v\n", err)
+	}
+}
+
+func (c *Commander) handleTx2(from, to string, value uint64) {
+	acc, err := c.sys.blockChain.StateDB.GetAccount(from)
+	if err != nil {
+		fmt.Println("错误: 付款账户不存在")
+		return
+	}
+	if acc.State.Balance < value {
+		fmt.Println("错误: 付款账户余额不足")
+		return
+	}
+	acc.State.Nonce += 2 //Nonce在这里增加：防止一个区块中有多个相同用户的交易导致错误
 	c.sys.blockChain.StateDB.UpdateAccState(acc.State)
 	tx := core.NewTransaction(acc, to, value)
 	signtx, err := acc.SignTx(tx)
