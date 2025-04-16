@@ -216,18 +216,18 @@ func (c *IPCCommander) handleAddVal(address string, value uint64) {
 
 // 发送交易
 func (c *IPCCommander) handleTx(from, to string, value uint64) {
-	acc, err := c.sys.blockChain.StateDB.GetAccount(from)
-	if err != nil {
+	acc, ok := c.sys.blockChain.StateDB.GetAccState(from)
+	if !ok {
 		fmt.Println("错误: 付款账户不存在")
 		return
 	}
-	if acc.State.Balance < value {
+	if acc.Balance < value {
 		fmt.Println("错误: 付款账户余额不足")
 		return
 	}
 	c.sys.blockChain.StateDB.Noncelist[from] += 1 //本地记录nonce值
 	tx := core.NewTransaction(from, to, value, c.sys.blockChain.StateDB.Noncelist[from])
-	signtx, err := acc.SignTx(tx)
+	signtx, err := core.SignTx(tx)
 	data, err := rlp.EncodeToBytes(signtx)
 	if err != nil {
 		log.Fatalf("SignTx err: %v", err)

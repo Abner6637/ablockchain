@@ -99,17 +99,6 @@ func (c *Commander) Run() {
 				continue
 			}
 			c.handleTx(parts[1], parts[2], value)
-		case "tx2":
-			if len(parts) < 4 {
-				fmt.Println("用法: tx2 <From(adress)> <To(adress)> <Value>")
-				continue
-			}
-			value, err := strconv.ParseUint(parts[3], 10, 64) //字符串转为uint64类型, 10:十进制; 64:uint64
-			if err != nil {
-				fmt.Println("错误: Value 必须是有效的正整数")
-				continue
-			}
-			c.handleTx2(parts[1], parts[2], value)
 		case "printp":
 			c.sys.blockChain.TxPool.PrintPending()
 		case "printq":
@@ -196,52 +185,25 @@ func (c *Commander) handleAddVal(address string, value uint64) {
 
 // 发送交易
 func (c *Commander) handleTx(from, to string, value uint64) {
-	acc, err := c.sys.blockChain.StateDB.GetAccount(from)
-	if err != nil {
+	acc, ok := c.sys.blockChain.StateDB.GetAccState(from)
+	if !ok {
 		fmt.Println("错误: 付款账户不存在")
 		return
 	}
-	if acc.State.Balance < value {
+	if acc.Balance < value {
 		fmt.Println("错误: 付款账户余额不足")
 		return
 	}
 	c.sys.blockChain.StateDB.Noncelist[from] += 1 //本地记录nonce值
 	tx := core.NewTransaction(from, to, value, c.sys.blockChain.StateDB.Noncelist[from])
-	signtx, err := acc.SignTx(tx)
-	data, err := rlp.EncodeToBytes(signtx)
+	signtx, err := core.SignTx(tx) // 本地没有账户私钥
 	if err != nil {
-		log.Fatalf("SignTx err: %v", err)
-	}
-	p2pMsg := &p2p.Message{
-		Type: p2p.TransactionMessage,
-		Data: data,
-	}
-	encodedP2PMsg, err := p2pMsg.Encode()
-	if err != nil {
-		log.Fatal("消息编码失败:encodedP2PMsg, err := p2pMsg.Encode()")
-	}
-	event.Bus.Publish("TransactionMessage", signtx) //自己节点也要把交易加入交易池,blockchain.StartMiner中处理
-	if err := c.sys.p2pNode.BroadcastMessage(string(encodedP2PMsg)); err != nil {
-		fmt.Printf("发送失败: %v\n", err)
-	}
-}
-
-func (c *Commander) handleTx2(from, to string, value uint64) {
-	acc, err := c.sys.blockChain.StateDB.GetAccount(from)
-	if err != nil {
-		fmt.Println("错误: 付款账户不存在")
+		c.sys.blockChain.StateDB.Noncelist[from] -= 1
 		return
 	}
-	if acc.State.Balance < value {
-		fmt.Println("错误: 付款账户余额不足")
-		return
-	}
-	c.sys.blockChain.StateDB.Noncelist[from] += 2 //本地记录nonce值
-	tx := core.NewTransaction(from, to, value, c.sys.blockChain.StateDB.Noncelist[from])
-	signtx, err := acc.SignTx(tx)
 	data, err := rlp.EncodeToBytes(signtx)
 	if err != nil {
-		log.Fatalf("SignTx err: %v", err)
+		log.Fatalf("rlp err: %v", err)
 	}
 	p2pMsg := &p2p.Message{
 		Type: p2p.TransactionMessage,

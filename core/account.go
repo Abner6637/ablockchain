@@ -39,14 +39,12 @@ type SignedTx struct {
 type AccountKeyFile struct {
 	Address    string `json:"address"`
 	PrivateKey string `json:"private_key"` // hex or base64 encoded
-	PublicKey  string `json:"public_key"`
 }
 
 func SaveAccountToFile(account *Account, dir string) error {
 	keyFile := AccountKeyFile{
 		Address:    account.State.Address,
 		PrivateKey: hex.EncodeToString(account.PrivateKey),
-		PublicKey:  hex.EncodeToString(account.PublicKey),
 	}
 
 	data, err := json.MarshalIndent(keyFile, "", "  ")
@@ -63,42 +61,41 @@ func SaveAccountToFile(account *Account, dir string) error {
 	return nil
 }
 
-func loadAccountKeysFromFile(address, dir string) ([]byte, []byte, error) {
+func loadAccountKeysFromFile(address, dir string) ([]byte, error) {
 	file := filepath.Join(dir, fmt.Sprintf("%s.json", address))
 	data, err := os.ReadFile(file)
 	if err != nil {
-		return nil, nil, fmt.Errorf("读取账户文件失败: %v", err)
+		return nil, fmt.Errorf("读取账户文件失败: %v", err)
 	}
 
 	var keyFile AccountKeyFile
 	err = json.Unmarshal(data, &keyFile)
 	if err != nil {
-		return nil, nil, fmt.Errorf("解析账户文件失败: %v", err)
+		return nil, fmt.Errorf("解析账户文件失败: %v", err)
 	}
 
 	privKey, err := hex.DecodeString(keyFile.PrivateKey)
 	if err != nil {
-		return nil, nil, fmt.Errorf("解码私钥失败: %v", err)
-	}
-	pubKey, err := hex.DecodeString(keyFile.PublicKey)
-	if err != nil {
-		return nil, nil, fmt.Errorf("解码公钥失败: %v", err)
+		return nil, fmt.Errorf("解码私钥失败: %v", err)
 	}
 
-	return privKey, pubKey, nil
+	return privKey, nil
 }
 
 // 对生成的交易进行签名, 返回rlp编码的SignedTx结构体
-func (a *Account) SignTx(tx *Transaction) (*SignedTx, error) {
-	if a.PrivateKey == nil {
-		return nil, fmt.Errorf("没有账户密钥")
+func SignTx(tx *Transaction) (*SignedTx, error) {
+	privkey, err := loadAccountKeysFromFile(tx.From, privkeyaddr)
+	if err != nil {
+		fmt.Println("没有该账户私钥，无法签名交易\n") //待docker测试
+		return nil, err
 	}
 	encodetx, err := tx.EncodeTx()
 	if err != nil {
+		fmt.Println("交易编码失败\n")
 		return nil, err
 	}
 	hashTx := crypto.GlobalHashAlgorithm.Hash(encodetx) //编码后计算hash
-	privk, err := crypto.ToECDSA(a.PrivateKey)
+	privk, err := crypto.ToECDSA(privkey)
 	if err != nil {
 		return nil, err
 	}

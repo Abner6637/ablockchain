@@ -38,24 +38,23 @@ func NewStateDB(dbPath string) (*StateDB, error) {
 	}, nil
 }
 
-// 返回完整账户结构（包括密钥）
-func (s *StateDB) GetAccount(address string) (*Account, error) {
-	accState, ok := s.GetAccState(address)
-	if !ok {
-		return nil, fmt.Errorf("找不到账户状态: %s", address)
-	}
+// // 返回完整账户结构（包括密钥）
+// func (s *StateDB) GetAccount(address string) (*Account, error) {
+// 	accState, ok := s.GetAccState(address)
+// 	if !ok {
+// 		return nil, fmt.Errorf("找不到账户状态: %s", address)
+// 	}
 
-	privKey, pubKey, err := loadAccountKeysFromFile(address, privkeyaddr)
-	if err != nil {
-		return nil, fmt.Errorf("加载账户密钥失败: %v", err)
-	}
+// 	privKey, err := loadAccountKeysFromFile(address, privkeyaddr)
+// 	if err != nil {
+// 		return nil, fmt.Errorf("加载账户密钥失败: %v", err)
+// 	}
 
-	return &Account{
-		PrivateKey: privKey,
-		PublicKey:  pubKey,
-		State:      accState,
-	}, nil
-}
+// 	return &Account{
+// 		PrivateKey: privKey,
+// 		State:      accState,
+// 	}, nil
+// }
 
 // 创建新账户(暂存在内存中，只有进行交易后才加入MPT)
 func (s *StateDB) NewAccount() (*Account, error) {
@@ -65,7 +64,6 @@ func (s *StateDB) NewAccount() (*Account, error) {
 	}
 	address := crypto.PubkeyToAddress(privKey.PublicKey).Hex()
 	privKeyBytes := crypto.FromECDSA(privKey)
-	pubKeyBytes := crypto.FromECDSAPub(&privKey.PublicKey)
 	accstate := &AccState{
 		Address: address,
 		Balance: oribalance,
@@ -73,16 +71,8 @@ func (s *StateDB) NewAccount() (*Account, error) {
 	}
 	account := &Account{
 		PrivateKey: privKeyBytes,
-		PublicKey:  pubKeyBytes,
 		State:      accstate,
 	}
-	// 账户标记
-	// err = s.UpdateAccount(account) //RLP编码, 不支持*ecdsa.PrivateKey类型
-	// if err != nil {
-	// 	return nil, fmt.Errorf("存储账户到StateDB失败: %v", err)
-	// }
-	// 存到mpt和leveldb
-	// s.Commit()
 
 	s.stateObjects[account.State.Address] = accstate //暂存到内存中，不提交（产生交易后才提交）
 
