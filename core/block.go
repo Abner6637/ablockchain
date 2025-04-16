@@ -23,12 +23,13 @@ type BlockHeader struct {
 	Coinbase   string // 矿工地址，用于接收奖励
 }
 
-func NewBlockHeader(parentHash []byte, dif uint64, num *big.Int, coinbase string) *BlockHeader {
+func NewBlockHeader(parentHash []byte, dif uint64, num *big.Int, merkleroot []byte, coinbase string) *BlockHeader {
 	return &BlockHeader{
 		ParentHash: parentHash,
 		Time:       uint64(time.Now().Unix()),
 		Difficulty: dif,
 		Number:     num,
+		MerkleRoot: merkleroot,
 		Coinbase:   coinbase,
 	}
 }

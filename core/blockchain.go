@@ -3,8 +3,10 @@ package core
 import (
 	"ablockchain/cli"
 	"ablockchain/config"
+	"ablockchain/crypto"
 	"ablockchain/event"
 	"ablockchain/storage"
+	"bytes"
 	"fmt"
 	"log"
 	"math/big"
@@ -155,9 +157,16 @@ func (bc *Blockchain) mineNewBlock(miner string) (*Block, error) {
 	if len(txs) == 0 {
 		return nil, fmt.Errorf("no transaction!")
 	}
+	// 避免打包已经提交过的区块
+	merkleroot := CalculateMerkleRoot(txs)
+	if bytes.Equal(merkleroot, bc.GetLatestMR()) {
+		bc.TxPool.ClearPackedTxs(txs)
+		fmt.Println("打包的区块已上链\n")
+		return nil, fmt.Errorf("重复区块")
+	}
 
 	// 创建新区块（该部分的difficulty需要进一步修改）
-	header := NewBlockHeader(bc.CurrentBlockHash, uint64(2), new(big.Int).Add(bc.CurBlockNum, big.NewInt(1)), miner)
+	header := NewBlockHeader(bc.CurrentBlockHash, uint64(2), new(big.Int).Add(bc.CurBlockNum, big.NewInt(1)), merkleroot, miner)
 	block := NewBlock(header, txs)
 
 	// bc.AddBlock(block)
@@ -176,6 +185,23 @@ func (bc *Blockchain) AddBlock(block *Block) {
 	bc.DB.Put(str, block)
 	bc.TxPool.ClearPackedTxs(block.Transactions)
 	fmt.Printf("上链，交易池：\n Pending: %d, Queued: %d\n", bc.TxPool.PendingSize(), bc.TxPool.QueuedSize())
+}
+
+// 返回上一个区块的默克尔根
+func (bc *Blockchain) GetLatestMR() []byte {
+	_, data, err := bc.DB.GetLatest()
+	if err == nil {
+		var block Block
+		err = rlp.DecodeBytes(data, &block)
+		if err == nil {
+			return block.Header.MerkleRoot
+		} else {
+			fmt.Println("RLP decode error:", err)
+			return nil
+		}
+	}
+	fmt.Println("No data found.")
+	return nil
 }
 
 func (bc *Blockchain) PrintLatest() {
@@ -249,4 +275,13 @@ func NewTestBlockchain(DBPath string) (*Blockchain, error) {
 		CurBlockNum:  curBlockNum,
 		NewBlockChan: make(chan *Block, 10),
 	}, nil
+}
+
+// 计算交易列表的 Merkle Root
+func CalculateMerkleRoot(transactions []*Transaction) []byte {
+	var txHashes [][]byte
+	for _, tx := range transactions {
+		txHashes = append(txHashes, tx.TxHash)
+	}
+	return crypto.ComputeMerkleRoot(txHashes)
 }

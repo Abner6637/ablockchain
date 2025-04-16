@@ -90,6 +90,9 @@ func loadAccountKeysFromFile(address, dir string) ([]byte, []byte, error) {
 
 // 对生成的交易进行签名, 返回rlp编码的SignedTx结构体
 func (a *Account) SignTx(tx *Transaction) (*SignedTx, error) {
+	if a.PrivateKey == nil {
+		return nil, fmt.Errorf("没有账户密钥")
+	}
 	encodetx, err := tx.EncodeTx()
 	if err != nil {
 		return nil, err

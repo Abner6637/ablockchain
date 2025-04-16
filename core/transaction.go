@@ -110,12 +110,3 @@ func ReceiveData(stream network.Stream) *Transaction {
 
 	// log.Printf("Received transaction: %+v", tx)
 }
-
-// 计算交易列表的 Merkle Root
-func CalculateMerkleRoot(transactions []*Transaction) []byte {
-	var txHashes [][]byte
-	for _, tx := range transactions {
-		txHashes = append(txHashes, tx.TxHash)
-	}
-	return crypto.ComputeMerkleRoot(txHashes)
-}
