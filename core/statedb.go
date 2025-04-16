@@ -22,6 +22,7 @@ type StateDB struct {
 
 	stateObjects      map[string]*AccState // 缓存账户对象（address -> Account）
 	stateObjectsDirty map[string]struct{}  // 跟踪被修改的账户地址
+	Noncelist         map[string]uint64    // 管理本地交易的nonce，发送多笔交易时保证交易nonce的连续性
 }
 
 func NewStateDB(dbPath string) (*StateDB, error) {
@@ -33,6 +34,7 @@ func NewStateDB(dbPath string) (*StateDB, error) {
 		trie:              trieDB,
 		stateObjects:      make(map[string]*AccState),
 		stateObjectsDirty: make(map[string]struct{}),
+		Noncelist:         make(map[string]uint64),
 	}, nil
 }
 
@@ -200,24 +202,17 @@ func (s *StateDB) Close() {
 // 区块上链后，根据区块信息改变账户状态，并提交至MPT
 // TODO: 验证交易与账户的nonce信息，是否按顺序进行
 func (s *StateDB) ConfirmBlock(block *Block) error {
-	//读取mpt信息并以此初始化账户（主要是将账户nonce值恢复）
-	for _, tx := range block.Transactions {
-		from, ok := s.GetAccStateFromMPT(tx.From)
-		if ok {
-			s.UpdateAccState(from) //发送交易时更改了statedb中账户的nonce，这里要改回原始状态
-		} else {
-			accs := &AccState{
-				Address: tx.From,
-				Balance: oribalance,
-				Nonce:   0,
-			}
-			s.UpdateAccState(accs)
-		}
-	}
-
 	for _, tx := range block.Transactions {
 		from, ok := s.GetAccState(tx.From)
 		if ok {
+			// TODO: 是否需要在这里验证nonce的顺序？
+			// if from.Nonce+1 == tx.Nonce {
+			// 	from.Balance -= tx.Value
+			// 	from.Nonce += 1
+			// 	s.UpdateAccState(from)
+			// } else {
+			// 	return nil
+			// }
 			from.Balance -= tx.Value
 			from.Nonce += 1
 			s.UpdateAccState(from)

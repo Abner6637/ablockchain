@@ -19,7 +19,7 @@ func TestNewTransaction(t *testing.T) {
 
 	to := "0x456"
 	value := uint64(100)
-	tx := NewTransaction(from, to, value)
+	tx := NewTransaction(from.State.Address, to, value, from.State.Nonce)
 
 	if tx.From != from.State.Address {
 		t.Errorf("Expected From: %s, got: %s", from.State.Address, tx.From)
@@ -43,7 +43,7 @@ func TestEncodeDecodeTransaction(t *testing.T) {
 	}
 	to := "0x456"
 	value := uint64(100)
-	tx := NewTransaction(from, to, value)
+	tx := NewTransaction(from.State.Address, to, value, from.State.Nonce)
 	encoded, err := tx.EncodeTx()
 	if err != nil {
 		t.Fatalf("Failed to encode transaction: %v", err)
@@ -68,7 +68,7 @@ func TestTransactionTimestamp(t *testing.T) {
 	if err != nil {
 		return
 	}
-	tx := NewTransaction(from, "0x456", 100)
+	tx := NewTransaction(from.State.Address, "0x456", 100, 1)
 	currentTime := uint64(time.Now().Unix())
 
 	if tx.Time > currentTime || tx.Time < currentTime-1 {

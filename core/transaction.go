@@ -25,12 +25,12 @@ type Transaction struct {
 	Gas      uint64
 }
 
-func NewTransaction(from *Account, to string, value uint64) *Transaction {
+func NewTransaction(from string, to string, value uint64, nonce uint64) *Transaction {
 	tx := &Transaction{
-		From:  from.State.Address,
+		From:  from,
 		To:    to,
 		Value: value,
-		Nonce: from.State.Nonce,
+		Nonce: nonce,
 		Time:  uint64(time.Now().Unix()),
 	}
 	encodeTx, err := tx.EncodeTx()

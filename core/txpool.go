@@ -1,6 +1,7 @@
 package core
 
 import (
+	"fmt"
 	"sync"
 )
 
@@ -82,6 +83,24 @@ func (tp *TxPool) GetQueuedTxs() []*Transaction {
 	txs := make([]*Transaction, len(tp.Queued))
 	copy(txs, tp.Queued)
 	return txs
+}
+
+func (tp *TxPool) PrintPending() {
+	tp.lock.Lock()
+	defer tp.lock.Unlock()
+	fmt.Println("Pending:\n")
+	for _, tx := range tp.Pending {
+		tx.PrintTransaction()
+	}
+}
+
+func (tp *TxPool) PrintQueued() {
+	tp.lock.Lock()
+	defer tp.lock.Unlock()
+	fmt.Println("Queued:\n")
+	for _, tx := range tp.Queued {
+		tx.PrintTransaction()
+	}
 }
 
 // 返回待处理交易的数量

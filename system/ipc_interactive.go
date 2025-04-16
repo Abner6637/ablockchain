@@ -225,9 +225,8 @@ func (c *IPCCommander) handleTx(from, to string, value uint64) {
 		fmt.Println("错误: 付款账户余额不足")
 		return
 	}
-	acc.State.Nonce += 1 //Nonce在这里增加：防止一个区块中有多个相同用户的交易导致错误(不正规)
-	c.sys.blockChain.StateDB.UpdateAccState(acc.State)
-	tx := core.NewTransaction(acc, to, value)
+	c.sys.blockChain.StateDB.Noncelist[from] += 1 //本地记录nonce值
+	tx := core.NewTransaction(from, to, value, c.sys.blockChain.StateDB.Noncelist[from])
 	signtx, err := acc.SignTx(tx)
 	data, err := rlp.EncodeToBytes(signtx)
 	if err != nil {

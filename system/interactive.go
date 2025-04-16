@@ -110,6 +110,10 @@ func (c *Commander) Run() {
 				continue
 			}
 			c.handleTx2(parts[1], parts[2], value)
+		case "printp":
+			c.sys.blockChain.TxPool.PrintPending()
+		case "printq":
+			c.sys.blockChain.TxPool.PrintQueued()
 		case "printlatest":
 			c.sys.blockChain.PrintLatest()
 		case "printall":
@@ -201,9 +205,8 @@ func (c *Commander) handleTx(from, to string, value uint64) {
 		fmt.Println("错误: 付款账户余额不足")
 		return
 	}
-	acc.State.Nonce += 1 //Nonce在这里增加：防止一个区块中有多个相同用户的交易导致错误
-	c.sys.blockChain.StateDB.UpdateAccState(acc.State)
-	tx := core.NewTransaction(acc, to, value)
+	c.sys.blockChain.StateDB.Noncelist[from] += 1 //本地记录nonce值
+	tx := core.NewTransaction(from, to, value, c.sys.blockChain.StateDB.Noncelist[from])
 	signtx, err := acc.SignTx(tx)
 	data, err := rlp.EncodeToBytes(signtx)
 	if err != nil {
@@ -233,9 +236,8 @@ func (c *Commander) handleTx2(from, to string, value uint64) {
 		fmt.Println("错误: 付款账户余额不足")
 		return
 	}
-	acc.State.Nonce += 2 //Nonce在这里增加：防止一个区块中有多个相同用户的交易导致错误
-	c.sys.blockChain.StateDB.UpdateAccState(acc.State)
-	tx := core.NewTransaction(acc, to, value)
+	c.sys.blockChain.StateDB.Noncelist[from] += 2 //本地记录nonce值
+	tx := core.NewTransaction(from, to, value, c.sys.blockChain.StateDB.Noncelist[from])
 	signtx, err := acc.SignTx(tx)
 	data, err := rlp.EncodeToBytes(signtx)
 	if err != nil {

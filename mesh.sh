@@ -29,6 +29,8 @@ for ((i=1; i<=NODE_COUNT; i++)); do
     # 启动当前节点
     tmux new-session -d -s "node${i}" "go run main.go --db $NODE_DB --listen $NODE_LISTEN --consensus pow --nodekey $NODE_NODEKEY 2>&1 | tee $NODE_LOG"
 
+    # go run main.go --db ./block_storage/node1_data --listen /ip4/127.0.0.1/tcp/50001 --consensus pow --nodekey ./key_store/nodekey1 2>&1 | tee ./block_storage/node1.log
+
     # 确保节点启动完成
     sleep 3
 
