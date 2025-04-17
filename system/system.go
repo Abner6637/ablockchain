@@ -19,9 +19,26 @@ import (
 	dht "github.com/libp2p/go-libp2p-kad-dht"
 	"github.com/libp2p/go-libp2p/core/host"
 	"github.com/libp2p/go-libp2p/core/network"
-	"github.com/libp2p/go-libp2p/core/peerstore"
+	"github.com/libp2p/go-libp2p/core/peer"
+	"github.com/multiformats/go-multiaddr"
 	"github.com/multiformats/go-multihash"
 )
+
+// Add this struct and method
+// Add this struct and methods at the top level of system.go
+type BlankValidator struct{}
+
+func (v BlankValidator) Validate(_ string, _ []byte) error {
+	return nil
+}
+
+// Add the required Select method to implement the full interface
+func (v BlankValidator) Select(_ string, vals [][]byte) (int, error) {
+	if len(vals) == 0 {
+		return 0, fmt.Errorf("no values to select from")
+	}
+	return 0, nil
+}
 
 type System struct {
 	p2pNode    *p2p.Node
@@ -107,41 +124,75 @@ func StartListen(cfg *cli.Config) *p2p.Node {
 	fmt.Printf("节点已启动 ID: %s\n", node.ID)
 	fmt.Printf("监听地址: %v\n", node.Host.Addrs())
 
-	// TODO: DHT cannot work; need to check
-	/*
-		if cfg.IsBoot == "true" {
-			kad, _ := dht.New(context.Background(), node.Host, dht.Mode(dht.ModeServer))
-			_ = kad.Bootstrap(context.Background())
-			RegisterMyselfInDHT(kad)
-			log.Printf("bootnode启动DHT")
+	// 自身bootnode时
+	if cfg.IsBoot == "true" {
+		dhtOpts := []dht.Option{
+			dht.Mode(dht.ModeServer),
+			dht.ProtocolPrefix("/ablockchain"),
+			dht.Validator(BlankValidator{}),
+		}
+		kad, err := dht.New(context.Background(), node.Host, dhtOpts...)
+		if err != nil {
+			log.Printf("Failed to create DHT: %v", err)
+			return node
 		}
 
-		if cfg.BootNode != "" && cfg.IsBoot == "false" {
-			ctx := context.Background()
-			log.Printf("bootnode addr:%s", cfg.BootNode)
-			bootAddr, err := multiaddr.NewMultiaddr(cfg.BootNode)
-			if err != nil {
-				log.Printf("failed to parse peer address: %v", err)
-			}
-			bootInfo, err := peer.AddrInfoFromP2pAddr(bootAddr)
-			if err != nil {
-				log.Printf("failed to extract peer info: %v", err)
-			}
-			if err := node.Host.Connect(ctx, *bootInfo); err != nil {
-				log.Printf("无法连接bootnode：%v", err)
-			}
-			log.Printf("连接bootnode")
-			kad, _ := dht.New(ctx, node.Host)
-			_ = kad.Bootstrap(ctx)
-			RegisterMyselfInDHT(kad)
-			log.Printf("启动DHT")
-
-			log.Printf("start a discovery")
-			go DiscoverAndConnectToOthers(kad, node.Host)
-			go StartAutoDiscovery(ctx, kad, node.Host, time.Duration(15*time.Second))
+		if err := kad.Bootstrap(context.Background()); err != nil {
+			log.Printf("Failed to bootstrap DHT: %v", err)
 		}
-	*/
 
+		RegisterMyselfInDHT(kad)
+		log.Printf("启动Bootnode DHT")
+	}
+
+	// 自身非bootnode，且需要连接bootnode时，说明开启了DHT连接
+	if cfg.BootNode != "" && cfg.IsBoot == "false" {
+		ctx := context.Background()
+
+		// 先连接bootnode
+		bootAddr, err := multiaddr.NewMultiaddr(cfg.BootNode)
+		if err != nil {
+			log.Printf("Failed to parse bootnode address: %v", err)
+			return node
+		}
+
+		bootInfo, err := peer.AddrInfoFromP2pAddr(bootAddr)
+		if err != nil {
+			log.Printf("Failed to extract bootnode info: %v", err)
+			return node
+		}
+
+		log.Printf("开始连接bootnode %s...", bootInfo.ID)
+		if err := node.Host.Connect(ctx, *bootInfo); err != nil {
+			log.Printf("Failed to connect to bootnode: %v", err)
+			return node
+		}
+
+		// 初始化 DHT
+		dhtOpts := []dht.Option{
+			dht.Mode(dht.ModeAuto),
+			dht.BootstrapPeers(*bootInfo),
+			dht.ProtocolPrefix("/ablockchain"),
+			dht.Validator(BlankValidator{}),
+		}
+
+		kad, err := dht.New(ctx, node.Host, dhtOpts...)
+		if err != nil {
+			log.Printf("Failed to create DHT: %v", err)
+			return node
+		}
+
+		log.Printf("Bootstrapping DHT...")
+		if err := kad.Bootstrap(ctx); err != nil {
+			log.Printf("Failed to bootstrap DHT: %v", err)
+		}
+
+		// 开始 discovery
+		/* 		DiscoverAndConnectToOthers(kad, node.Host)
+		   		RegisterMyselfInDHT(kad)
+		   		DiscoverAndConnectToOthers(kad, node.Host) */
+		go StartAutoDiscovery(ctx, kad, node.Host)
+	}
 	return node
 }
 
@@ -207,43 +258,148 @@ func startIPCServer(sys *System) {
 }
 
 func RegisterMyselfInDHT(kad *dht.IpfsDHT) {
-	content := []byte("libp2p-group")
+	content := []byte("ablockchain-network")
 	hash, _ := multihash.Sum(content, multihash.SHA2_256, -1)
-	cid := cid.NewCidV1(cid.Raw, hash)
-	kad.Provide(context.Background(), cid, true)
+	c := cid.NewCidV1(cid.Raw, hash)
+
+	ctx := context.Background()
+	if err := kad.Provide(ctx, c, true); err != nil {
+		log.Printf("Failed to register in DHT: %v", err)
+		return
+	}
+	log.Printf("成功注册 DHT")
 }
 
 func DiscoverAndConnectToOthers(kad *dht.IpfsDHT, h host.Host) {
-	content := []byte("libp2p-group")
+	ctx := context.Background()
+	content := []byte("ablockchain-network")
 	hash, _ := multihash.Sum(content, multihash.SHA2_256, -1)
-	cid := cid.NewCidV1(cid.Raw, hash)
-	peers := kad.FindProvidersAsync(context.Background(), cid, 50)
-	for p := range peers {
-		if p.ID == h.ID() {
+	c := cid.NewCidV1(cid.Raw, hash)
+
+	log.Printf("Starting peer discovery process...")
+
+	// 通过provider查找连接peer
+	peerChan := kad.FindProvidersAsync(ctx, c, 20)
+	for peer := range peerChan {
+		log.Printf("Found provider peer: %s", peer.ID)
+		if peer.ID == h.ID() {
 			continue
 		}
-		h.Peerstore().AddAddrs(p.ID, p.Addrs, peerstore.TempAddrTTL)
-		if h.Network().Connectedness(p.ID) != network.Connected {
-			fmt.Println("Connecting to discovered peer:", p.ID)
-			if err := h.Connect(context.Background(), p); err != nil {
-				fmt.Println("Connect failed:", err)
+		tryConnect(ctx, h, peer)
+	}
+
+	/* // Second try: Query all peers in routing table
+	log.Printf("Querying routing table...")
+	for _, p := range kad.RoutingTable().ListPeers() {
+		log.Printf("Found routing table peer: %s", p)
+		if p == h.ID() {
+			continue
+		}
+
+		// Get peer info from peerstore
+		addrs := h.Peerstore().Addrs(p)
+		if len(addrs) == 0 {
+			log.Printf("No addresses found for peer %s", p)
+			continue
+		}
+
+		peerInfo := peer.AddrInfo{
+			ID:    p,
+			Addrs: addrs,
+		}
+		tryConnect(ctx, h, peerInfo)
+	}
+
+	// Third try: Find closest peers
+	log.Printf("Finding closest peers...")
+	if peers, err := kad.GetClosestPeers(ctx, "/ablockchain"); err == nil {
+		for _, p := range peers {
+			log.Printf("Found closest peer: %s", p)
+			if p == h.ID() {
+				continue
+			}
+			peerInfo := h.Peerstore().PeerInfo(p)
+			tryConnect(ctx, h, peerInfo)
+		}
+	} */
+}
+
+func tryConnect(ctx context.Context, h host.Host, pi peer.AddrInfo) {
+	if h.Network().Connectedness(pi.ID) == network.Connected {
+		log.Printf("Already connected to peer: %s", pi.ID)
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+
+	log.Printf("Attempting to connect to peer %s with addresses: %v", pi.ID, pi.Addrs)
+	if err := h.Connect(ctx, pi); err != nil {
+		log.Printf("Failed to connect to peer %s: %v", pi.ID, err)
+		return
+	}
+	log.Printf("Successfully connected to peer: %s", pi.ID)
+}
+
+func StartAutoDiscovery(ctx context.Context, kad *dht.IpfsDHT, h host.Host) {
+	shortInterval := 2 * time.Second
+	longInterval := 1 * time.Minute
+	firstInterval := 0 * time.Second
+
+	// 第一个周期，立即执行
+	select {
+	case <-ctx.Done():
+		return
+	case <-time.After(firstInterval):
+		log.Printf("=== [Quick Startup] Discovery round 1 ===")
+		RegisterMyselfInDHT(kad)
+		DiscoverAndConnectToOthers(kad, h)
+	}
+	// 第二、三个周期，隔2秒运行
+	for i := 0; i < 2; i++ {
+		select {
+		case <-ctx.Done():
+			return
+		case <-time.After(shortInterval):
+			log.Printf("=== [Quick Startup] Discovery round %d ===", i+1)
+			RegisterMyselfInDHT(kad)
+			DiscoverAndConnectToOthers(kad, h)
+
+			// 打印连接节点
+			peers := h.Network().Peers()
+			log.Printf("=== Connected peers: %d ===", len(peers))
+			for _, p := range peers {
+				conns := h.Network().ConnsToPeer(p)
+				for _, conn := range conns {
+					log.Printf("  - %s via %s", p, conn.RemoteMultiaddr())
+				}
 			}
 		}
 	}
-}
 
-func StartAutoDiscovery(ctx context.Context, kad *dht.IpfsDHT, h host.Host, interval time.Duration) {
-	ticker := time.NewTicker(interval)
+	log.Printf("=== Switching to long-term discovery (every 1 min) ===")
+	// 后续周期：每隔 1 分钟运行一次
+	ticker := time.NewTicker(longInterval)
 	defer ticker.Stop()
 
 	for {
 		select {
 		case <-ctx.Done():
-			fmt.Println("🔌 AutoDiscovery stopped.")
 			return
 		case <-ticker.C:
-			log.Printf("start a discovery")
+			log.Printf("=== Periodic Discovery ===")
+			RegisterMyselfInDHT(kad)
 			DiscoverAndConnectToOthers(kad, h)
+
+			// 打印连接节点
+			peers := h.Network().Peers()
+			log.Printf("=== Connected peers: %d ===", len(peers))
+			for _, p := range peers {
+				conns := h.Network().ConnsToPeer(p)
+				for _, conn := range conns {
+					log.Printf("  - %s via %s", p, conn.RemoteMultiaddr())
+				}
+			}
 		}
 	}
 }
