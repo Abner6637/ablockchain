@@ -28,6 +28,8 @@ type Blockchain struct {
 	CurrentBlockHash []byte
 	CurBlockNum      *big.Int
 	NewBlockChan     chan *Block
+
+	Snapshot *Snapshot
 }
 
 // TODO: 区块链侧可能也需要加一个计时器，当某个区块共识一直没好时，重新把这个区块发给共识模块
@@ -161,7 +163,7 @@ func (bc *Blockchain) mineNewBlock(miner string) (*Block, error) {
 	merkleroot := CalculateMerkleRoot(txs)
 	if bytes.Equal(merkleroot, bc.GetLatestMR()) {
 		bc.TxPool.ClearPackedTxs(txs)
-		fmt.Println("打包的区块已上链\n")
+		fmt.Printf("打包的区块已上链\n")
 		return nil, fmt.Errorf("重复区块")
 	}
 

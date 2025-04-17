@@ -107,6 +107,7 @@ func StartListen(cfg *cli.Config) *p2p.Node {
 	fmt.Printf("节点已启动 ID: %s\n", node.ID)
 	fmt.Printf("监听地址: %v\n", node.Host.Addrs())
 
+	// TODO: DHT cannot work; need to check
 	/*
 		if cfg.IsBoot == "true" {
 			kad, _ := dht.New(context.Background(), node.Host, dht.Mode(dht.ModeServer))

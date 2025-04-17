@@ -13,6 +13,7 @@ const (
 	TransactionMessage = iota
 	BlockMessage
 	ConsensusMessage
+	SnapshotMessage
 )
 
 // 消息结构体

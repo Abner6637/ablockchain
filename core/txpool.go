@@ -20,6 +20,14 @@ func NewTxPool() *TxPool {
 	return pool
 }
 
+func (tp *TxPool) Clear() {
+	tp.lock.Lock()
+	defer tp.lock.Unlock()
+
+	tp.Pending = make([]*Transaction, 0)
+	tp.Queued = make([]*Transaction, 0)
+}
+
 // 添加交易：Pending 或 Queued
 func (tp *TxPool) AddPending(tx *Transaction) {
 	tp.lock.Lock()
@@ -88,7 +96,7 @@ func (tp *TxPool) GetQueuedTxs() []*Transaction {
 func (tp *TxPool) PrintPending() {
 	tp.lock.Lock()
 	defer tp.lock.Unlock()
-	fmt.Println("Pending:\n")
+	fmt.Printf("Pending:\n")
 	for _, tx := range tp.Pending {
 		tx.PrintTransaction()
 	}
@@ -97,7 +105,7 @@ func (tp *TxPool) PrintPending() {
 func (tp *TxPool) PrintQueued() {
 	tp.lock.Lock()
 	defer tp.lock.Unlock()
-	fmt.Println("Queued:\n")
+	fmt.Printf("Queued:\n")
 	for _, tx := range tp.Queued {
 		tx.PrintTransaction()
 	}
