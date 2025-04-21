@@ -14,6 +14,7 @@ const (
 	BlockMessage
 	ConsensusMessage
 	SnapshotMessage
+	HelloMessage
 )
 
 // 消息结构体
@@ -50,7 +51,7 @@ func DecodeMessage(data []byte) (*Message, error) {
 }
 
 // 分类处理消息
-func ProcessMessage(msg *Message) {
+func ProcessMessage(msg *Message, peerid string) {
 	switch msg.Type {
 	case TransactionMessage:
 		fmt.Println("处理交易消息...")
@@ -78,6 +79,15 @@ func ProcessMessage(msg *Message) {
 		*/
 		log.Printf("p2p发布MessageEvent事件")
 		event.Bus.Publish("MessageEvent", msg.Data)
+	case HelloMessage:
+		log.Printf("p2p收到的消息类型为Hello消息...")
+		var info EthPeerInfo
+		rlp.DecodeBytes(msg.Data, &info)
+		if info.PeerID == peerid { // 只处理发送者的ID和Hello消息中的ID相匹配的消息
+			log.Printf("p2p接收到的Hello消息，EthAddr：%s，PeerID：%s", info.EthAddr, info.PeerID)
+			log.Printf("p2p发布HelloEvent事件")
+			event.Bus.Publish("HelloEvent", info)
+		}
 	default:
 		fmt.Println("未知消息类型")
 	}

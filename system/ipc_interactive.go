@@ -252,7 +252,7 @@ func (c *IPCCommander) handleTx(from, to string, value uint64) {
 
 // 暂未使用
 func (c *IPCCommander) printIncomingMessages() {
-	c.sys.p2pNode.SetMessageHandler(func(msg string) {
+	c.sys.p2pNode.SetMessageHandler(func(msg string, id string) {
 		fmt.Printf("\n[新消息] %s\n> ", msg) // 保持输入提示符
 	})
 }

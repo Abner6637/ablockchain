@@ -24,8 +24,6 @@ import (
 	"github.com/multiformats/go-multihash"
 )
 
-// Add this struct and method
-// Add this struct and methods at the top level of system.go
 type BlankValidator struct{}
 
 func (v BlankValidator) Validate(_ string, _ []byte) error {
@@ -66,6 +64,8 @@ func StartSystem(cfg *cli.Config) *System {
 	} else {
 		log.Printf("peer address length: 0")
 	}
+
+	go sys.p2pNode.PeriodHelloBroadcast() // 定时发送Hello消息
 
 	// // 初始化账户管理和账户
 	// accountManager := core.NewAccountManager()

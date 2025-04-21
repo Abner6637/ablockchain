@@ -20,6 +20,7 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/libp2p/go-libp2p/core/peer"
 	"gopkg.in/karalabe/cookiejar.v2/collections/prque"
 )
 
@@ -28,6 +29,7 @@ type Core struct {
 
 	privateKey *ecdsa.PrivateKey
 	address    []byte
+	addrToID   map[string]string // 地址到peerID的映射
 
 	consensusState *consensusState
 
@@ -39,6 +41,7 @@ type Core struct {
 
 	events       []event.EventSubscription
 	timeoutEvent event.EventSubscription
+	helloEvent   event.EventSubscription
 
 	Primary []byte // 主节点采用Valset经过sort后的顺序；如，view 0的时候，主节点为ValSet[0]; view 1的时候，主节点为ValSet[1]
 	ValSet  []string
@@ -79,6 +82,7 @@ func NewCore(cfg *cli.Config, p2pNode *p2p.Node) *Core {
 		state:             pbfttypes.StateAcceptRequest,
 		privateKey:        p2pNode.PrivateKey,
 		address:           crypto.PubkeyToAddress(p2pNode.PrivateKey.PublicKey).Bytes(),
+		addrToID:          make(map[string]string),
 		ByzantineSize:     (cfg.ConsensusNum - 1) / 3,
 		NodeSize:          cfg.ConsensusNum,
 		pendingRequests:   prque.New(),
@@ -165,6 +169,42 @@ func (c *Core) Broadcast(msg *pbfttypes.Message) error {
 	}
 
 	return nil
+}
+
+func (c *Core) Unicast(msg *pbfttypes.Message, address string) error {
+	payload, err := msg.EncodeMessage()
+	if err != nil {
+		return err
+	}
+
+	p2pMsg := &p2p.Message{
+		Type: p2p.ConsensusMessage,
+		Data: payload,
+	}
+	encodedP2PMsg, err := p2pMsg.Encode()
+	if err != nil {
+		return err
+	}
+
+	if c.p2pNode != nil {
+		if id, ok := c.addrToID[address]; ok {
+			// 将string形式的id解码为peerID格式（string就是用base58编码的peerID）
+			peerID, err := peer.Decode(id)
+			if err != nil {
+				log.Printf("peerID转换失败: %v", err)
+				return err
+			}
+			c.p2pNode.SendMessage(peerID, string(encodedP2PMsg))
+		} else {
+			log.Printf("找不到地址 %s 对应的P2PID", address)
+			return errors.New("地址不在共识节点列表中")
+		}
+	} else {
+		return errors.New("不存在共识模块对应的p2pNode!")
+	}
+
+	return nil
+
 }
 
 func (c *Core) IsPrimary() bool {

@@ -7,7 +7,9 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"time"
 
+	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/libp2p/go-libp2p"
 
 	"github.com/libp2p/go-libp2p/core/host"
@@ -18,8 +20,8 @@ import (
 
 type Node struct {
 	Host           host.Host
-	ID             string       // 当前节点的ID
-	MessageHandler func(string) // 消息接收回调
+	ID             string               // 当前节点的ID
+	MessageHandler func(string, string) // 消息接收回调
 
 	PrivateKey *ecdsa.PrivateKey
 }
@@ -53,14 +55,14 @@ func NewNode(listenAddress string, privateKey *ecdsa.PrivateKey, libPriv crypto.
 
 	// handleStream中消息回调时，触发MessageHandler，处理消息
 	// TODO：p2p层处理消息时是否需要另外建立一个进程？
-	n.SetMessageHandler(func(msg string) {
+	n.SetMessageHandler(func(msg string, id string) {
 		// fmt.Printf("\np2p处理[消息] %s\n> ", msg)
 		decodedMsg, err := DecodeMessage([]byte(msg))
 		if err != nil {
 			fmt.Printf("RLP解码失败\n")
 			return
 		}
-		ProcessMessage(decodedMsg)
+		ProcessMessage(decodedMsg, id)
 		// log.Println("p2p处理消息完毕")
 	})
 
@@ -69,7 +71,7 @@ func NewNode(listenAddress string, privateKey *ecdsa.PrivateKey, libPriv crypto.
 }
 
 // 设置消息处理器
-func (n *Node) SetMessageHandler(handler func(string)) {
+func (n *Node) SetMessageHandler(handler func(string, string)) {
 	n.MessageHandler = handler
 }
 
@@ -97,7 +99,7 @@ func (n *Node) handleStream(stream network.Stream) {
 
 	// 触发消息回调
 	if n.MessageHandler != nil {
-		n.MessageHandler(msg)
+		n.MessageHandler(msg, peerID.String())
 	}
 }
 
@@ -172,4 +174,62 @@ func (n *Node) PrintPeers() {
 	for _, peerID := range peers {
 		fmt.Println("- ", peerID)
 	}
+}
+
+type EthPeerInfo struct {
+	EthAddr string
+	PeerID  string
+}
+
+func (n *Node) getEthPeerInfo() *EthPeerInfo {
+	// 获取当前节点的以太坊地址
+	ethAddr := string(crypto.PubkeyToAddress(n.PrivateKey.PublicKey).Bytes())
+
+	// 返回当前节点的以太坊地址和ID
+	return &EthPeerInfo{
+		EthAddr: ethAddr,
+		PeerID:  n.ID,
+	}
+}
+
+func (n *Node) HelloBroadcast() {
+	// 广播Hello消息
+	ethPeerInfo := n.getEthPeerInfo()
+	encodedInfo, _ := rlp.EncodeToBytes(ethPeerInfo)
+
+	p2pMsg := &Message{
+		Type: HelloMessage,
+		Data: encodedInfo,
+	}
+	encodedP2PMsg, _ := p2pMsg.Encode()
+	n.BroadcastMessage(string(encodedP2PMsg))
+	log.Printf("=== Hello消息已广播 ===")
+}
+
+func (n *Node) PeriodHelloBroadcast() {
+	// 定时发送Hello消息
+
+	shortInterval := 5 * time.Second
+	longInterval := 2 * time.Minute
+
+	// 第一个周期，立即执行
+	select {
+	case <-time.After(shortInterval):
+		log.Printf("=== 第一次广播Hello消息 ===")
+		n.HelloBroadcast()
+	}
+
+	log.Printf("=== Switching to long-term Hello Broadcast Mechanism (every 2 min) ===")
+	// 后续周期：每隔 1 分钟运行一次
+	ticker := time.NewTicker(longInterval)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ticker.C:
+			log.Printf("=== Hello Broadcast Mechanism (Period) ===")
+			n.HelloBroadcast()
+		}
+	}
+
 }

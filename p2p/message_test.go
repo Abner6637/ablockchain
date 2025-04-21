@@ -60,7 +60,9 @@ func TestProcessMessageTransaction(t *testing.T) {
 	}
 	msg := NewMessage(TransactionMessage, data)
 
-	ProcessMessage(msg)
+	str := ""
+
+	ProcessMessage(msg, str)
 }
 
 // 区块
@@ -73,19 +75,25 @@ func TestProcessMessageBlock(t *testing.T) {
 	}
 	msg := NewMessage(BlockMessage, data)
 
-	ProcessMessage(msg)
+	str := ""
+
+	ProcessMessage(msg, str)
 }
 
 // 共识
 func TestProcessMessageConsensus(t *testing.T) {
 	msg := NewMessage(ConsensusMessage, []byte("Test consensus"))
 
-	ProcessMessage(msg)
+	str := ""
+
+	ProcessMessage(msg, str)
 }
 
 func TestProcessMessageUnknown(t *testing.T) {
 	// 创建一个未知类型的消息
 	msg := NewMessage(999, []byte("Test unknown"))
 
-	ProcessMessage(msg)
+	str := ""
+
+	ProcessMessage(msg, str)
 }

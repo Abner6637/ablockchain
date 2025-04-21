@@ -119,7 +119,7 @@ func TestMessageExchange(t *testing.T) {
 
 	// 设置消息接收验证
 	received := make(chan string)
-	nodeB.SetMessageHandler(func(msg string) {
+	nodeB.SetMessageHandler(func(msg string, id string) {
 		received <- msg
 	})
 
@@ -159,12 +159,12 @@ func TestBroadcast(t *testing.T) {
 
 	// 设置消息接收验证
 	receivedB := make(chan string)
-	nodeB.SetMessageHandler(func(msgB string) {
+	nodeB.SetMessageHandler(func(msgB string, id string) {
 		receivedB <- msgB
 	})
 
 	receivedC := make(chan string)
-	nodeC.SetMessageHandler(func(msgC string) {
+	nodeC.SetMessageHandler(func(msgC string, id string) {
 		receivedC <- msgC
 	})
 
