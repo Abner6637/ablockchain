@@ -87,7 +87,7 @@ func (bc *Blockchain) SyncSnapshot(snap *Snapshot) error {
 	return nil
 }
 
-func (bc *Blockchain) PrintSnapshot(snap *Snapshot) {
+func (snap *Snapshot) PrintSnapshot() {
 	if snap == nil {
 		log.Println("Snapshot is nil")
 		return

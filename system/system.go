@@ -98,7 +98,8 @@ func StartSystem(cfg *cli.Config) *System {
 	// 对于PBFT算法，非主节点应该不需要开启挖矿进程？
 	// 但其实正常开启没有问题。只要其他节点不接受来自非主节点的区块就可以了
 	// bc.StartMiner("")     // 异步进程，开启判断是否要打包交易生成区块
-	ListenNewBlocks(bc) // 异步进程，监听是否有新区块生成，若有则处理
+	ListenNewBlocks(bc)  // 异步进程，监听是否有新区块生成，若有则处理
+	ListenSnapshot(&sys) // 异步进程，监听是否有状态同步消息
 
 	if cfg.IfBackend {
 		log.Printf("开启IPC Server")
@@ -225,6 +226,60 @@ func ListenNewBlocks(bc *core.Blockchain) {
 				// 	}
 				// 	fmt.Println("\n##广播新交易##")
 				// 	handlePublishTx(txBytes)
+			}
+		}
+	}()
+}
+
+func ListenSnapshot(sys *System) {
+	getSnapshotMessage := event.Bus.Subscribe("GetSnapshotMessage")
+	snapshotMessage := event.Bus.Subscribe("SnapshotMessage")
+
+	go func() {
+		for {
+			select {
+			case msg := <-getSnapshotMessage:
+				pid, ok := msg.(string)
+				if !ok {
+					log.Fatal("转换失败: 事件数据不是 string")
+					continue
+				}
+				fmt.Printf("\n收到GetSnapshotMessage, pid: %s", pid)
+				encodedSnapshot, err := sys.blockChain.Snapshot.EncodeSnapshot()
+				if err != nil {
+					log.Fatal("快照编码失败:sys.blockChain.Snapshot.EncodeSnapshot()")
+				}
+				p2pMsg := &p2p.Message{
+					Type: p2p.SnapshotMessage,
+					Data: encodedSnapshot,
+				}
+				encodedP2PMsg, err := p2pMsg.Encode()
+				if err != nil {
+					log.Fatal("消息编码失败:encodedP2PMsg, err := p2pMsg.Encode()")
+				}
+				peerID, err := peer.Decode(pid)
+				if err != nil {
+					log.Fatal(err)
+				}
+				sys.p2pNode.SendMessage(peerID, string(encodedP2PMsg))
+
+			case msg := <-snapshotMessage:
+				snap, ok := msg.(*core.Snapshot)
+				if !ok {
+					log.Fatal("转换失败: 事件数据不是 snapshot")
+					continue
+				}
+				fmt.Println("\n收到SnapshotMessage:")
+				snap.PrintSnapshot()
+				switch sys.blockChain.CurBlockNum.Cmp(snap.Number) {
+				case -1: // 区块数量落后，请求最新区块
+					fmt.Println("a < b")
+				case 0: // 等高，验证hash和root（是否分叉）
+
+				case 1: // 区块数量领先
+
+				}
+
 			}
 		}
 	}()

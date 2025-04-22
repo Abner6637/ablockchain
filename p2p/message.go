@@ -14,6 +14,7 @@ const (
 	BlockMessage
 	ConsensusMessage
 	SnapshotMessage
+	GetSnapshotMessage // peer节点请求状态快照信息
 )
 
 // 消息结构体
@@ -78,6 +79,24 @@ func ProcessMessage(msg *Message) {
 		*/
 		log.Printf("p2p发布MessageEvent事件")
 		event.Bus.Publish("MessageEvent", msg.Data)
+
+	case GetSnapshotMessage:
+		fmt.Println("GetSnapshotMessage...")
+		var addr string
+		err := rlp.DecodeBytes(msg.Data, addr)
+		if err != nil {
+			log.Fatal("Failed to decode RLP data:", err)
+		}
+		event.Bus.Publish("GetSnapshotMessage", addr)
+
+	case SnapshotMessage:
+		fmt.Println("SnapshotMessage...")
+		snp, err := core.DecodeSnapshot(msg.Data)
+		if err != nil {
+			fmt.Printf("快照解码失败: %v\n", err)
+		}
+		event.Bus.Publish("SnapshotMessage", snp)
+
 	default:
 		fmt.Println("未知消息类型")
 	}
