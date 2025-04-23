@@ -5,6 +5,7 @@ import (
 	pbfttypes "ablockchain/consensus/bft/pbft/types"
 	"ablockchain/core"
 	"ablockchain/event"
+	"ablockchain/p2p"
 	"errors"
 	"fmt"
 	"log"
@@ -42,6 +43,11 @@ func (c *Core) SubcribeEvents() {
 		Name:    "TimeoutEvent",
 		Channel: event.Bus.Subscribe("TimeoutEvent"),
 	}
+
+	c.helloEvent = event.EventSubscription{
+		Name:    "HelloEvent",
+		Channel: event.Bus.Subscribe("HelloEvent"),
+	}
 }
 
 func (c *Core) UnSubcribeEvents() {
@@ -72,6 +78,12 @@ func (c *Core) HandleEvents() {
 		Chan: reflect.ValueOf(c.timeoutEvent.Channel),
 	})
 	eventNames = append(eventNames, c.timeoutEvent.Name)
+
+	cases = append(cases, reflect.SelectCase{
+		Dir:  reflect.SelectRecv,
+		Chan: reflect.ValueOf(c.helloEvent.Channel),
+	})
+	eventNames = append(eventNames, c.helloEvent.Name)
 
 	for {
 		// 阻塞监听事件
@@ -135,6 +147,11 @@ func (c *Core) HandleEvents() {
 		case "TimeoutEvent":
 			log.Printf("consensus检测到TimeoutEvent事件")
 			c.SendViewChange(new(big.Int).Add(c.consensusState.getView(), big.NewInt(1)))
+		case "HelloEvent":
+			log.Printf("consensus检测到HelloEvent事件")
+			if info, ok := eventData.(p2p.EthPeerInfo); ok {
+				c.addrToID[info.EthAddr] = info.PeerID
+			}
 		default:
 			log.Printf("consensus未知事件类型: %s", eventNames[chosen])
 		}
