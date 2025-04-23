@@ -8,9 +8,9 @@ import (
 	"fmt"
 	"log"
 	"math/big"
-
-	"github.com/ethereum/go-ethereum/rlp"
 )
+
+// 同步函数在p2p/node.go中 func (node *Node) Synchronization(addr string)
 
 func ListenSynchronization(sys *System) {
 	getSnapshotMessage := event.Bus.Subscribe("GetSnapshotMessage")
@@ -129,31 +129,4 @@ func (sys *System) isValidBlock(block *core.Block) bool {
 		return false
 	}
 	return true
-}
-
-func (c *Commander) handleSyc(addr string) {
-	if len(c.sys.p2pNode.Peers()) < 1 {
-		fmt.Println("错误: 未连接任何节点")
-		return
-	}
-	encodedGetSnapshotmsg, err := rlp.EncodeToBytes(c.sys.p2pNode.ID)
-	if err != nil {
-		log.Fatal("RLP encoding failed:", err)
-		return
-	}
-	// 发送给第一个连接的节点（实际应用可扩展选择机制）
-	targetPeer := c.sys.p2pNode.Peers()[0]
-	p2pMsg := &p2p.Message{
-		Type: p2p.GetSnapshotMessage,
-		Data: encodedGetSnapshotmsg,
-	}
-	encodedMsg, err := p2pMsg.Encode()
-	if err != nil {
-		fmt.Errorf("消息编码失败: %w", err)
-		return
-	}
-	if err := c.sys.p2pNode.SendMessage(targetPeer, string(encodedMsg)); err != nil {
-		fmt.Errorf("发送消息失败: %w", err)
-		return
-	}
 }

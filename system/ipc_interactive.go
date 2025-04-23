@@ -139,6 +139,12 @@ func (c *IPCCommander) executeCommand(cmd string) {
 		c.sys.consensus.Start()
 	case "stopcons":
 		c.sys.consensus.Stop()
+	case "syc":
+		if len(parts) < 2 {
+			fmt.Println("用法: syc <addr>")
+			return
+		}
+		c.sys.p2pNode.Synchronization(parts[1])
 	case "testmine":
 		if len(parts) < 2 {
 			c.output.Write([]byte("用法: testmine <blockNumber>\n"))
@@ -267,6 +273,7 @@ func (c *IPCCommander) printHelp() {
   newacc               - 创建新账户
   accls                - 打印账户列表
   tx <From(adress)> <To(adress)> <Value> -发送交易
+  syc <addr>           - 同步
   printlatest          - 打印最新区块
   printall             - 打印所有区块
   height               - 总区块数

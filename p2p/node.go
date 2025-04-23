@@ -8,6 +8,7 @@ import (
 	"io"
 	"log"
 
+	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/libp2p/go-libp2p"
 
 	"github.com/libp2p/go-libp2p/core/host"
@@ -195,5 +196,37 @@ func (n *Node) PrintPeers() {
 	fmt.Println("当前连接的对等节点:")
 	for _, peerID := range peers {
 		fmt.Println("- ", peerID)
+	}
+}
+
+func (node *Node) Synchronization(addr string) {
+	if len(node.Peers()) < 1 {
+		fmt.Println("错误: 未连接任何节点")
+		return
+	}
+	encodedGetSnapshotmsg, err := rlp.EncodeToBytes(node.ID)
+	if err != nil {
+		log.Fatal("RLP encoding failed:", err)
+		return
+	}
+	// 发送给第一个连接的节点（实际应用可扩展选择机制）
+	// targetPeer := sys.p2pNode.Peers()[0]
+	targetPeer, err := peer.Decode(addr)
+	if err != nil {
+		fmt.Errorf("Peer ID 解码失败: %w", err)
+		return
+	}
+	p2pMsg := &Message{
+		Type: GetSnapshotMessage,
+		Data: encodedGetSnapshotmsg,
+	}
+	encodedMsg, err := p2pMsg.Encode()
+	if err != nil {
+		fmt.Errorf("消息编码失败: %w", err)
+		return
+	}
+	if err := node.SendMessage(targetPeer, string(encodedMsg)); err != nil {
+		fmt.Errorf("发送消息失败: %w", err)
+		return
 	}
 }

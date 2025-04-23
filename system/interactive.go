@@ -118,7 +118,7 @@ func (c *Commander) Run() {
 				fmt.Println("用法: syc <addr>")
 				continue
 			}
-			c.handleSyc(parts[1])
+			c.sys.p2pNode.Synchronization(parts[1])
 		case "testmine":
 			if len(parts) < 2 {
 				fmt.Println("用法: testmine <blockNumber>")
@@ -242,6 +242,7 @@ func (c *Commander) printHelp() {
   newacc               - 创建新账户
   accls                - 打印账户列表
   tx <From(adress)> <To(adress)> <Value> -发送交易
+  syc <addr>           - 同步
   printlatest          - 打印最新区块
   printall             - 打印所有区块
   height               - 总区块数
