@@ -113,6 +113,12 @@ func (c *Commander) Run() {
 			c.sys.consensus.Start()
 		case "stopcons":
 			c.sys.consensus.Stop()
+		case "syc":
+			if len(parts) < 2 {
+				fmt.Println("用法: syc <addr>")
+				continue
+			}
+			c.handleSyc(parts[1])
 		case "testmine":
 			if len(parts) < 2 {
 				fmt.Println("用法: testmine <blockNumber>")

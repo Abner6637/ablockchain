@@ -15,6 +15,8 @@ const (
 	ConsensusMessage
 	SnapshotMessage
 	GetSnapshotMessage // peer节点请求状态快照信息
+	GetBlocksMessage
+	BlocksMessage
 )
 
 // 消息结构体
@@ -83,19 +85,36 @@ func ProcessMessage(msg *Message) {
 	case GetSnapshotMessage:
 		fmt.Println("GetSnapshotMessage...")
 		var addr string
-		err := rlp.DecodeBytes(msg.Data, addr)
+		err := rlp.DecodeBytes(msg.Data, &addr)
 		if err != nil {
 			log.Fatal("Failed to decode RLP data:", err)
 		}
+
 		event.Bus.Publish("GetSnapshotMessage", addr)
 
 	case SnapshotMessage:
 		fmt.Println("SnapshotMessage...")
-		snp, err := core.DecodeSnapshot(msg.Data)
+		snapmsg, err := core.DecodeSnapshotMessage(msg.Data)
 		if err != nil {
-			fmt.Printf("快照解码失败: %v\n", err)
+			fmt.Printf("解码失败: %v\n", err)
 		}
-		event.Bus.Publish("SnapshotMessage", snp)
+		event.Bus.Publish("SnapshotMessage", snapmsg)
+
+	case BlocksMessage:
+		fmt.Println("BlocksMessage...")
+		blkmsg, err := core.DecodeBlocksMessage(msg.Data)
+		if err != nil {
+			fmt.Printf("解码失败: %v\n", err)
+		}
+		event.Bus.Publish("BlocksMessage", blkmsg)
+
+	case GetBlocksMessage:
+		fmt.Println("GetBlocksMessage...")
+		gblkmsg, err := core.DecodeGetBlocksMessage(msg.Data)
+		if err != nil {
+			fmt.Printf("解码失败: %v\n", err)
+		}
+		event.Bus.Publish("GetBlocksMessage", gblkmsg)
 
 	default:
 		fmt.Println("未知消息类型")

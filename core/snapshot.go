@@ -39,13 +39,13 @@ func DecodeSnapshot(data []byte) (*Snapshot, error) {
 	return &s, nil
 }
 
-func (bc *Blockchain) CreateSnapshot() (*Snapshot, error) {
+func (bc *Blockchain) CreateSnapshot() *Snapshot {
 	snapshot := &Snapshot{
 		Number: new(big.Int).Set(bc.CurBlockNum),
 		Hash:   bc.CurrentBlockHash,
 		Root:   bc.StateRoot,
 	}
-	return snapshot, nil
+	return snapshot
 }
 
 // TODO：恢复到某个快照状态
@@ -98,16 +98,16 @@ func (snap *Snapshot) PrintSnapshot() {
 	fmt.Printf("State Root: %x\n", snap.Root)
 }
 
-type SnapshotMessage struct {
-	Type uint64
-	Data []byte
-}
+// type SnapshotMessage struct {
+// 	Type uint64
+// 	Data []byte
+// }
 
-// 解码SnapshotMessage.Data
-func (m *SnapshotMessage) Decode(val interface{}) error {
-	return rlp.DecodeBytes(m.Data, val)
-}
+// // 解码SnapshotMessage.Data
+// func (m *SnapshotMessage) Decode(val interface{}) error {
+// 	return rlp.DecodeBytes(m.Data, val)
+// }
 
-func Encode(val interface{}) ([]byte, error) {
-	return rlp.EncodeToBytes(val)
-}
+// func Encode(val interface{}) ([]byte, error) {
+// 	return rlp.EncodeToBytes(val)
+// }

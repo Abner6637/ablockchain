@@ -118,6 +118,30 @@ func (n *Node) SendMessage(peerID peer.ID, message string) error {
 	return nil
 }
 
+// 根据pid发送对应类型的消息
+func (node *Node) SendP2PMessage(pid string, msgType uint64, data []byte) error {
+	p2pMsg := &Message{
+		Type: msgType,
+		Data: data,
+	}
+
+	encodedMsg, err := p2pMsg.Encode()
+	if err != nil {
+		return fmt.Errorf("消息编码失败: %w", err)
+	}
+
+	peerID, err := peer.Decode(pid)
+	if err != nil {
+		return fmt.Errorf("Peer ID 解码失败: %w", err)
+	}
+
+	if err := node.SendMessage(peerID, string(encodedMsg)); err != nil {
+		return fmt.Errorf("发送消息失败: %w", err)
+	}
+
+	return nil
+}
+
 func (n *Node) ConnectToPeer(peerAddress string) error {
 	// 将string类型的地址转换为multiaddr类型
 	peerAddr, err := multiaddr.NewMultiaddr(peerAddress)

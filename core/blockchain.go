@@ -28,8 +28,6 @@ type Blockchain struct {
 	CurrentBlockHash []byte
 	CurBlockNum      *big.Int
 	NewBlockChan     chan *Block
-
-	Snapshot *Snapshot
 }
 
 // TODO: 区块链侧可能也需要加一个计时器，当某个区块共识一直没好时，重新把这个区块发给共识模块
@@ -180,13 +178,15 @@ func (bc *Blockchain) mineNewBlock(miner string) (*Block, error) {
 }
 
 func (bc *Blockchain) AddBlock(block *Block) {
-	str := fmt.Sprintf("%d", block.Header.Number)
+	str := fmt.Sprintf("%s", block.Header.Number)
 	fmt.Println(str)
 	block.PrintBlock()
 	bc.StateDB.ConfirmBlock(block) //修改账户状态MPT
 	bc.DB.Put(str, block)
 	bc.TxPool.ClearPackedTxs(block.Transactions)
 	fmt.Printf("上链，交易池：\n Pending: %d, Queued: %d\n", bc.TxPool.PendingSize(), bc.TxPool.QueuedSize())
+	bc.CurBlockNum = block.Header.Number
+	bc.CurrentBlockHash = block.Hash
 }
 
 // 返回上一个区块的默克尔根
@@ -286,4 +286,23 @@ func CalculateMerkleRoot(transactions []*Transaction) []byte {
 		txHashes = append(txHashes, tx.TxHash)
 	}
 	return crypto.ComputeMerkleRoot(txHashes)
+}
+
+// 读取编号从From到To的区块，返回列表
+func (bc *Blockchain) GetBlocksInRange(from, to *big.Int) ([]*Block, error) {
+	var blocks []*Block
+	one := big.NewInt(1)
+	i := new(big.Int).Set(from)
+
+	for i.Cmp(to) <= 0 {
+		key := i.String()
+		var value Block
+		err := bc.DB.Get(key, &value)
+		if err != nil {
+			return nil, fmt.Errorf("读取区块 %s 失败: %w", key, err)
+		}
+		blocks = append(blocks, &value)
+		i.Add(i, one)
+	}
+	return blocks, nil
 }
