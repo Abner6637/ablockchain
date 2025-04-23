@@ -3,7 +3,6 @@ package core
 import (
 	"ablockchain/crypto"
 	"bytes"
-	"encoding/binary"
 	"fmt"
 	"log"
 	"math/big"
@@ -36,16 +35,18 @@ func NewBlockHeader(parentHash []byte, dif uint64, num *big.Int, merkleroot []by
 
 // 计算区块头哈希
 func (bh *BlockHeader) BlockHash() []byte {
-	var buf bytes.Buffer
-
-	buf.Write(bh.ParentHash)
-	binary.Write(&buf, binary.BigEndian, bh.Time)
-	binary.Write(&buf, binary.BigEndian, bh.Difficulty)
-	binary.Write(&buf, binary.BigEndian, bh.Number)
-	buf.Write(bh.MerkleRoot)
-	binary.Write(&buf, binary.BigEndian, bh.Nonce)
-
-	hash := crypto.GlobalHashAlgorithm.Hash(buf.Bytes())
+	data := bytes.Join(
+		[][]byte{
+			bh.ParentHash,
+			bh.MerkleRoot,
+			[]byte(fmt.Sprintf("%v", bh.Time)),
+			[]byte(fmt.Sprintf("%d", bh.Difficulty)),
+			[]byte(fmt.Sprintf("%d", bh.Number)),
+			[]byte(fmt.Sprintf("%d", bh.Nonce)),
+		},
+		[]byte{},
+	)
+	hash := crypto.GlobalHashAlgorithm.Hash(data)
 	return hash
 }
 

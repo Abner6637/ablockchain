@@ -39,9 +39,9 @@ func ListenSynchronization(sys *System) {
 				sys.p2pNode.SendP2PMessage(pid, p2p.SnapshotMessage, encodedgetSnapshotsmsg)
 
 			case msg := <-snapshotMessage:
-				data, ok := msg.(core.SnapshotMessage)
+				data, ok := msg.(*core.SnapshotMessage)
 				if !ok {
-					log.Fatal("转换失败data, ok := msg.(map[string]any)")
+					log.Fatal("转换失败data, ok := msg.(core.SnapshotMessage)")
 					continue
 				}
 				fmt.Printf("\n收到SnapshotMessage, PeerID: %s", data.PeerID)
@@ -71,7 +71,7 @@ func ListenSynchronization(sys *System) {
 				}
 
 			case msg := <-getBlocksMessage:
-				data, ok := msg.(core.GetBlocksMessage)
+				data, ok := msg.(*core.GetBlocksMessage)
 				if !ok {
 					log.Fatal("转换失败")
 					continue
@@ -94,7 +94,7 @@ func ListenSynchronization(sys *System) {
 				sys.p2pNode.SendP2PMessage(data.PeerID, p2p.BlocksMessage, encodedblocksmsg)
 
 			case msg := <-blocksMessage:
-				data, ok := msg.(core.BlocksMessage)
+				data, ok := msg.(*core.BlocksMessage)
 				if !ok {
 					log.Fatal("转换失败")
 					continue
@@ -115,15 +115,17 @@ func ListenSynchronization(sys *System) {
 
 func (sys *System) isValidBlock(block *core.Block) bool {
 	if !bytes.Equal(block.Hash, block.Header.BlockHash()) {
-		fmt.Println("区块哈希错误\n")
+		fmt.Printf("区块哈希错误:\n%x\n%x\n", block.Hash, block.Header.BlockHash())
 		return false
 	}
 	if !bytes.Equal(sys.blockChain.CurrentBlockHash, block.Header.ParentHash) {
 		fmt.Println("区块ParentHash 与 sys.blockChain.CurrentBlockHash不相等\n")
 		return false
 	}
-	if sys.blockChain.CurBlockNum != new(big.Int).Add(block.Header.Number, big.NewInt(1)) {
-		fmt.Println("区块序号不连续\n")
+	if block.Header.Number.Cmp(new(big.Int).Add(sys.blockChain.CurBlockNum, big.NewInt(1))) != 0 {
+		fmt.Printf("\n区块序号不连续, 期望序号:%s 实际序号:%s\n",
+			new(big.Int).Add(sys.blockChain.CurBlockNum, big.NewInt(1)),
+			block.Header.Number)
 		return false
 	}
 	return true
