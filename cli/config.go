@@ -20,6 +20,7 @@ type Config struct {
 	NodeKeyFile   string   // 存储节点私钥的文件
 	AddressFile   string   // 存储节点地址的文件
 	P2PIDFile     string   // 存储节点P2P ID的文件
+	BLSFile       string   // 存储节点BLS私钥的文件
 	ValSet        []string // 参加共识节点的地址集合
 	IfBackend     bool     // 是否以后台模式启动
 	BootNode      string
@@ -51,6 +52,7 @@ func ParseFlags() (*Config, bool) {
 	flag.StringVar(&cfg.NodeKeyFile, "nodekey", "./key_store/nodekey", "私钥存储地址")
 	flag.StringVar(&cfg.AddressFile, "address", "./key_store/address", "节点地址存储地址")
 	flag.StringVar(&cfg.P2PIDFile, "p2p", "./key_store/p2pID", "节点p2p ID存储地址")
+	flag.StringVar(&cfg.BLSFile, "bls", "./key_store/blskey", "节点BLS私钥存储地址")
 	flag.BoolVar(&cfg.IfBackend, "backend", false, "是否以后台方式运行")
 	flag.StringVar(&cfg.BootNode, "bootnode", "", "bootnode的multiAddr")
 	flag.StringVar(&cfg.IsBoot, "isboot", "false", "启动的节点是否是bootnode")
@@ -97,6 +99,9 @@ func (c *Config) NodeKey() (*ecdsa.PrivateKey, crypto.LibPrivKey) {
 		libPriv, _ := crypto.ConvertEthToLibPrivateKey(key)
 		c.WriteP2PID(libPriv)
 
+		blsPriv, _ := crypto.ConvertEthToBLS(key)
+		c.WriteBLS(*blsPriv)
+
 		return key, libPriv
 	}
 
@@ -114,6 +119,9 @@ func (c *Config) NodeKey() (*ecdsa.PrivateKey, crypto.LibPrivKey) {
 
 	libPriv, _ := crypto.ConvertEthToLibPrivateKey(key)
 	c.WriteP2PID(libPriv)
+
+	blsPriv, _ := crypto.ConvertEthToBLS(key)
+	c.WriteBLS(*blsPriv)
 
 	return key, libPriv
 }
@@ -143,5 +151,18 @@ func (c *Config) WriteP2PID(libPriv crypto.LibPrivKey) {
 
 	if err := os.WriteFile(p2pfile, []byte(p2pID.String()), 0644); err != nil {
 		log.Fatalf("Failed to persist node P2PID: %v\n", err)
+	}
+}
+
+func (c *Config) WriteBLS(blsPriv crypto.BLSPrivKey) {
+	blsfile := c.BLSFile
+	blsDir := filepath.Dir(blsfile)
+	if err := os.MkdirAll(blsDir, os.ModePerm); err != nil { // 创建目录
+		log.Fatalf("Failed to create key directory %s: %v", blsDir, err)
+	}
+
+	blsPrivHex := blsPriv.SerializeToHexStr()
+	if err := os.WriteFile(blsfile, []byte(blsPrivHex), 0644); err != nil {
+		log.Fatalf("Failed to persist node BLS private key: %v\n", err)
 	}
 }

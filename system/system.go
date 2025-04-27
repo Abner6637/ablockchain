@@ -6,6 +6,7 @@ import (
 	pbftcore "ablockchain/consensus/bft/pbft/core"
 	"ablockchain/consensus/pow"
 	"ablockchain/core"
+	"ablockchain/crypto"
 	"ablockchain/event"
 	"ablockchain/p2p"
 	"context"
@@ -51,6 +52,8 @@ func StartSystem(cfg *cli.Config) *System {
 	// 启动 P2P 节点
 	node := StartListen(cfg)
 	sys.p2pNode = node
+
+	crypto.InitBLS() // 初始化BLS库
 
 	if len(cfg.PeerAddrs) != 0 {
 		// 阻塞两秒，等待其他节点启动再连接

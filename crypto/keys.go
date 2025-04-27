@@ -26,9 +26,13 @@ var (
 
 type LibPrivKey libcrypto.PrivKey
 
-type BLSPrivKey bls.SecretKey
+type BLSPrivKey = bls.SecretKey
 
-type BLSPubKey bls.PublicKey
+type BLSPubKey = bls.PublicKey
+
+func InitBLS() error {
+	return bls.Init(bls.BLS12_381)
+}
 
 func GenerateKey() (*ecdsa.PrivateKey, error) {
 	return ethcrypto.GenerateKey()
@@ -176,4 +180,19 @@ func ConvertEthToLibPrivateKey(ethPriv *ecdsa.PrivateKey) (libcrypto.PrivKey, er
 	}
 
 	return libPrivKey, nil
+}
+
+func ConvertEthToBLS(ethPriv *ecdsa.PrivateKey) (*BLSPrivKey, error) {
+	// 提取 D 值并填充到 32 字节
+	dBytes := ethPriv.D.Bytes()
+	padded := make([]byte, 32)
+	copy(padded[32-len(dBytes):], dBytes)
+
+	var sk BLSPrivKey
+	err := sk.SetLittleEndian(padded)
+	if err != nil {
+		return nil, fmt.Errorf("unmarshal failed: %w", err)
+	}
+
+	return &sk, nil
 }
