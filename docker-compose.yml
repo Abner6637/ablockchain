@@ -3,7 +3,7 @@ version: '3.9'
 services:
   bootnode:
     container_name: bootnode
-    image: ablockchain:0.0.3
+    image: ablockchain:0.0.4
     networks:
       customnet:
         ipv4_address: 172.28.0.127
@@ -22,7 +22,7 @@ services:
     container_name: node0
     depends_on:
       - bootnode
-    image: ablockchain:0.0.3
+    image: ablockchain:0.0.4
     networks:
       customnet:
         ipv4_address: 172.28.0.10
@@ -35,14 +35,14 @@ services:
       sh -c "sleep 1 && ./ablockchain 
       --listen /ip4/0.0.0.0/tcp/32000 
       --nodekey ./key_store/nodekey0 
-      --valaddress 0x32e1f3d366dd4ac86c659c93f66cd27a631dfcdf --valaddress 0x56974055891b07fb8ebbf10723f36152f6e7801b --valaddress 0x4016242442186ea4de614c04539d55cb5ae8a937 --valaddress 0xfbc424cacd3a04fa78067b37a519b4d85016fad5 
-      --bootnode /ip4/172.28.0.127/tcp/32000/p2p/16Uiu2HAmP9PwtR9ZcvnrB9ZSwERxzw2vPbKcRjErRnce5nSfYbpi
+      --valaddress 0x9dbc2952848b7f9bf2ca1246ea43b7eb20acbf87 --valaddress 0x5b3d2191f0d5978cf0f733d089ba4488e4bf59fa --valaddress 0xe0f5fc8faf30c9b9828937bc981d2c5d69c9f1bb --valaddress 0x694e1d48ccd06efd9ee5e25278542e0019086705 
+      --bootnode /ip4/172.28.0.127/tcp/32000/p2p/16Uiu2HAm4wNSqDcrMqfgkDfdhfHPQUvFjo9iMxi4y1smSqStWbTa
       --backend=true"
   node1:
     container_name: node1
     depends_on:
       - bootnode
-    image: ablockchain:0.0.3
+    image: ablockchain:0.0.4
     networks:
       customnet:
         ipv4_address: 172.28.0.11
@@ -55,14 +55,14 @@ services:
       sh -c "sleep 1 && ./ablockchain 
       --listen /ip4/0.0.0.0/tcp/32000 
       --nodekey ./key_store/nodekey1 
-      --valaddress 0x32e1f3d366dd4ac86c659c93f66cd27a631dfcdf --valaddress 0x56974055891b07fb8ebbf10723f36152f6e7801b --valaddress 0x4016242442186ea4de614c04539d55cb5ae8a937 --valaddress 0xfbc424cacd3a04fa78067b37a519b4d85016fad5 
-      --bootnode /ip4/172.28.0.127/tcp/32000/p2p/16Uiu2HAmP9PwtR9ZcvnrB9ZSwERxzw2vPbKcRjErRnce5nSfYbpi
+      --valaddress 0x9dbc2952848b7f9bf2ca1246ea43b7eb20acbf87 --valaddress 0x5b3d2191f0d5978cf0f733d089ba4488e4bf59fa --valaddress 0xe0f5fc8faf30c9b9828937bc981d2c5d69c9f1bb --valaddress 0x694e1d48ccd06efd9ee5e25278542e0019086705 
+      --bootnode /ip4/172.28.0.127/tcp/32000/p2p/16Uiu2HAm4wNSqDcrMqfgkDfdhfHPQUvFjo9iMxi4y1smSqStWbTa
       --backend=true"
   node2:
     container_name: node2
     depends_on:
       - bootnode
-    image: ablockchain:0.0.3
+    image: ablockchain:0.0.4
     networks:
       customnet:
         ipv4_address: 172.28.0.12
@@ -75,14 +75,14 @@ services:
       sh -c "sleep 1 && ./ablockchain 
       --listen /ip4/0.0.0.0/tcp/32000 
       --nodekey ./key_store/nodekey2 
-      --valaddress 0x32e1f3d366dd4ac86c659c93f66cd27a631dfcdf --valaddress 0x56974055891b07fb8ebbf10723f36152f6e7801b --valaddress 0x4016242442186ea4de614c04539d55cb5ae8a937 --valaddress 0xfbc424cacd3a04fa78067b37a519b4d85016fad5 
-      --bootnode /ip4/172.28.0.127/tcp/32000/p2p/16Uiu2HAmP9PwtR9ZcvnrB9ZSwERxzw2vPbKcRjErRnce5nSfYbpi
+      --valaddress 0x9dbc2952848b7f9bf2ca1246ea43b7eb20acbf87 --valaddress 0x5b3d2191f0d5978cf0f733d089ba4488e4bf59fa --valaddress 0xe0f5fc8faf30c9b9828937bc981d2c5d69c9f1bb --valaddress 0x694e1d48ccd06efd9ee5e25278542e0019086705 
+      --bootnode /ip4/172.28.0.127/tcp/32000/p2p/16Uiu2HAm4wNSqDcrMqfgkDfdhfHPQUvFjo9iMxi4y1smSqStWbTa
       --backend=true"
   node3:
     container_name: node3
     depends_on:
       - bootnode
-    image: ablockchain:0.0.3
+    image: ablockchain:0.0.4
     networks:
       customnet:
         ipv4_address: 172.28.0.13
@@ -95,8 +95,8 @@ services:
       sh -c "sleep 1 && ./ablockchain 
       --listen /ip4/0.0.0.0/tcp/32000 
       --nodekey ./key_store/nodekey3 
-      --valaddress 0x32e1f3d366dd4ac86c659c93f66cd27a631dfcdf --valaddress 0x56974055891b07fb8ebbf10723f36152f6e7801b --valaddress 0x4016242442186ea4de614c04539d55cb5ae8a937 --valaddress 0xfbc424cacd3a04fa78067b37a519b4d85016fad5 
-      --bootnode /ip4/172.28.0.127/tcp/32000/p2p/16Uiu2HAmP9PwtR9ZcvnrB9ZSwERxzw2vPbKcRjErRnce5nSfYbpi
+      --valaddress 0x9dbc2952848b7f9bf2ca1246ea43b7eb20acbf87 --valaddress 0x5b3d2191f0d5978cf0f733d089ba4488e4bf59fa --valaddress 0xe0f5fc8faf30c9b9828937bc981d2c5d69c9f1bb --valaddress 0x694e1d48ccd06efd9ee5e25278542e0019086705 
+      --bootnode /ip4/172.28.0.127/tcp/32000/p2p/16Uiu2HAm4wNSqDcrMqfgkDfdhfHPQUvFjo9iMxi4y1smSqStWbTa
       --backend=true"
 networks:
   customnet:

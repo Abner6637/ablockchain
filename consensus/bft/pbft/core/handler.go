@@ -152,6 +152,9 @@ func (c *Core) HandleEvents() {
 			if info, ok := eventData.(p2p.EthPeerInfo); ok {
 				c.addrToID[info.EthAddr] = info.PeerID
 			}
+			for addr, id := range c.addrToID {
+				log.Printf("addr到ID的映射：addr: %s, id: %s", addr, id)
+			}
 		default:
 			log.Printf("consensus未知事件类型: %s", eventNames[chosen])
 		}

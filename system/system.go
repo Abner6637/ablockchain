@@ -85,6 +85,8 @@ func StartSystem(cfg *cli.Config) *System {
 	switch cfg.ConsensusType {
 	case "pbft":
 		sys.consensus = pbftcore.NewCore(cfg, node)
+	case "hotstuff":
+		sys.consensus = pbftcore.NewCore(cfg, node)
 	case "pow":
 		sys.consensus = pow.NewProofOfWork(node)
 	default:

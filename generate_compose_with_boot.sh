@@ -26,7 +26,7 @@ EOF
 cat >> docker-compose.yml <<EOF
   bootnode:
     container_name: bootnode
-    image: ablockchain:0.0.3
+    image: ablockchain:0.0.4
     networks:
       customnet:
         ipv4_address: 172.28.0.127
@@ -51,7 +51,7 @@ for ((i=0; i<NODE_COUNT; i++)); do
     container_name: node${i}
     depends_on:
       - bootnode
-    image: ablockchain:0.0.3
+    image: ablockchain:0.0.4
     networks:
       customnet:
         ipv4_address: 172.28.0.${node_ip}

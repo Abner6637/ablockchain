@@ -15,6 +15,7 @@ import (
 	"github.com/ethereum/go-ethereum/common/math"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/crypto/secp256k1"
+	"github.com/herumi/bls-eth-go-binary/bls"
 	libcrypto "github.com/libp2p/go-libp2p/core/crypto"
 )
 
@@ -24,6 +25,10 @@ var (
 )
 
 type LibPrivKey libcrypto.PrivKey
+
+type BLSPrivKey bls.SecretKey
+
+type BLSPubKey bls.PublicKey
 
 func GenerateKey() (*ecdsa.PrivateKey, error) {
 	return ethcrypto.GenerateKey()
