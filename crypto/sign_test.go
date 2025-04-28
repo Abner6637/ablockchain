@@ -28,6 +28,17 @@ func TestBLSSign(t *testing.T) {
 		blsPubKey := blsPrivateKey.GetPublicKey()
 		blsPubKeys = append(blsPubKeys, *blsPubKey)
 
+		blsPubKeyHex := blsPubKey.SerializeToHexStr()
+		t.Logf("BLS Public Key %d: %s", i, blsPubKeyHex)
+
+		var blsPubKeyFromHex BLSPubKey
+		blsPubKeyFromHex.DeserializeHexStr(blsPubKeyHex)
+		if blsPubKeyFromHex.IsEqual(blsPubKey) {
+			t.Logf("BLS Public Key %d deserialized successfully", i)
+		} else {
+			t.Fatalf("Failed to deserialize BLS Public Key %d", i)
+		}
+
 		// Create a message to sign
 		msg := []byte("Hello, BLS!")
 

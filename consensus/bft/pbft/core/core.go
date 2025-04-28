@@ -27,9 +27,10 @@ import (
 type Core struct {
 	p2pNode *p2p.Node
 
-	privateKey *ecdsa.PrivateKey
-	address    []byte
-	addrToID   map[string]string // 地址到peerID的映射
+	privateKey   *ecdsa.PrivateKey
+	address      []byte
+	addrToID     map[string]string           // 地址到peerID的映射
+	addrToBLSPub map[string]crypto.BLSPubKey // 地址到BLS公钥的映射
 
 	consensusState *consensusState
 
@@ -83,6 +84,7 @@ func NewCore(cfg *cli.Config, p2pNode *p2p.Node) *Core {
 		privateKey:        p2pNode.PrivateKey,
 		address:           crypto.PubkeyToAddress(p2pNode.PrivateKey.PublicKey).Bytes(),
 		addrToID:          make(map[string]string),
+		addrToBLSPub:      make(map[string]crypto.BLSPubKey),
 		ByzantineSize:     (cfg.ConsensusNum - 1) / 3,
 		NodeSize:          cfg.ConsensusNum,
 		pendingRequests:   prque.New(),

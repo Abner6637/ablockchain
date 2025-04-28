@@ -233,18 +233,23 @@ func (node *Node) Synchronization(addr string) {
 }
 
 type EthPeerInfo struct {
-	EthAddr string
-	PeerID  string
+	EthAddr      string
+	PeerID       string
+	BLSPubKeyHex string
 }
 
 func (n *Node) getEthPeerInfo() *EthPeerInfo {
 	// 获取当前节点的以太坊地址
 	ethAddr := string(crypto.PubkeyToAddress(n.PrivateKey.PublicKey).Bytes())
+	blsPrivKey, _ := crypto.ConvertEthToBLS(n.PrivateKey)
+	blsPubKey := blsPrivKey.GetPublicKey()
+	blsPubKeyHex := blsPubKey.SerializeToHexStr()
 
 	// 返回当前节点的以太坊地址和ID
 	return &EthPeerInfo{
-		EthAddr: ethAddr,
-		PeerID:  n.ID,
+		EthAddr:      ethAddr,
+		PeerID:       n.ID,
+		BLSPubKeyHex: blsPubKeyHex,
 	}
 }
 

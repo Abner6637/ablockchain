@@ -4,6 +4,7 @@ import (
 	"ablockchain/consensus/bft"
 	pbfttypes "ablockchain/consensus/bft/pbft/types"
 	"ablockchain/core"
+	"ablockchain/crypto"
 	"ablockchain/event"
 	"ablockchain/p2p"
 	"errors"
@@ -151,6 +152,10 @@ func (c *Core) HandleEvents() {
 			log.Printf("consensus检测到HelloEvent事件")
 			if info, ok := eventData.(p2p.EthPeerInfo); ok {
 				c.addrToID[info.EthAddr] = info.PeerID
+
+				var blsPubKey crypto.BLSPubKey
+				blsPubKey.DeserializeHexStr(info.BLSPubKeyHex)
+				c.addrToBLSPub[info.EthAddr] = blsPubKey
 			}
 			for addr, id := range c.addrToID {
 				log.Printf("addr到ID的映射：addr: %s, id: %s", addr, id)
