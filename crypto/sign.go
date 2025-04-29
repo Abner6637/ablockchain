@@ -47,14 +47,11 @@ func AggregateSignatures(sigs []BLSSig) (*BLSSig, error) {
 }
 
 // 验证聚合签名
-func VerifyAggregateSignature(pubKeys []BLSPubKey, aggSig *BLSSig, msg []byte) bool {
+func VerifyAggregateSignature(aggPubKey *BLSPubKey, aggSig *BLSSig, msg []byte) bool {
 	if aggSig == nil {
 		return false
 	}
-	aggPubKey, err := AggregatePublicKeys(pubKeys)
-	if err != nil {
-		return false
-	}
+
 	return aggSig.VerifyByte(aggPubKey, msg)
 }
 

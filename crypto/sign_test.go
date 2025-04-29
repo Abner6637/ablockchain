@@ -63,7 +63,12 @@ func TestBLSSign(t *testing.T) {
 		t.Fatalf("Failed to aggregate signatures: %v", err)
 	}
 
-	ok := VerifyAggregateSignature(blsPubKeys, aggSig, []byte("Hello, BLS!"))
+	aggKey, err := AggregatePublicKeys(blsPubKeys)
+	if err != nil {
+		t.Fatalf("Failed to aggregate public keys: %v", err)
+	}
+
+	ok := VerifyAggregateSignature(aggKey, aggSig, []byte("Hello, BLS!"))
 	if !ok {
 		t.Fatalf("Aggregate signature verification failed")
 	} else {

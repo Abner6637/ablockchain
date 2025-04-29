@@ -2,11 +2,11 @@ package hotstuffcore
 
 import (
 	"ablockchain/consensus/bft"
-	pbfttypes "ablockchain/consensus/bft/pbft/types"
+	hotstufftypes "ablockchain/consensus/bft/hotstuff/types"
 	"log"
 )
 
-func (c *Core) HandlePrepare(msg *pbfttypes.Message) error {
+func (c *Core) HandlePrepare(msg *hotstufftypes.Message) error {
 	log.Printf("开始处理Prepare消息：%+v", msg)
 
 	// 验证消息签名
@@ -32,8 +32,8 @@ func (c *Core) HandlePrepare(msg *pbfttypes.Message) error {
 	log.Printf("目前已存储的Prepare消息数目：%d", len(c.consensusState.Prepares.messages))
 
 	// 2f个即可，因为还有一个是Preprepare
-	if len(c.consensusState.Prepares.messages) >= 2*c.ByzantineSize && c.state.Cmp(pbfttypes.StatePrepared) < 0 {
-		c.setState(pbfttypes.StatePrepared)
+	if len(c.consensusState.Prepares.messages) >= 2*c.ByzantineSize && c.state.Cmp(hotstufftypes.StatePrepared) < 0 {
+		c.setState(hotstufftypes.StatePrepared)
 		c.SendCommit()
 	}
 
@@ -41,12 +41,12 @@ func (c *Core) HandlePrepare(msg *pbfttypes.Message) error {
 }
 
 func (c *Core) SendPrepare() error {
-	var msg pbfttypes.Message
-	msg.Code = pbfttypes.MsgPrepare
+	var msg hotstufftypes.Message
+	msg.Code = hotstufftypes.MsgPrepare
 
 	prepare := c.consensusState.getPrepare()
 
-	encodedPrepare, err := pbfttypes.Encode(prepare)
+	encodedPrepare, err := hotstufftypes.Encode(prepare)
 	if err != nil {
 		return err
 	}

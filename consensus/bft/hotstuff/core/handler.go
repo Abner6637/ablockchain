@@ -2,8 +2,9 @@ package hotstuffcore
 
 import (
 	"ablockchain/consensus/bft"
-	pbfttypes "ablockchain/consensus/bft/pbft/types"
+	hotstufftypes "ablockchain/consensus/bft/hotstuff/types"
 	"ablockchain/core"
+	"ablockchain/crypto"
 	"ablockchain/event"
 	"ablockchain/p2p"
 	"errors"
@@ -142,7 +143,7 @@ func (c *Core) HandleEvents() {
 				c.StartNewProcess(big.NewInt(0))
 
 				// TODO: 状态是否是在这里修改为最初状态的呢？
-				c.setState(pbfttypes.StateAcceptRequest)
+				c.setState(hotstufftypes.StateAcceptRequest)
 			}
 		case "TimeoutEvent":
 			log.Printf("consensus检测到TimeoutEvent事件")
@@ -151,6 +152,10 @@ func (c *Core) HandleEvents() {
 			log.Printf("consensus检测到HelloEvent事件")
 			if info, ok := eventData.(p2p.EthPeerInfo); ok {
 				c.addrToID[info.EthAddr] = info.PeerID
+
+				var blsPubKey crypto.BLSPubKey
+				blsPubKey.DeserializeHexStr(info.BLSPubKeyHex)
+				c.addrToBLSPub[info.EthAddr] = blsPubKey
 			}
 			for addr, id := range c.addrToID {
 				log.Printf("addr到ID的映射：addr: %s, id: %s", addr, id)
@@ -162,26 +167,26 @@ func (c *Core) HandleEvents() {
 }
 
 func (c *Core) HandleMessage(payload []byte) error {
-	msg, err := pbfttypes.DecodeMessage(payload)
+	msg, err := hotstufftypes.DecodeMessage(payload)
 	if err != nil {
 		return errors.New("cannot decode message")
 	}
 
 	// TODO: different kinds of message
 	switch msg.Code {
-	case pbfttypes.MsgPreprepare:
+	case hotstufftypes.MsgPreprepare:
 		err := c.HandlePreprepare(msg)
 		return err
-	case pbfttypes.MsgPrepare:
+	case hotstufftypes.MsgPrepare:
 		err := c.HandlePrepare(msg)
 		return err
-	case pbfttypes.MsgCommit:
+	case hotstufftypes.MsgCommit:
 		err := c.HandleCommit(msg)
 		return err
-	case pbfttypes.MsgViewChange:
+	case hotstufftypes.MsgViewChange:
 		err := c.HandleViewChange(msg)
 		return err
-	case pbfttypes.MsgNewView:
+	case hotstufftypes.MsgNewView:
 		err := c.HandleNewView(msg)
 		return err
 	}

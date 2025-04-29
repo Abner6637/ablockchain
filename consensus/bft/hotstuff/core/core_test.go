@@ -2,7 +2,7 @@ package hotstuffcore
 
 import (
 	"ablockchain/consensus/bft"
-	pbfttypes "ablockchain/consensus/bft/pbft/types"
+	hotstufftypes "ablockchain/consensus/bft/hotstuff/types"
 	"ablockchain/core"
 	"ablockchain/crypto"
 	"ablockchain/p2p"
@@ -41,7 +41,7 @@ func NewTestCoreForSign(privateKey *ecdsa.PrivateKey) *Core {
 func newTestCore(p2pNode *p2p.Node) *Core {
 	return &Core{
 		p2pNode:    p2pNode,
-		state:      pbfttypes.StateAcceptRequest,
+		state:      hotstufftypes.StateAcceptRequest,
 		privateKey: p2pNode.PrivateKey,
 		address:    crypto.PubkeyToAddress(p2pNode.PrivateKey.PublicKey).Bytes(),
 	}
@@ -86,9 +86,9 @@ func TestSign(t *testing.T) {
 	address := comAddress.Bytes()
 	log.Printf("address: %+v", address)
 
-	var msg pbfttypes.Message
-	msg.Code = pbfttypes.MsgPrepare
-	prepare, err := pbfttypes.Encode(&bft.Prepare{
+	var msg hotstufftypes.Message
+	msg.Code = hotstufftypes.MsgPrepare
+	prepare, err := hotstufftypes.Encode(&bft.Prepare{
 		View:     big.NewInt(0),
 		Sequence: big.NewInt(0),
 		Digest:   []byte{},

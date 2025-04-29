@@ -2,7 +2,7 @@ package hotstuffcore
 
 import (
 	"ablockchain/consensus/bft"
-	pbfttypes "ablockchain/consensus/bft/pbft/types"
+	hotstufftypes "ablockchain/consensus/bft/hotstuff/types"
 	"ablockchain/core"
 	"ablockchain/crypto"
 	"bytes"
@@ -94,7 +94,7 @@ func (s *consensusState) getPrepare() *bft.Prepare {
 	}
 }
 
-func (s *consensusState) addPrepare(msg *pbfttypes.Message) {
+func (s *consensusState) addPrepare(msg *hotstufftypes.Message) {
 	s.lock.RLock()
 	defer s.lock.RUnlock()
 
@@ -122,7 +122,7 @@ func (s *consensusState) getCommit() *bft.Commit {
 	}
 }
 
-func (s *consensusState) addCommit(msg *pbfttypes.Message) {
+func (s *consensusState) addCommit(msg *hotstufftypes.Message) {
 	s.lock.RLock()
 	defer s.lock.RUnlock()
 

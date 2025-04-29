@@ -2,7 +2,7 @@ package hotstuffcore
 
 import (
 	"ablockchain/consensus/bft"
-	pbfttypes "ablockchain/consensus/bft/pbft/types"
+	hotstufftypes "ablockchain/consensus/bft/hotstuff/types"
 	"ablockchain/core"
 	"ablockchain/event"
 	"errors"
@@ -18,7 +18,7 @@ import (
 
 func TestProcessRequest(t *testing.T) {
 	c := &Core{
-		state:             pbfttypes.StateAcceptRequest,
+		state:             hotstufftypes.StateAcceptRequest,
 		consensusState:    NewConsensusState(big.NewInt(0), big.NewInt(0), nil),
 		pendingRequests:   prque.New(),
 		pendingRequestsMu: new(sync.Mutex),
@@ -143,7 +143,7 @@ func (c *Core) testHandleEventsForRequest() {
 				c.consensusState = NewConsensusState(c.consensusState.getView(), new(big.Int).Add(c.curCommitedBlock.Header.Number, big.NewInt(1)), nil)
 				c.ProcessRequest()
 
-				c.setState(pbfttypes.StateAcceptRequest)
+				c.setState(hotstufftypes.StateAcceptRequest)
 			}
 		default:
 			log.Printf("consensus未知事件类型: %s", eventNames[chosen])

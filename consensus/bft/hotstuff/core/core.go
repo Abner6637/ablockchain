@@ -2,7 +2,7 @@ package hotstuffcore
 
 import (
 	"ablockchain/cli"
-	pbfttypes "ablockchain/consensus/bft/pbft/types"
+	hotstufftypes "ablockchain/consensus/bft/hotstuff/types"
 	"ablockchain/core"
 	"ablockchain/crypto"
 	"ablockchain/event"
@@ -27,13 +27,14 @@ import (
 type Core struct {
 	p2pNode *p2p.Node
 
-	privateKey *ecdsa.PrivateKey
-	address    []byte
-	addrToID   map[string]string // 地址到peerID的映射
+	privateKey   *ecdsa.PrivateKey
+	address      []byte
+	addrToID     map[string]string           // 地址到peerID的映射
+	addrToBLSPub map[string]crypto.BLSPubKey // 地址到BLS公钥的映射
 
 	consensusState *consensusState
 
-	state            pbfttypes.State
+	state            hotstufftypes.State
 	curCommitedBlock *core.Block
 
 	pendingRequests   *prque.Prque
@@ -79,10 +80,11 @@ func NewCore(cfg *cli.Config, p2pNode *p2p.Node) *Core {
 
 	return &Core{
 		p2pNode:           p2pNode,
-		state:             pbfttypes.StateAcceptRequest,
+		state:             hotstufftypes.StateAcceptRequest,
 		privateKey:        p2pNode.PrivateKey,
 		address:           crypto.PubkeyToAddress(p2pNode.PrivateKey.PublicKey).Bytes(),
 		addrToID:          make(map[string]string),
+		addrToBLSPub:      make(map[string]crypto.BLSPubKey),
 		ByzantineSize:     (cfg.ConsensusNum - 1) / 3,
 		NodeSize:          cfg.ConsensusNum,
 		pendingRequests:   prque.New(),
@@ -147,7 +149,7 @@ func (c *Core) AddVal(address string) {
 
 }
 
-func (c *Core) Broadcast(msg *pbfttypes.Message) error {
+func (c *Core) Broadcast(msg *hotstufftypes.Message) error {
 	payload, err := msg.EncodeMessage()
 	if err != nil {
 		return err
@@ -171,7 +173,7 @@ func (c *Core) Broadcast(msg *pbfttypes.Message) error {
 	return nil
 }
 
-func (c *Core) Unicast(msg *pbfttypes.Message, address string) error {
+func (c *Core) Unicast(msg *hotstufftypes.Message, address string) error {
 	payload, err := msg.EncodeMessage()
 	if err != nil {
 		return err
@@ -217,12 +219,12 @@ func (c *Core) PrimaryFromView(view *big.Int) string {
 	return c.ValSet[int(res.Int64())]
 }
 
-func (c *Core) setState(state pbfttypes.State) {
+func (c *Core) setState(state hotstufftypes.State) {
 	c.state = state
 	log.Printf("共识state变更为：%d", c.state)
 }
 
-func (c *Core) addViewChange(view *big.Int, msg *pbfttypes.Message) {
+func (c *Core) addViewChange(view *big.Int, msg *hotstufftypes.Message) {
 	newView := view.Uint64()
 	if c.ViewChanges[newView] == nil {
 		c.ViewChanges[newView] = NewMessageSet()
@@ -259,22 +261,30 @@ func (c *Core) StartNewProcess(num *big.Int) {
 
 // 返回msg.Signature和err
 func (c *Core) Sign(data []byte) ([]byte, error) {
-	hashData := crypto.GlobalHashAlgorithm.Hash(data)
-	return crypto.Sign(hashData, c.privateKey)
+	blsPrivKey, err := crypto.ConvertEthToBLS(c.privateKey)
+	if err != nil {
+		return nil, err
+	}
+
+	blsSig, err := crypto.BLSSign(data, blsPrivKey)
+	if err != nil {
+		return nil, err
+	}
+	return blsSig.Serialize(), nil
+
 }
 
-func (c *Core) SignMessage(msg *pbfttypes.Message) ([]byte, error) {
+func (c *Core) SignMessage(msg *hotstufftypes.Message) ([]byte, error) {
 	// Sign message
-	data, err := msg.PayloadNoSig()
-	if err != nil {
-		return nil, err
-	}
-	msg.Signature, err = c.Sign(data)
-	if err != nil {
-		return nil, err
-	}
+	data := msg.Msg
 
-	return msg.Signature, err
+	blsSig, err := c.Sign(data)
+	if err != nil {
+		return nil, err
+	}
+	msg.Signature = blsSig
+
+	return msg.Signature, nil
 }
 
 // 通过未经哈希的原数据和签名得到签名所用的公钥，再通过公钥得到签名地址
@@ -288,7 +298,7 @@ func GetSignatureAddress(data []byte, sig []byte) (common.Address, error) {
 	return crypto.PubkeyToAddress(*pubkey), nil
 }
 
-func VerifySignature(msg *pbfttypes.Message) error {
+func VerifySignature(msg *hotstufftypes.Message) error {
 	payloadNoSig, err := msg.PayloadNoSig()
 	if err != nil {
 		return err

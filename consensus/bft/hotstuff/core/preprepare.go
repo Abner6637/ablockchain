@@ -2,12 +2,12 @@ package hotstuffcore
 
 import (
 	"ablockchain/consensus/bft"
-	pbfttypes "ablockchain/consensus/bft/pbft/types"
+	hotstufftypes "ablockchain/consensus/bft/hotstuff/types"
 	"bytes"
 	"log"
 )
 
-func (c *Core) HandlePreprepare(msg *pbfttypes.Message) error {
+func (c *Core) HandlePreprepare(msg *hotstufftypes.Message) error {
 	log.Printf("开始处理Preprepare消息：%+v", msg)
 
 	// 验证消息签名
@@ -32,7 +32,7 @@ func (c *Core) HandlePreprepare(msg *pbfttypes.Message) error {
 		return nil
 	}
 
-	if c.state.Cmp(pbfttypes.StatePreprepared) >= 0 {
+	if c.state.Cmp(hotstufftypes.StatePreprepared) >= 0 {
 		log.Printf("警告：当前core的状态>=StatePreprepared")
 		return nil
 	}
@@ -40,7 +40,7 @@ func (c *Core) HandlePreprepare(msg *pbfttypes.Message) error {
 	//c.newViewChangeTimer()
 
 	c.consensusState.setPreprepare(preprepare)
-	c.setState(pbfttypes.StatePreprepared)
+	c.setState(hotstufftypes.StatePreprepared)
 
 	c.SendPrepare()
 
@@ -48,8 +48,8 @@ func (c *Core) HandlePreprepare(msg *pbfttypes.Message) error {
 }
 
 func (c *Core) SendPreprepare(request *bft.Request) error {
-	var msg pbfttypes.Message
-	msg.Code = pbfttypes.MsgPreprepare
+	var msg hotstufftypes.Message
+	msg.Code = hotstufftypes.MsgPreprepare
 
 	preprepare := &bft.Preprepare{
 		View:     c.consensusState.getView(),
@@ -57,7 +57,7 @@ func (c *Core) SendPreprepare(request *bft.Request) error {
 		Request:  *request,
 	}
 
-	encodedPreprepare, err := pbfttypes.Encode(preprepare)
+	encodedPreprepare, err := hotstufftypes.Encode(preprepare)
 
 	// 打印使用
 	log.Printf("生成Preprepare：%+v", preprepare)
@@ -87,7 +87,7 @@ func (c *Core) SendPreprepare(request *bft.Request) error {
 		Sequence: c.consensusState.getSequence(),
 		Request:  *request,
 	})
-	c.setState(pbfttypes.StatePreprepared)
+	c.setState(hotstufftypes.StatePreprepared)
 
 	return nil
 }

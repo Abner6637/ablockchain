@@ -281,7 +281,7 @@ func (n *Node) PeriodHelloBroadcast() {
 	}
 
 	log.Printf("=== Switching to long-term Hello Broadcast Mechanism (every 2 min) ===")
-	// 后续周期：每隔 1 分钟运行一次
+	// 后续周期：每隔 2 分钟运行一次
 	ticker := time.NewTicker(longInterval)
 	defer ticker.Stop()
 
@@ -292,5 +292,4 @@ func (n *Node) PeriodHelloBroadcast() {
 			n.HelloBroadcast()
 		}
 	}
-
 }

@@ -16,10 +16,11 @@ const (
 )
 
 type Message struct {
-	Code      uint64
-	Msg       []byte
-	Address   []byte
-	Signature []byte
+	Code       uint64
+	Msg        []byte
+	Address    []byte
+	Signature  []byte
+	additional []byte
 }
 
 func (m *Message) EncodeMessage() ([]byte, error) {

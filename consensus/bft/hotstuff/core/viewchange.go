@@ -2,12 +2,12 @@ package hotstuffcore
 
 import (
 	"ablockchain/consensus/bft"
-	pbfttypes "ablockchain/consensus/bft/pbft/types"
+	hotstufftypes "ablockchain/consensus/bft/hotstuff/types"
 	"log"
 	"math/big"
 )
 
-func (c *Core) HandleViewChange(msg *pbfttypes.Message) error {
+func (c *Core) HandleViewChange(msg *hotstufftypes.Message) error {
 	log.Printf("开始处理viewchange消息：%+v", msg)
 
 	// 验证消息签名
@@ -35,12 +35,12 @@ func (c *Core) HandleViewChange(msg *pbfttypes.Message) error {
 }
 
 func (c *Core) SendViewChange(view *big.Int) error {
-	var msg pbfttypes.Message
-	msg.Code = pbfttypes.MsgViewChange
+	var msg hotstufftypes.Message
+	msg.Code = hotstufftypes.MsgViewChange
 
 	viewchange := c.consensusState.getViewChange(view)
 
-	encodedviewchange, err := pbfttypes.Encode(viewchange)
+	encodedviewchange, err := hotstufftypes.Encode(viewchange)
 	if err != nil {
 		return err
 	}

@@ -2,13 +2,13 @@ package hotstuffcore
 
 import (
 	"ablockchain/consensus/bft"
-	pbfttypes "ablockchain/consensus/bft/pbft/types"
+	hotstufftypes "ablockchain/consensus/bft/hotstuff/types"
 	"bytes"
 	"log"
 	"math/big"
 )
 
-func (c *Core) HandleNewView(msg *pbfttypes.Message) error {
+func (c *Core) HandleNewView(msg *hotstufftypes.Message) error {
 	log.Printf("开始处理newview消息：%+v", msg)
 
 	// 验证消息签名
@@ -32,7 +32,7 @@ func (c *Core) HandleNewView(msg *pbfttypes.Message) error {
 
 	// 当有正在进行共识的区块时，向其他节点发送Preprepare消息，重新对该区块进行共识
 	if c.consensusState.getPreprepare() != nil {
-		c.setState(pbfttypes.StatePreprepared)
+		c.setState(hotstufftypes.StatePreprepared)
 		c.SendPrepare()
 	}
 
@@ -40,12 +40,12 @@ func (c *Core) HandleNewView(msg *pbfttypes.Message) error {
 }
 
 func (c *Core) SendNewView(view *big.Int) error {
-	var msg pbfttypes.Message
-	msg.Code = pbfttypes.MsgNewView
+	var msg hotstufftypes.Message
+	msg.Code = hotstufftypes.MsgNewView
 
 	newview := c.consensusState.getNewView(view)
 
-	encodednewview, err := pbfttypes.Encode(newview)
+	encodednewview, err := hotstufftypes.Encode(newview)
 	if err != nil {
 		return err
 	}

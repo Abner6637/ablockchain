@@ -2,12 +2,12 @@ package hotstuffcore
 
 import (
 	"ablockchain/consensus/bft"
-	pbfttypes "ablockchain/consensus/bft/pbft/types"
+	hotstufftypes "ablockchain/consensus/bft/hotstuff/types"
 	"ablockchain/event"
 	"log"
 )
 
-func (c *Core) HandleCommit(msg *pbfttypes.Message) error {
+func (c *Core) HandleCommit(msg *hotstufftypes.Message) error {
 	log.Printf("开始处理Commit消息：%+v", msg)
 	// 验证消息签名
 	if err := VerifySignature(msg); err != nil {
@@ -31,8 +31,8 @@ func (c *Core) HandleCommit(msg *pbfttypes.Message) error {
 	c.consensusState.addCommit(msg)
 	log.Printf("目前已存储的Commit消息数目：%d", len(c.consensusState.Commits.messages))
 
-	if len(c.consensusState.Commits.messages) >= 2*c.ByzantineSize+1 && c.state.Cmp(pbfttypes.StateCommitted) < 0 {
-		c.setState(pbfttypes.StateCommitted)
+	if len(c.consensusState.Commits.messages) >= 2*c.ByzantineSize+1 && c.state.Cmp(hotstufftypes.StateCommitted) < 0 {
+		c.setState(hotstufftypes.StateCommitted)
 
 		block, err := c.consensusState.getBlock()
 		if err != nil {
@@ -58,12 +58,12 @@ func (c *Core) HandleCommit(msg *pbfttypes.Message) error {
 }
 
 func (c *Core) SendCommit() error {
-	var msg pbfttypes.Message
-	msg.Code = pbfttypes.MsgCommit
+	var msg hotstufftypes.Message
+	msg.Code = hotstufftypes.MsgCommit
 
 	commit := c.consensusState.getCommit()
 
-	encodedCommit, err := pbfttypes.Encode(commit)
+	encodedCommit, err := hotstufftypes.Encode(commit)
 	if err != nil {
 		return err
 	}
