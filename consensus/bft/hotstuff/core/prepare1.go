@@ -6,11 +6,16 @@ import (
 	"log"
 )
 
-func (c *Core) HandlePrepare(msg *hotstufftypes.Message) error {
-	log.Printf("开始处理Prepare消息：%+v", msg)
+func (c *Core) HandlePrepare1(msg *hotstufftypes.Message) error {
+	if !c.IsPrimary() {
+		log.Printf("非主节点，丢弃Prepare1消息：%+v", msg)
+		return nil
+	}
+
+	log.Printf("开始处理Prepare1消息：%+v", msg)
 
 	// 验证消息签名
-	if err := VerifySignature(msg); err != nil {
+	if err := c.VerifySignature(msg); err != nil {
 		return err
 	}
 
@@ -34,15 +39,16 @@ func (c *Core) HandlePrepare(msg *hotstufftypes.Message) error {
 	// 2f个即可，因为还有一个是Preprepare
 	if len(c.consensusState.Prepares.messages) >= 2*c.ByzantineSize && c.state.Cmp(hotstufftypes.StatePrepared) < 0 {
 		c.setState(hotstufftypes.StatePrepared)
-		c.SendCommit()
+
+		c.SendPrepare2()
 	}
 
 	return nil
 }
 
-func (c *Core) SendPrepare() error {
+func (c *Core) SendPrepare1() error {
 	var msg hotstufftypes.Message
-	msg.Code = hotstufftypes.MsgPrepare
+	msg.Code = hotstufftypes.MsgPrepare1
 
 	prepare := c.consensusState.getPrepare()
 
@@ -64,8 +70,9 @@ func (c *Core) SendPrepare() error {
 	// 发给别人Prepare消息时，自己也保存一份自己发送的
 	c.consensusState.addPrepare(&msg)
 
-	log.Printf("广播Preppare消息：%+v", msg)
-	c.Broadcast(&msg)
+	log.Printf("发送Prepare1消息给主节点：%+v", msg)
+	// c.Broadcast(&msg)
+	c.Unicast(&msg, string(c.Primary))
 
 	return nil
 }

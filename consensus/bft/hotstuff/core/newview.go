@@ -12,7 +12,7 @@ func (c *Core) HandleNewView(msg *hotstufftypes.Message) error {
 	log.Printf("开始处理newview消息：%+v", msg)
 
 	// 验证消息签名
-	if err := VerifySignature(msg); err != nil {
+	if err := c.VerifySignature(msg); err != nil {
 		return err
 	}
 
@@ -30,10 +30,10 @@ func (c *Core) HandleNewView(msg *hotstufftypes.Message) error {
 
 	c.StartNewProcess(newview.View)
 
-	// 当有正在进行共识的区块时，向其他节点发送Preprepare消息，重新对该区块进行共识
+	// 当有正在进行共识的区块时，向其他节点发送Prepare消息，重新对该区块进行共识
 	if c.consensusState.getPreprepare() != nil {
 		c.setState(hotstufftypes.StatePreprepared)
-		c.SendPrepare()
+		c.SendPrepare1()
 	}
 
 	return nil

@@ -34,7 +34,7 @@ for ((i=0; i<NODE_COUNT; i++)); do
     container_name: node${i}
     depends_on:
       - bootnode
-    image: ablockchain:0.0.1
+    image: ablockchain:0.0.5
     networks:
       customnet:
         ipv4_address: 172.28.0.${node_ip}
@@ -47,6 +47,7 @@ for ((i=0; i<NODE_COUNT; i++)); do
       ./ablockchain 
       --listen /ip4/0.0.0.0/tcp/32000 
       --nodekey ./key_store/nodekey${i} 
+      --consensus hotstuff
       ${VALADDR_ARGS}
       ${PEERADDR_ARGS}
       --backend=true

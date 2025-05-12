@@ -2,6 +2,7 @@ package main
 
 import (
 	"ablockchain/cli"
+	"ablockchain/crypto"
 	"ablockchain/event"
 	"ablockchain/system"
 	"fmt"
@@ -36,6 +37,9 @@ func main() {
 	exitEvent := event.Bus.Subscribe("ExitEvent")
 
 	// log.Printf("is attach: %v", isAttach)
+
+	// 初始化BLS签名需要的设置
+	crypto.InitBLS()
 
 	if !isAttach {
 		system.StartSystem(cfg)

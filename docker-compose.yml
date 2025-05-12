@@ -1,28 +1,11 @@
 version: '3.9'
 
 services:
-  bootnode:
-    container_name: bootnode
-    image: ablockchain:0.0.4
-    networks:
-      customnet:
-        ipv4_address: 172.28.0.127
-    ports:
-      - "33333:32000"
-    volumes:
-      - ./key_store/nodekeyboot:/ablockchain/key_store/nodekeyboot
-      - ./genesis.json:/ablockchain/genesis.json
-    command: >
-      ./ablockchain 
-      --listen /ip4/0.0.0.0/tcp/32000 
-      --nodekey ./key_store/nodekeyboot
-      --isboot true
-      --backend=true
   node0:
     container_name: node0
     depends_on:
       - bootnode
-    image: ablockchain:0.0.4
+    image: ablockchain:0.0.5
     networks:
       customnet:
         ipv4_address: 172.28.0.10
@@ -32,17 +15,18 @@ services:
       - ./key_store/nodekey0:/ablockchain/key_store/nodekey0
       - ./genesis.json:/ablockchain/genesis.json
     command: >
-      sh -c "sleep 1 && ./ablockchain 
+      ./ablockchain 
       --listen /ip4/0.0.0.0/tcp/32000 
       --nodekey ./key_store/nodekey0 
-      --valaddress 0x9dbc2952848b7f9bf2ca1246ea43b7eb20acbf87 --valaddress 0x5b3d2191f0d5978cf0f733d089ba4488e4bf59fa --valaddress 0xe0f5fc8faf30c9b9828937bc981d2c5d69c9f1bb --valaddress 0x694e1d48ccd06efd9ee5e25278542e0019086705 
-      --bootnode /ip4/172.28.0.127/tcp/32000/p2p/16Uiu2HAm4wNSqDcrMqfgkDfdhfHPQUvFjo9iMxi4y1smSqStWbTa
-      --backend=true"
+      --consensus hotstuff
+      --valaddress 0x2c7acc3c0c4056e23a2b5bc52682345fae313f3b --valaddress 0x3efee5c12d9aba2a63509e28bac5d74471021c75 --valaddress 0xd6d1d97984c8854c1c803b8252e5f826bbe9d6b2 --valaddress 0xcf7557deda3287a051cf261920fbb54e4252262d 
+      --peer /ip4/172.28.0.10/tcp/32000/p2p/16Uiu2HAm6pjb8EMwf5RF5Nc8HtQNHPKa4YZRKrZiP9FNRRwyHeLW --peer /ip4/172.28.0.11/tcp/32000/p2p/16Uiu2HAm6hrpfi1f6j9ccBvxpTpN7V47BMBfZerRWagVuxXSVtwB --peer /ip4/172.28.0.12/tcp/32000/p2p/16Uiu2HAky4mCwJJq8pPjqWkA154mdiUXqLh6zjs4oEiPfyMy2jAx --peer /ip4/172.28.0.13/tcp/32000/p2p/16Uiu2HAmTatnxayMWGMqcpT5d2Liq6hnhXNhxDCWNe2hPt6pwe9e 
+      --backend=true
   node1:
     container_name: node1
     depends_on:
       - bootnode
-    image: ablockchain:0.0.4
+    image: ablockchain:0.0.5
     networks:
       customnet:
         ipv4_address: 172.28.0.11
@@ -52,17 +36,18 @@ services:
       - ./key_store/nodekey1:/ablockchain/key_store/nodekey1
       - ./genesis.json:/ablockchain/genesis.json
     command: >
-      sh -c "sleep 1 && ./ablockchain 
+      ./ablockchain 
       --listen /ip4/0.0.0.0/tcp/32000 
       --nodekey ./key_store/nodekey1 
-      --valaddress 0x9dbc2952848b7f9bf2ca1246ea43b7eb20acbf87 --valaddress 0x5b3d2191f0d5978cf0f733d089ba4488e4bf59fa --valaddress 0xe0f5fc8faf30c9b9828937bc981d2c5d69c9f1bb --valaddress 0x694e1d48ccd06efd9ee5e25278542e0019086705 
-      --bootnode /ip4/172.28.0.127/tcp/32000/p2p/16Uiu2HAm4wNSqDcrMqfgkDfdhfHPQUvFjo9iMxi4y1smSqStWbTa
-      --backend=true"
+      --consensus hotstuff
+      --valaddress 0x2c7acc3c0c4056e23a2b5bc52682345fae313f3b --valaddress 0x3efee5c12d9aba2a63509e28bac5d74471021c75 --valaddress 0xd6d1d97984c8854c1c803b8252e5f826bbe9d6b2 --valaddress 0xcf7557deda3287a051cf261920fbb54e4252262d 
+      --peer /ip4/172.28.0.10/tcp/32000/p2p/16Uiu2HAm6pjb8EMwf5RF5Nc8HtQNHPKa4YZRKrZiP9FNRRwyHeLW --peer /ip4/172.28.0.11/tcp/32000/p2p/16Uiu2HAm6hrpfi1f6j9ccBvxpTpN7V47BMBfZerRWagVuxXSVtwB --peer /ip4/172.28.0.12/tcp/32000/p2p/16Uiu2HAky4mCwJJq8pPjqWkA154mdiUXqLh6zjs4oEiPfyMy2jAx --peer /ip4/172.28.0.13/tcp/32000/p2p/16Uiu2HAmTatnxayMWGMqcpT5d2Liq6hnhXNhxDCWNe2hPt6pwe9e 
+      --backend=true
   node2:
     container_name: node2
     depends_on:
       - bootnode
-    image: ablockchain:0.0.4
+    image: ablockchain:0.0.5
     networks:
       customnet:
         ipv4_address: 172.28.0.12
@@ -72,17 +57,18 @@ services:
       - ./key_store/nodekey2:/ablockchain/key_store/nodekey2
       - ./genesis.json:/ablockchain/genesis.json
     command: >
-      sh -c "sleep 1 && ./ablockchain 
+      ./ablockchain 
       --listen /ip4/0.0.0.0/tcp/32000 
       --nodekey ./key_store/nodekey2 
-      --valaddress 0x9dbc2952848b7f9bf2ca1246ea43b7eb20acbf87 --valaddress 0x5b3d2191f0d5978cf0f733d089ba4488e4bf59fa --valaddress 0xe0f5fc8faf30c9b9828937bc981d2c5d69c9f1bb --valaddress 0x694e1d48ccd06efd9ee5e25278542e0019086705 
-      --bootnode /ip4/172.28.0.127/tcp/32000/p2p/16Uiu2HAm4wNSqDcrMqfgkDfdhfHPQUvFjo9iMxi4y1smSqStWbTa
-      --backend=true"
+      --consensus hotstuff
+      --valaddress 0x2c7acc3c0c4056e23a2b5bc52682345fae313f3b --valaddress 0x3efee5c12d9aba2a63509e28bac5d74471021c75 --valaddress 0xd6d1d97984c8854c1c803b8252e5f826bbe9d6b2 --valaddress 0xcf7557deda3287a051cf261920fbb54e4252262d 
+      --peer /ip4/172.28.0.10/tcp/32000/p2p/16Uiu2HAm6pjb8EMwf5RF5Nc8HtQNHPKa4YZRKrZiP9FNRRwyHeLW --peer /ip4/172.28.0.11/tcp/32000/p2p/16Uiu2HAm6hrpfi1f6j9ccBvxpTpN7V47BMBfZerRWagVuxXSVtwB --peer /ip4/172.28.0.12/tcp/32000/p2p/16Uiu2HAky4mCwJJq8pPjqWkA154mdiUXqLh6zjs4oEiPfyMy2jAx --peer /ip4/172.28.0.13/tcp/32000/p2p/16Uiu2HAmTatnxayMWGMqcpT5d2Liq6hnhXNhxDCWNe2hPt6pwe9e 
+      --backend=true
   node3:
     container_name: node3
     depends_on:
       - bootnode
-    image: ablockchain:0.0.4
+    image: ablockchain:0.0.5
     networks:
       customnet:
         ipv4_address: 172.28.0.13
@@ -92,12 +78,13 @@ services:
       - ./key_store/nodekey3:/ablockchain/key_store/nodekey3
       - ./genesis.json:/ablockchain/genesis.json
     command: >
-      sh -c "sleep 1 && ./ablockchain 
+      ./ablockchain 
       --listen /ip4/0.0.0.0/tcp/32000 
       --nodekey ./key_store/nodekey3 
-      --valaddress 0x9dbc2952848b7f9bf2ca1246ea43b7eb20acbf87 --valaddress 0x5b3d2191f0d5978cf0f733d089ba4488e4bf59fa --valaddress 0xe0f5fc8faf30c9b9828937bc981d2c5d69c9f1bb --valaddress 0x694e1d48ccd06efd9ee5e25278542e0019086705 
-      --bootnode /ip4/172.28.0.127/tcp/32000/p2p/16Uiu2HAm4wNSqDcrMqfgkDfdhfHPQUvFjo9iMxi4y1smSqStWbTa
-      --backend=true"
+      --consensus hotstuff
+      --valaddress 0x2c7acc3c0c4056e23a2b5bc52682345fae313f3b --valaddress 0x3efee5c12d9aba2a63509e28bac5d74471021c75 --valaddress 0xd6d1d97984c8854c1c803b8252e5f826bbe9d6b2 --valaddress 0xcf7557deda3287a051cf261920fbb54e4252262d 
+      --peer /ip4/172.28.0.10/tcp/32000/p2p/16Uiu2HAm6pjb8EMwf5RF5Nc8HtQNHPKa4YZRKrZiP9FNRRwyHeLW --peer /ip4/172.28.0.11/tcp/32000/p2p/16Uiu2HAm6hrpfi1f6j9ccBvxpTpN7V47BMBfZerRWagVuxXSVtwB --peer /ip4/172.28.0.12/tcp/32000/p2p/16Uiu2HAky4mCwJJq8pPjqWkA154mdiUXqLh6zjs4oEiPfyMy2jAx --peer /ip4/172.28.0.13/tcp/32000/p2p/16Uiu2HAmTatnxayMWGMqcpT5d2Liq6hnhXNhxDCWNe2hPt6pwe9e 
+      --backend=true
 networks:
   customnet:
     driver: bridge

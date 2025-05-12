@@ -18,17 +18,23 @@ type consensusState struct {
 	Preprepare *bft.Preprepare
 	Prepares   *messageSet
 	Commits    *messageSet
-	lock       *sync.RWMutex
+
+	PrepareValList []string // prepare阶段，聚合签名的验证者列表
+	CommitValList  []string // commit阶段，聚合签名的验证者列表
+
+	lock *sync.RWMutex
 }
 
 func NewConsensusState(view *big.Int, sequence *big.Int, preprepare *bft.Preprepare) *consensusState {
 	return &consensusState{
-		View:       view,
-		Sequence:   sequence,
-		Preprepare: preprepare,
-		Prepares:   NewMessageSet(),
-		Commits:    NewMessageSet(),
-		lock:       new(sync.RWMutex),
+		View:           view,
+		Sequence:       sequence,
+		Preprepare:     preprepare,
+		Prepares:       NewMessageSet(),
+		Commits:        NewMessageSet(),
+		PrepareValList: []string{},
+		CommitValList:  []string{},
+		lock:           new(sync.RWMutex),
 	}
 }
 

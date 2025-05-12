@@ -7,10 +7,16 @@ import (
 	"log"
 )
 
-func (c *Core) HandleCommit(msg *hotstufftypes.Message) error {
-	log.Printf("开始处理Commit消息：%+v", msg)
+func (c *Core) HandleCommit1(msg *hotstufftypes.Message) error {
+	if !c.IsPrimary() {
+		log.Printf("非主节点，丢弃Commit1消息：%+v", msg)
+		return nil
+	}
+
+	log.Printf("开始处理Commit1消息：%+v", msg)
+
 	// 验证消息签名
-	if err := VerifySignature(msg); err != nil {
+	if err := c.VerifySignature(msg); err != nil {
 		return err
 	}
 
@@ -33,6 +39,8 @@ func (c *Core) HandleCommit(msg *hotstufftypes.Message) error {
 
 	if len(c.consensusState.Commits.messages) >= 2*c.ByzantineSize+1 && c.state.Cmp(hotstufftypes.StateCommitted) < 0 {
 		c.setState(hotstufftypes.StateCommitted)
+
+		c.SendCommit2()
 
 		block, err := c.consensusState.getBlock()
 		if err != nil {
@@ -57,9 +65,9 @@ func (c *Core) HandleCommit(msg *hotstufftypes.Message) error {
 	return nil
 }
 
-func (c *Core) SendCommit() error {
+func (c *Core) SendCommit1() error {
 	var msg hotstufftypes.Message
-	msg.Code = hotstufftypes.MsgCommit
+	msg.Code = hotstufftypes.MsgCommit1
 
 	commit := c.consensusState.getCommit()
 
@@ -80,8 +88,8 @@ func (c *Core) SendCommit() error {
 
 	c.consensusState.addCommit(&msg)
 
-	log.Printf("广播Commit消息：%+v", msg)
-	c.Broadcast(&msg)
+	log.Printf("发送Commit1消息给主节点：%+v", msg)
+	c.Unicast(&msg, string(c.Primary))
 
 	return nil
 }

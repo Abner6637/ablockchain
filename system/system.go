@@ -3,10 +3,10 @@ package system
 import (
 	"ablockchain/cli"
 	"ablockchain/consensus"
+	hotstuffcore "ablockchain/consensus/bft/hotstuff/core"
 	pbftcore "ablockchain/consensus/bft/pbft/core"
 	"ablockchain/consensus/pow"
 	"ablockchain/core"
-	"ablockchain/crypto"
 	"ablockchain/event"
 	"ablockchain/p2p"
 	"context"
@@ -53,7 +53,7 @@ func StartSystem(cfg *cli.Config) *System {
 	node := StartListen(cfg)
 	sys.p2pNode = node
 
-	crypto.InitBLS() // 初始化BLS库
+	// crypto.InitBLS() // 初始化BLS库
 
 	if len(cfg.PeerAddrs) != 0 {
 		// 阻塞两秒，等待其他节点启动再连接
@@ -89,7 +89,7 @@ func StartSystem(cfg *cli.Config) *System {
 	case "pbft":
 		sys.consensus = pbftcore.NewCore(cfg, node)
 	case "hotstuff":
-		sys.consensus = pbftcore.NewCore(cfg, node)
+		sys.consensus = hotstuffcore.NewCore(cfg, node)
 	case "pow":
 		sys.consensus = pow.NewProofOfWork(node)
 	default:

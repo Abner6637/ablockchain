@@ -126,7 +126,7 @@ func (c *Core) HandleEvents() {
 			if msg, ok := eventData.([]byte); ok {
 				err := c.HandleMessage(msg)
 				if err != nil {
-					log.Println("failed to handle the message")
+					log.Println("failed to handle the message: %v", err)
 				}
 			}
 		case "FinalCommitedBlock":
@@ -158,7 +158,10 @@ func (c *Core) HandleEvents() {
 				c.addrToBLSPub[info.EthAddr] = blsPubKey
 			}
 			for addr, id := range c.addrToID {
-				log.Printf("addr到ID的映射：addr: %s, id: %s", addr, id)
+				log.Printf("addr到ID的映射：addr: %x, id: %s", addr, id)
+			}
+			for addr, key := range c.addrToBLSPub {
+				log.Printf("addr到bls pubKey的映射：addr: %x, blsPubKey: %s", addr, key.SerializeToHexStr())
 			}
 		default:
 			log.Printf("consensus未知事件类型: %s", eventNames[chosen])
@@ -177,11 +180,17 @@ func (c *Core) HandleMessage(payload []byte) error {
 	case hotstufftypes.MsgPreprepare:
 		err := c.HandlePreprepare(msg)
 		return err
-	case hotstufftypes.MsgPrepare:
-		err := c.HandlePrepare(msg)
+	case hotstufftypes.MsgPrepare1:
+		err := c.HandlePrepare1(msg)
 		return err
-	case hotstufftypes.MsgCommit:
-		err := c.HandleCommit(msg)
+	case hotstufftypes.MsgPrepare2:
+		err := c.HandlePrepare2(msg)
+		return err
+	case hotstufftypes.MsgCommit1:
+		err := c.HandleCommit1(msg)
+		return err
+	case hotstufftypes.MsgCommit2:
+		err := c.HandleCommit2(msg)
 		return err
 	case hotstufftypes.MsgViewChange:
 		err := c.HandleViewChange(msg)

@@ -8,8 +8,10 @@ import (
 
 const (
 	MsgPreprepare uint64 = iota
-	MsgPrepare
-	MsgCommit
+	MsgPrepare1
+	MsgPrepare2
+	MsgCommit1
+	MsgCommit2
 	MsgViewChange
 	MsgNewView
 	// msgAll
@@ -20,7 +22,7 @@ type Message struct {
 	Msg        []byte
 	Address    []byte
 	Signature  []byte
-	additional []byte
+	Additional []byte // 主节点需要发送的按顺序排列的签名者列表（不能直接发送聚合公钥，破坏去中心化的特性
 }
 
 func (m *Message) EncodeMessage() ([]byte, error) {

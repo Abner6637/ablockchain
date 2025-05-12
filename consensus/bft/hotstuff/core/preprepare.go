@@ -11,7 +11,7 @@ func (c *Core) HandlePreprepare(msg *hotstufftypes.Message) error {
 	log.Printf("开始处理Preprepare消息：%+v", msg)
 
 	// 验证消息签名
-	if err := VerifySignature(msg); err != nil {
+	if err := c.VerifySignature(msg); err != nil {
 		return err
 	}
 
@@ -42,7 +42,7 @@ func (c *Core) HandlePreprepare(msg *hotstufftypes.Message) error {
 	c.consensusState.setPreprepare(preprepare)
 	c.setState(hotstufftypes.StatePreprepared)
 
-	c.SendPrepare()
+	c.SendPrepare1()
 
 	return nil
 }

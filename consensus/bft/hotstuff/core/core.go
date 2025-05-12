@@ -20,6 +20,7 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"gopkg.in/karalabe/cookiejar.v2/collections/prque"
 )
@@ -274,6 +275,7 @@ func (c *Core) Sign(data []byte) ([]byte, error) {
 
 }
 
+// BLS签名
 func (c *Core) SignMessage(msg *hotstufftypes.Message) ([]byte, error) {
 	// Sign message
 	data := msg.Msg
@@ -287,6 +289,98 @@ func (c *Core) SignMessage(msg *hotstufftypes.Message) ([]byte, error) {
 	return msg.Signature, nil
 }
 
+// 验证BLS签名
+func (c *Core) VerifySignature(msg *hotstufftypes.Message) error {
+	srcAddr := msg.Address
+	srcPubKey, ok := c.addrToBLSPub[string(srcAddr)]
+	if !ok {
+		return errors.New("未找到对应的公钥")
+	}
+
+	var blsSig crypto.BLSSig
+	blsSig.Deserialize(msg.Signature)
+	ok = crypto.BLSVerify(msg.Msg, &srcPubKey, &blsSig)
+	if !ok {
+		return errors.New("验证签名失败")
+	}
+	return nil
+}
+
+// 签名聚合签名，返回序列化的聚合签名，编码后的验证者列表，error
+func (c *Core) SignAggregate(messageSet *messageSet) ([]byte, []byte, error) {
+	var signs []crypto.BLSSig // 签名列表
+	var valLists []string     // 签名的验证者列表
+
+	for addr, msg := range messageSet.messages {
+		if msg.Code == hotstufftypes.MsgPrepare1 {
+			c.consensusState.PrepareValList = append(c.consensusState.PrepareValList, addr)
+
+			var blsSig crypto.BLSSig
+			blsSig.Deserialize(msg.Signature)
+			signs = append(signs, blsSig)
+
+			valLists = append(valLists, addr)
+
+		} else if msg.Code == hotstufftypes.MsgCommit1 {
+			c.consensusState.CommitValList = append(c.consensusState.CommitValList, addr)
+
+			var blsSig crypto.BLSSig
+			blsSig.Deserialize(msg.Signature)
+			signs = append(signs, blsSig)
+
+			valLists = append(valLists, addr)
+		}
+	}
+
+	log.Printf("验证者列表：%x", valLists)
+
+	encodedValLists, _ := rlp.EncodeToBytes(valLists)
+
+	// 对所有的签名进行聚合
+	blsSig, err := crypto.AggregateSignatures(signs)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return blsSig.Serialize(), encodedValLists, nil
+}
+
+// 验证聚合签名
+func (c *Core) VerifyAggregateSignature(msg *hotstufftypes.Message) error {
+	var valLists []string
+	rlp.DecodeBytes(msg.Additional, &valLists)
+	if len(valLists) == 0 {
+		return errors.New("缺失对应的验证者列表")
+	}
+
+	var valPubKeys []crypto.BLSPubKey
+	for _, addr := range valLists {
+		// 如果验证者地址是自身的话，则使用自身的bls公钥
+		if addr == string(c.Address()) {
+			blsPrivKey, _ := crypto.ConvertEthToBLS(c.privateKey)
+			blsPubKey := blsPrivKey.GetPublicKey()
+			valPubKeys = append(valPubKeys, *blsPubKey)
+			continue
+		}
+		pubKey, ok := c.addrToBLSPub[addr]
+		if !ok {
+			return errors.New("未找到对应的公钥")
+		}
+		valPubKeys = append(valPubKeys, pubKey)
+	}
+
+	aggKey, _ := crypto.AggregatePublicKeys(valPubKeys)
+
+	var blsSig crypto.BLSSig
+	blsSig.Deserialize(msg.Signature)
+
+	ok := crypto.VerifyAggregateSignature(aggKey, &blsSig, msg.Msg)
+	if !ok {
+		return errors.New("验证聚合签名失败")
+	}
+	return nil
+}
+
 // 通过未经哈希的原数据和签名得到签名所用的公钥，再通过公钥得到签名地址
 func GetSignatureAddress(data []byte, sig []byte) (common.Address, error) {
 	hashData := crypto.GlobalHashAlgorithm.Hash(data)
@@ -296,21 +390,6 @@ func GetSignatureAddress(data []byte, sig []byte) (common.Address, error) {
 		return common.Address{}, err
 	}
 	return crypto.PubkeyToAddress(*pubkey), nil
-}
-
-func VerifySignature(msg *hotstufftypes.Message) error {
-	payloadNoSig, err := msg.PayloadNoSig()
-	if err != nil {
-		return err
-	}
-
-	signerAddress, err := GetSignatureAddress(payloadNoSig, msg.Signature)
-
-	// 比较签名地址和消息中的地址参数（即发送消息的地址）是否一致
-	if !bytes.Equal(signerAddress.Bytes(), msg.Address) {
-		return errors.New("invaid signer")
-	}
-	return nil
 }
 
 func (c *Core) newViewChangeTimer() {

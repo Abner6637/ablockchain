@@ -11,7 +11,7 @@ func (c *Core) HandleViewChange(msg *hotstufftypes.Message) error {
 	log.Printf("开始处理viewchange消息：%+v", msg)
 
 	// 验证消息签名
-	if err := VerifySignature(msg); err != nil {
+	if err := c.VerifySignature(msg); err != nil {
 		return err
 	}
 

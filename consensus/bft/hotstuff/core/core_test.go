@@ -87,7 +87,7 @@ func TestSign(t *testing.T) {
 	log.Printf("address: %+v", address)
 
 	var msg hotstufftypes.Message
-	msg.Code = hotstufftypes.MsgPrepare
+	msg.Code = hotstufftypes.MsgPrepare1
 	prepare, err := hotstufftypes.Encode(&bft.Prepare{
 		View:     big.NewInt(0),
 		Sequence: big.NewInt(0),
