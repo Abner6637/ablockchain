@@ -12,6 +12,7 @@ import (
 	"math/big"
 	"time"
 
+	"github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/rlp"
 )
 
@@ -20,14 +21,16 @@ const MinTransactionsPerBlock int = 2 // 目前将区块交易数量固定为 Mi
 const MaxTransactionsPerBlock int = 10
 
 type Blockchain struct {
-	DB        *storage.LevelDB
-	TxPool    *TxPool
-	StateDB   *StateDB // 使用Merkle Patricia Tree来存储账户状态
-	StateRoot []byte   // Merkle Patricia Tree的根哈希
+	DB      *storage.LevelDB
+	TxPool  *TxPool
+	StateDB *state.StateDB
+	//StateRoot []byte         // Merkle Patricia Tree的根哈希
 
 	CurrentBlockHash []byte
 	CurBlockNum      *big.Int
 	NewBlockChan     chan *Block
+
+	Noncelist map[string]uint64 // 管理本地交易的nonce，发送多笔交易时保证交易nonce的连续性
 }
 
 // TODO: 区块链侧可能也需要加一个计时器，当某个区块共识一直没好时，重新把这个区块发给共识模块
@@ -50,10 +53,7 @@ func NewBlockchain(cfg *cli.Config) (*Blockchain, error) {
 	}
 	log.Printf("加载创世配置……\n")
 
-	stateDB, err := NewStateDB(DBPath + "_state")
-	if err != nil {
-		return nil, err
-	}
+	stateDB := NewStateDB(DBPath + "_state")
 
 	// 创建创世区块
 	genesisBlock := NewGenesisBlock(genensisConfig.Difficulty)
@@ -65,13 +65,14 @@ func NewBlockchain(cfg *cli.Config) (*Blockchain, error) {
 	// stateRoot := stateDB.trie.RootHash()
 
 	return &Blockchain{
-		DB:        db,
-		TxPool:    txPool,
-		StateDB:   stateDB,
-		StateRoot: nil,
+		DB:      db,
+		TxPool:  txPool,
+		StateDB: stateDB,
+		//StateRoot: nil,
 		//currentBlockHash: currentBlockHash,
 		CurBlockNum:  curBlockNum,
 		NewBlockChan: make(chan *Block, 10),
+		Noncelist:    make(map[string]uint64),
 	}, nil
 }
 
@@ -128,7 +129,7 @@ func (bc *Blockchain) addTx(tx *Transaction) {
 	maxNonce := bc.TxPool.GetMaxNonce(tx.From)
 	// 若交易池中没有，要检查MPT中的nonce值（防止交易提交后，后面的交易nonce接不上）
 	if maxNonce == 0 {
-		from, ok := bc.StateDB.GetAccStateFromMPT(tx.From)
+		from, ok := bc.GetAccState(tx.From)
 		if ok {
 			maxNonce = from.Nonce
 		}
@@ -181,7 +182,7 @@ func (bc *Blockchain) AddBlock(block *Block) {
 	str := fmt.Sprintf("%s", block.Header.Number)
 	fmt.Println(str)
 	block.PrintBlock()
-	bc.StateDB.ConfirmBlock(block) //修改账户状态MPT
+	bc.ConfirmBlock(block) //修改账户状态MPT
 	bc.DB.Put(str, block)
 	bc.TxPool.ClearPackedTxs(block.Transactions)
 	fmt.Printf("上链，交易池：\n Pending: %d, Queued: %d\n", bc.TxPool.PendingSize(), bc.TxPool.QueuedSize())
@@ -257,10 +258,7 @@ func NewTestBlockchain(DBPath string) (*Blockchain, error) {
 	}
 	log.Printf("加载创世配置……\n")
 
-	stateDB, err := NewStateDB(DBPath + "_state")
-	if err != nil {
-		return nil, err
-	}
+	stateDB := NewStateDB(DBPath + "_state")
 
 	// 创建创世区块
 	genesisBlock := NewGenesisBlock(genensisConfig.Difficulty)
@@ -269,10 +267,10 @@ func NewTestBlockchain(DBPath string) (*Blockchain, error) {
 	db.Put("0", genesisBlock)
 
 	return &Blockchain{
-		DB:        db,
-		TxPool:    txPool,
-		StateDB:   stateDB,
-		StateRoot: nil,
+		DB:      db,
+		TxPool:  txPool,
+		StateDB: stateDB,
+		//StateRoot: nil,
 		//currentBlockHash: currentBlockHash,
 		CurBlockNum:  curBlockNum,
 		NewBlockChan: make(chan *Block, 10),

@@ -51,4 +51,10 @@ func main() {
 		fmt.Println("正在打开交互界面...")
 		attachToSocket()
 	}
+	// http.HandleFunc("/", rpc.Handler)
+
+	// fmt.Println("RPC Server listening on http://localhost:8545")
+	// if err := http.ListenAndServe(":8545", nil); err != nil {
+	// 	log.Fatalf("启动失败: %v", err)
+	// }
 }

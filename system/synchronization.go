@@ -60,7 +60,7 @@ func ListenSynchronization(sys *System) {
 					sys.p2pNode.SendP2PMessage(data.PeerID, p2p.GetBlocksMessage, encodedgetBlocksmsg)
 
 				case 0: // 等高，验证hash和root（是否分叉）
-					if bytes.Equal(sys.blockChain.CurrentBlockHash, data.Snapshot.Hash) && bytes.Equal(sys.blockChain.StateRoot, data.Snapshot.Root) {
+					if bytes.Equal(sys.blockChain.CurrentBlockHash, data.Snapshot.Hash) /*&& bytes.Equal(sys.blockChain.StateRoot, data.Snapshot.Root)*/ {
 						fmt.Println("\n 同步完成")
 					} else {
 						fmt.Println("\n 出现分叉") //TODO
