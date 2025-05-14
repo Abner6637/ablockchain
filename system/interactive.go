@@ -79,8 +79,8 @@ func (c *Commander) Run() {
 			c.handleAddVal(parts[1], value)
 		case "newacc":
 			c.sys.blockChain.NewAccount()
-		// case "accls":
-		// 	c.sys.blockChain.StateDB.PrintAccounts()
+		case "accls":
+			c.sys.blockChain.PrintAllAccounts()
 		case "miner":
 			if len(parts) < 2 {
 				fmt.Println("用法: miner <miner address>")

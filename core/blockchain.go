@@ -31,6 +31,7 @@ type Blockchain struct {
 	NewBlockChan     chan *Block
 
 	Noncelist map[string]uint64 // 管理本地交易的nonce，发送多笔交易时保证交易nonce的连续性
+	Acclist   []string          //记录账户列表（geth的statedb迭代器被隐藏，暂时无法遍历账户）
 }
 
 // TODO: 区块链侧可能也需要加一个计时器，当某个区块共识一直没好时，重新把这个区块发给共识模块

@@ -48,6 +48,18 @@ func NewStateDB(dbPath string) *state.StateDB {
 	return statedb
 }
 
+func (bc *Blockchain) AddAccList(account string) {
+	// 检查账户是否已存在
+	for _, acc := range bc.Acclist {
+		if acc == account {
+			return // 账户已存在，直接返回
+		}
+	}
+
+	// 账户不存在，添加到列表
+	bc.Acclist = append(bc.Acclist, account)
+}
+
 // // 返回完整账户结构（包括密钥）
 // func (s *StateDB) GetAccount(address string) (*Account, error) {
 // 	accState, ok := s.GetAccState(address)
@@ -87,20 +99,21 @@ func (bc *Blockchain) NewAccount() (*Account, error) {
 	//暂存到内存中，不提交（产生交易后才提交）
 	addr := common.HexToAddress(address)
 	if bc.StateDB.Exist(addr) {
-		fmt.Errorf("Account should not exist initially")
+		return nil, fmt.Errorf("Account should not exist initially")
 	}
 
 	bc.StateDB.CreateAccount(addr)
 	if !bc.StateDB.Exist(addr) {
-		fmt.Errorf("Account should exist after creation")
+		return nil, fmt.Errorf("Account should exist after creation")
 	}
 	if !bc.StateDB.Empty(addr) {
-		fmt.Errorf("New account should be empty")
+		return nil, fmt.Errorf("New account should be empty")
 	}
 
 	//s.stateObjects[account.State.Address] = accstate
 
 	log.Printf("创建新账户，地址: %s\n", address)
+	bc.AddAccList(address)
 	// 保存到本地
 	_ = os.MkdirAll(privkeyaddr, 0700)
 	err = SaveAccountToFile(account, privkeyaddr)
@@ -120,6 +133,7 @@ func (bc *Blockchain) UpdateAccState(accstate *AccState) {
 	addr := common.HexToAddress(accstate.Address)
 	if !bc.StateDB.Exist(addr) {
 		bc.StateDB.CreateAccount(addr)
+		bc.AddAccList(accstate.Address)
 	}
 	bc.StateDB.SetBalance(addr, uint256.NewInt(accstate.Balance), tracing.BalanceChangeUnspecified)
 	bc.StateDB.SetNonce(addr, accstate.Nonce, tracing.NonceChangeUnspecified)
@@ -139,6 +153,23 @@ func (bc *Blockchain) GetAccState(address string) (*AccState, bool) {
 
 	}
 	return nil, false
+}
+
+func (bc *Blockchain) PrintAllAccounts() {
+	if len(bc.Acclist) == 0 {
+		fmt.Println("账户列表为空")
+		return
+	}
+	fmt.Println("====================================")
+
+	for _, address := range bc.Acclist {
+		accState, exists := bc.GetAccState(address)
+		if !exists {
+			fmt.Printf("账户 %s 不存在于状态数据库中\n", address)
+			continue
+		}
+		fmt.Printf("地址: %s | 余额: %d | Nonce: %d\n", accState.Address, accState.Balance, accState.Nonce)
+	}
 }
 
 // // 查询账户 StateDB
@@ -191,6 +222,7 @@ func (bc *Blockchain) GetAccState(address string) (*AccState, bool) {
 // }
 
 // 打印 StateDB 中的所有账户及其余额
+
 // func (bc *Blockchain) PrintAccounts() {
 // 	fmt.Println("=== StateDB中的账户 ===")
 // 	for _, accs := range bc.StateDB.stateObjects {
