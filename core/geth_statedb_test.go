@@ -1,4 +1,4 @@
-package evm
+package core
 
 import (
 	"os"

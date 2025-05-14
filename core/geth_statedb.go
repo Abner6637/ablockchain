@@ -299,7 +299,7 @@ func (bc *Blockchain) Commit() ([]byte, error) {
 
 	root, err := bc.StateDB.Commit(bc.CurBlockNum.Uint64(), false, false)
 	if err != nil {
-		fmt.Errorf("Failed to commit state: %v", err)
+		return nil, err
 	}
 	return root.Bytes(), nil
 }

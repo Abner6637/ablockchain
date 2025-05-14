@@ -214,7 +214,7 @@ func (node *Node) Synchronization(addr string) {
 	// targetPeer := sys.p2pNode.Peers()[0]
 	targetPeer, err := peer.Decode(addr)
 	if err != nil {
-		fmt.Errorf("Peer ID 解码失败: %w", err)
+		log.Fatal("Peer ID 解码失败: %w", err)
 		return
 	}
 	p2pMsg := &Message{
@@ -223,11 +223,11 @@ func (node *Node) Synchronization(addr string) {
 	}
 	encodedMsg, err := p2pMsg.Encode()
 	if err != nil {
-		fmt.Errorf("消息编码失败: %w", err)
+		log.Fatal("消息编码失败: %w", err)
 		return
 	}
 	if err := node.SendMessage(targetPeer, string(encodedMsg)); err != nil {
-		fmt.Errorf("发送消息失败: %w", err)
+		log.Fatal("发送消息失败: %w", err)
 		return
 	}
 }
