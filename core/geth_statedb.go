@@ -34,7 +34,7 @@ func NewStateDB(dbPath string) *state.StateDB {
 	dir := dbPath
 	ldb, err := leveldb.New(dir, 256, 512, "", false)
 	if err != nil {
-		fmt.Errorf("Failed to create leveldb: %v", err)
+		log.Fatal("Failed to create leveldb: %v", err)
 	}
 
 	db := rawdb.NewDatabase(ldb)
