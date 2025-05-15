@@ -2,6 +2,7 @@ package core
 
 import (
 	"ablockchain/crypto"
+	"encoding/hex"
 	"fmt"
 	"log"
 	"os"
@@ -34,7 +35,7 @@ func NewStateDB(dbPath string) *state.StateDB {
 	dir := dbPath
 	ldb, err := leveldb.New(dir, 256, 512, "", false)
 	if err != nil {
-		log.Fatal("Failed to create leveldb: %v", err)
+		fmt.Printf("Failed to create leveldb: %v", err)
 	}
 
 	db := rawdb.NewDatabase(ldb)
@@ -88,8 +89,9 @@ func (bc *Blockchain) NewAccount() (*Account, error) {
 	privKeyBytes := crypto.FromECDSA(privKey)
 	accstate := &AccState{
 		Address: address,
-		Balance: oribalance,
+		Balance: 0,
 		Nonce:   0,
+		Code:    nil,
 	}
 	account := &Account{
 		PrivateKey: privKeyBytes,
@@ -137,8 +139,15 @@ func (bc *Blockchain) UpdateAccState(accstate *AccState) {
 	}
 	bc.StateDB.SetBalance(addr, uint256.NewInt(accstate.Balance), tracing.BalanceChangeUnspecified)
 	bc.StateDB.SetNonce(addr, accstate.Nonce, tracing.NonceChangeUnspecified)
+	if accstate.Code != nil {
+		bc.StateDB.SetCode(addr, accstate.Code)
 
-	fmt.Printf("$$ 账户信息更新: 地址: %s | 余额: %d | Nonce: %d\n", accstate.Address, accstate.Balance, accstate.Nonce)
+		fmt.Printf("$$ 合约账户: 地址: %s | 余额: %d | Nonce: %d\n", accstate.Address, accstate.Balance, accstate.Nonce)
+		fmt.Printf("$$ 合约代码 %s: \n", hex.EncodeToString(accstate.Code))
+	} else {
+		fmt.Printf("$$ 账户信息更新: 地址: %s | 余额: %d | Nonce: %d\n", accstate.Address, accstate.Balance, accstate.Nonce)
+	}
+
 }
 
 // 查询账户
@@ -149,6 +158,7 @@ func (bc *Blockchain) GetAccState(address string) (*AccState, bool) {
 		accstate.Address = address
 		accstate.Balance = bc.StateDB.GetBalance(addr).Uint64()
 		accstate.Nonce = bc.StateDB.GetNonce(addr)
+
 		return &accstate, true
 
 	}

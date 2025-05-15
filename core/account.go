@@ -27,6 +27,7 @@ type AccState struct {
 	Address string
 	Balance uint64
 	Nonce   uint64
+	Code    []byte // only for smart contract account
 }
 
 // 打包 签名和交易
