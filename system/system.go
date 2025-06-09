@@ -1,6 +1,7 @@
 package system
 
 import (
+	"ablockchain/api"
 	"ablockchain/cli"
 	"ablockchain/consensus"
 	hotstuffcore "ablockchain/consensus/bft/hotstuff/core"
@@ -13,6 +14,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"net/http"
 	"os"
 	"time"
 
@@ -44,6 +46,7 @@ type System struct {
 	blockChain *core.Blockchain
 	// accountManager *core.AccountManager
 	consensus consensus.Consensus
+	api       *api.API
 }
 
 func StartSystem(cfg *cli.Config) *System {
@@ -105,6 +108,12 @@ func StartSystem(cfg *cli.Config) *System {
 	// bc.StartMiner("")     // 异步进程，开启判断是否要打包交易生成区块
 	ListenNewBlocks(bc)         // 异步进程，监听是否有新区块生成，若有则处理
 	ListenSynchronization(&sys) // 异步进程，监听是否有状态同步消息
+
+	api := api.NewAPI(bc)
+	sys.api = api
+
+	// 图形界面所需的RPC服务
+	go StartRPCHandler(api)
 
 	if cfg.IfBackend {
 		log.Printf("开启IPC Server")
@@ -406,5 +415,14 @@ func StartAutoDiscovery(ctx context.Context, kad *dht.IpfsDHT, h host.Host) {
 				}
 			}
 		}
+	}
+}
+
+func StartRPCHandler(a *api.API) {
+	http.HandleFunc("/rpc", a.Handler)
+
+	log.Println("RPC server listening on :26666")
+	if err := http.ListenAndServe(":26666", nil); err != nil {
+		log.Fatal(err)
 	}
 }

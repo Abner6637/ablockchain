@@ -306,3 +306,23 @@ func (bc *Blockchain) GetBlocksInRange(from, to *big.Int) ([]*Block, error) {
 	}
 	return blocks, nil
 }
+
+// 获取最新的5个区块
+func (bc *Blockchain) GetChain() ([]*Block, error) {
+	if bc.CurBlockNum.Cmp(big.NewInt(5)) > 0 {
+		// 读取编号从CurBlockNum-5到CurBlockNum的区块
+		return bc.GetBlocksInRange(new(big.Int).Sub(bc.CurBlockNum, big.NewInt(5)), bc.CurBlockNum)
+	} else {
+		return bc.GetBlocksInRange(big.NewInt(0), bc.CurBlockNum)
+	}
+}
+
+func (bc *Blockchain) GetBlockByIndex(index int) (*Block, error) {
+	key := fmt.Sprintf("%d", index)
+	var value Block
+	err := bc.DB.Get(key, &value)
+	if err != nil {
+		return nil, fmt.Errorf("读取区块 %s 失败: %w", key, err)
+	}
+	return &value, nil
+}
