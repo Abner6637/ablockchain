@@ -232,7 +232,7 @@ func (c *IPCCommander) handleTx(from, to string, value uint64) {
 		return
 	}
 	c.sys.blockChain.Noncelist[from] += 1 //本地记录nonce值
-	tx := core.NewTransaction(from, to, value, c.sys.blockChain.Noncelist[from])
+	tx := core.NewTransaction(from, to, value, "", c.sys.blockChain.Noncelist[from])
 	signtx, err := core.SignTx(tx) // 本地没有账户私钥
 	if err != nil {
 		c.sys.blockChain.Noncelist[from] -= 1

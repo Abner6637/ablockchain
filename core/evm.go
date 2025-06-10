@@ -1,7 +1,6 @@
 package core
 
 import (
-	"ablockchain/crypto"
 	"errors"
 	"fmt"
 	"log"
@@ -13,26 +12,22 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/vm/runtime"
+	gethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/params"
+	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/holiman/uint256"
 )
 
 // 合约账户
-func (bc *Blockchain) NewContract(balance uint64, code []byte) (*Account, error) {
-	privKey, err := crypto.GenerateKey()
-	if err != nil {
-		return nil, fmt.Errorf("生成私钥失败: %v", err)
-	}
-	address := crypto.PubkeyToAddress(privKey.PublicKey).Hex()
-	privKeyBytes := crypto.FromECDSA(privKey)
+func (bc *Blockchain) NewContract(address string, balance uint64, code []byte) (*Account, error) {
 	accstate := &AccState{
 		Address: address,
 		Balance: balance,
-		Nonce:   0,
+		Nonce:   1,
 		Code:    code,
 	}
 	account := &Account{
-		PrivateKey: privKeyBytes,
+		PrivateKey: nil,
 		State:      accstate,
 	}
 
@@ -63,7 +58,7 @@ func (bc *Blockchain) NewContract(balance uint64, code []byte) (*Account, error)
 	bc.AddContrList(address)
 	// 保存到本地
 	_ = os.MkdirAll(privkeyaddr, 0700)
-	err = SaveAccountToFile(account, privkeyaddr)
+	err := SaveAccountToFile(account, privkeyaddr)
 	if err != nil {
 		return nil, fmt.Errorf("保存账户文件失败: %v", err)
 	}
@@ -80,6 +75,22 @@ func (bc *Blockchain) AddContrList(contract string) {
 	}
 	// 账户不存在，添加到列表
 	bc.Contrlist = append(bc.Contrlist, contract)
+}
+
+// 收到部署合约的交易后，计算合约地址
+func CalculateContractAddress(sender_address string, sender_nonce uint64) string {
+	//转换 address
+	address := common.HexToAddress(sender_address)
+	//构造 RLP 编码对象（数组 [address, nonce]）
+	rlpInput := []interface{}{address, sender_nonce}
+	//RLP 编码
+	encoded, err := rlp.EncodeToBytes(rlpInput)
+	if err != nil {
+		log.Fatalf("RLP encode failed: %v", err)
+	}
+	contract_address := gethcrypto.Keccak256(encoded)[12:]
+	fmt.Printf("计算合约地址: 0x%x\n", contract_address)
+	return fmt.Sprintf("0x%x", contract_address)
 }
 
 func (bc *Blockchain) RunCode(sender_addr string, contr_addr string, abi_string string, gas_limit uint64, function string, args ...interface{}) (interface{}, uint64, error) {

@@ -77,7 +77,7 @@ func ListenSynchronization(sys *System) {
 					continue
 				}
 				fmt.Printf("\n收到GetBlocksMessage, PeerID:%s, From:%s, To:%s", data.PeerID, data.From, data.To)
-				// 打包blocks并发送
+				// 打包blocks并发送给需要同步的节点
 				bloks, err := sys.blockChain.GetBlocksInRange(data.From, data.To)
 				if err != nil {
 					log.Fatal("读取区块链失败")
@@ -119,7 +119,7 @@ func (sys *System) isValidBlock(block *core.Block) bool {
 		return false
 	}
 	if !bytes.Equal(sys.blockChain.CurrentBlockHash, block.Header.ParentHash) {
-		fmt.Println("区块ParentHash 与 sys.blockChain.CurrentBlockHash不相等\n")
+		fmt.Println("区块ParentHash 与 sys.blockChain.CurrentBlockHash不相等")
 		return false
 	}
 	if block.Header.Number.Cmp(new(big.Int).Add(sys.blockChain.CurBlockNum, big.NewInt(1))) != 0 {

@@ -11,7 +11,7 @@ import (
 
 // 测试辅助函数 - 创建测试区块链
 func setupTestBlockchain(t *testing.T) *Blockchain {
-	bc, err := NewTestBlockchain("testdb")
+	bc, err := NewTestBlockchain("./test_db/testdb")
 	assert.NoError(t, err)
 	t.Cleanup(func() {
 		// 测试结束后清理数据库
@@ -28,7 +28,7 @@ func TestContractCreation(t *testing.T) {
 	code := []byte{0x60, 0x60, 0x60, 0x40, 0x52} // PUSH1 0x60 PUSH1 0x60 PUSH1 0x40 MSTORE
 
 	// 创建合约
-	account, err := bc.NewContract(1000, code)
+	account, err := bc.NewContract("0x6769811e7d937e8f849201f2e0e34e019db5f3bc", 1000, code)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, account.State.Address)
 
@@ -47,7 +47,7 @@ func TestSimpleContractCall(t *testing.T) {
 	codeHex := "6080604052348015600f57600080fd5b506004361060285760003560e01c80636d4ce63c14602d575b600080fd5b60336047565b604051603e91906067565b60405180910390f35b6000602a905090565b6000819050919050565b6061816050565b82525050565b6000602082019050607a6000830184605a565b9291505056fea2646970667358221220857e54f745071af59d359e42dfacba868b7c6695cb"
 	code, err := hex.DecodeString(codeHex)
 	assert.NoError(t, err, "Failed to decode bytecode")
-	contract, err := bc.NewContract(1000, code)
+	contract, err := bc.NewContract("0x6769811e7d937e8f849201f2e0e34e019db5f3bc", 1000, code)
 	acc, err := bc.NewAccount()
 	assert.NoError(t, err)
 
@@ -67,4 +67,62 @@ func TestSimpleContractCall(t *testing.T) {
 
 	// 验证返回值
 	assert.Equal(t, big.NewInt(42), result)
+}
+
+// 测试存储合约
+func TestStorageContract(t *testing.T) {
+	bc := setupTestBlockchain(t)
+
+	// 从 solc 编译器获得的 runtime 字节码（仅部署后部分）
+	bytecode := "608060405234801561001057600080fd5b50600436106100365760003560e01c80632e64cec11461003b5780636057361d14610059575b600080fd5b610043610075565b60405161005091906100a1565b60405180910390f35b610073600480360381019061006e91906100ed565b61007e565b005b60008054905090565b8060008190555050565b6000819050919050565b61009b81610088565b82525050565b60006020820190506100b66000830184610092565b92915050565b600080fd5b6100ca81610088565b81146100d557600080fd5b50565b6000813590506100e7816100c1565b92915050565b600060208284031215610103576101026100bc565b5b6000610111848285016100d8565b9150509291505056fea26469706673582212207bbff281ae8c9b6ea56e4da77beab4556e6bc57e474bf6d5e5b2e37f"
+	code, err := hex.DecodeString(bytecode)
+	assert.NoError(t, err, "Failed to decode bytecode")
+
+	// 创建合约账户
+	contract, err := bc.NewContract("0x6769811e7d937e8f849201f2e0e34e019db5f3bc", 1000, code)
+	assert.NoError(t, err)
+
+	// 合约ABI
+	storageABI := `[{
+		"inputs":[{"internalType":"uint256","name":"num","type":"uint256"}],
+		"name":"store",
+		"outputs":[],
+		"stateMutability":"nonpayable",
+		"type":"function"
+	},{
+		"inputs":[],
+		"name":"retrieve",
+		"outputs":[{"internalType":"uint256","name":"","type":"uint256"}],
+		"stateMutability":"view",
+		"type":"function"
+	}]`
+
+	// 创建发送者账户
+	sender, err := bc.NewAccount()
+	assert.NoError(t, err)
+
+	t.Run("Store and Retrieve", func(t *testing.T) {
+		// 调用 store(100)
+		_, _, err := bc.RunCode(
+			sender.State.Address,
+			contract.State.Address,
+			storageABI,
+			1000000,
+			"store",
+			big.NewInt(100),
+		)
+		assert.NoError(t, err, "Call to store failed")
+
+		// 调用 retrieve()
+		result, _, err := bc.RunCode(
+			sender.State.Address,
+			contract.State.Address,
+			storageABI,
+			1000000,
+			"retrieve",
+		)
+		assert.NoError(t, err, "Call to retrieve failed")
+
+		assert.Equal(t, big.NewInt(100), result, "retrieve() should return 100")
+	})
 }

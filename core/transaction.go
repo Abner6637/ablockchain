@@ -18,6 +18,7 @@ type Transaction struct {
 	From  string
 	To    string
 	Value uint64
+	Data  string
 	Nonce uint64
 
 	GasPrice uint64
@@ -25,11 +26,12 @@ type Transaction struct {
 	Gas      uint64
 }
 
-func NewTransaction(from string, to string, value uint64, nonce uint64) *Transaction {
+func NewTransaction(from string, to string, value uint64, data string, nonce uint64) *Transaction {
 	tx := &Transaction{
 		From:  from,
 		To:    to,
 		Value: value,
+		Data:  data,
 		Nonce: nonce,
 		Time:  uint64(time.Now().Unix()),
 	}

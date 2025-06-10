@@ -178,7 +178,16 @@ func (bc *Blockchain) PrintAllAccounts() {
 			fmt.Printf("账户 %s 不存在于状态数据库中\n", address)
 			continue
 		}
-		fmt.Printf("地址: %s | 余额: %d | Nonce: %d\n", accState.Address, accState.Balance, accState.Nonce)
+		fmt.Printf("账户地址: %s | 余额: %d | Nonce: %d\n", accState.Address, accState.Balance, accState.Nonce)
+	}
+	fmt.Println("- - - - - - - - - - - - - - - - - -")
+	for _, address := range bc.Contrlist {
+		accState, exists := bc.GetAccState(address)
+		if !exists {
+			fmt.Printf("账户 %s 不存在于状态数据库中\n", address)
+			continue
+		}
+		fmt.Printf("合约地址: %s | 余额: %d | Nonce: %d\n", accState.Address, accState.Balance, accState.Nonce)
 	}
 }
 
@@ -267,25 +276,41 @@ func (bc *Blockchain) ConfirmBlock(block *Block) error {
 			from.Nonce += 1
 			bc.UpdateAccState(from)
 		} else { // ###########实际情况下不应该记录from账户，因为初始余额为0不可能发起交易##### 正确做法是触发同步
-			accs := &AccState{
-				Address: tx.From,
-				Balance: oribalance - tx.Value,
-				Nonce:   1,
+			// 特殊情况：部署合约时，From为未记录的地址（TODO：触发同步）
+			if tx.To == "0x" {
+				accs := &AccState{
+					Address: tx.From,
+					Balance: oribalance - tx.Value,
+					Nonce:   1,
+				}
+				bc.UpdateAccState(accs)
+			} else {
+				accs := &AccState{
+					Address: tx.From,
+					Balance: oribalance - tx.Value,
+					Nonce:   1,
+				}
+				bc.UpdateAccState(accs)
 			}
-			bc.UpdateAccState(accs)
 		}
-		to, ok := bc.GetAccState(tx.To)
-		if ok {
-			to.Balance += tx.Value
-			bc.UpdateAccState(to)
-		} else { //若mpt中没有，说明是新建的账户
-			accs := &AccState{
-				Address: tx.To,
-				Balance: oribalance + tx.Value,
-				Nonce:   0,
+		// 通过To的地址（是否为"0x"）判断是否为部署合约的交易
+		if tx.To == "0x" {
+			bc.NewContract(CalculateContractAddress(tx.From, tx.Nonce), tx.Value, []byte(tx.Data))
+		} else {
+			to, ok := bc.GetAccState(tx.To)
+			if ok {
+				to.Balance += tx.Value
+				bc.UpdateAccState(to)
+			} else { //若mpt中没有，说明是新建的账户
+				accs := &AccState{
+					Address: tx.To,
+					Balance: oribalance + tx.Value,
+					Nonce:   0,
+				}
+				bc.UpdateAccState(accs)
 			}
-			bc.UpdateAccState(accs)
 		}
+
 		miner, ok := bc.GetAccState(block.Header.Coinbase)
 		if ok {
 			miner.Balance += reward
@@ -298,7 +323,9 @@ func (bc *Blockchain) ConfirmBlock(block *Block) error {
 			}
 			bc.UpdateAccState(accs)
 		}
-		//TODO:判断用户是否存在，前提：statedb的同步
+
+		// 添加交易索引:交易哈希->区块哈希+位置索引(目前选择在外部添加:CreateBlockIndex)
+
 	}
 	bc.Commit() //更新MPT
 	return nil

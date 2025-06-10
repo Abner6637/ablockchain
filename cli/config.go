@@ -13,6 +13,7 @@ import (
 )
 
 type Config struct {
+	ChainID       string
 	ListenAddr    string   // p2p监听地址
 	ConsensusType string   // 共识类型
 	DBPath        string   // 数据库路径
@@ -44,6 +45,7 @@ func (s *stringSlice) Set(value string) error {
 func ParseFlags() (*Config, bool) {
 	cfg := &Config{}
 	// 添加 -db 选项，默认为 "./block_storage"
+	flag.StringVar(&cfg.ChainID, "id", "42", "链id")
 	flag.StringVar(&cfg.DBPath, "db", "./block_storage", "数据库存储路径")
 	flag.StringVar(&cfg.ListenAddr, "listen", "/ip4/0.0.0.0/tcp/0", "监听地址")
 	flag.StringVar(&cfg.ConsensusType, "consensus", "pbft", "共识协议: pow || pbft")

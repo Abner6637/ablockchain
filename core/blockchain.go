@@ -14,16 +14,19 @@ import (
 
 	"github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/rlp"
+	"github.com/syndtr/goleveldb/leveldb"
 )
 
 const BlockInterval time.Duration = 5 * time.Second
-const MinTransactionsPerBlock int = 2 // 目前将区块交易数量固定为 MinTransactionsPerBlock
+const MinTransactionsPerBlock int = 1 // 目前将区块交易数量固定为 MinTransactionsPerBlock
 const MaxTransactionsPerBlock int = 10
 
 type Blockchain struct {
+	ChainID string
 	DB      *storage.LevelDB
 	TxPool  *TxPool
 	StateDB *state.StateDB
+	IndexDB *leveldb.DB // 用于保存索引:哈希->区块高度, 哈希->交易索引等
 	//StateRoot []byte         // Merkle Patricia Tree的根哈希
 
 	CurrentBlockHash []byte
@@ -65,11 +68,17 @@ func NewBlockchain(cfg *cli.Config) (*Blockchain, error) {
 
 	// // 计算初始 stateRoot
 	// stateRoot := stateDB.trie.RootHash()
+	indexdb, err := leveldb.OpenFile(cfg.DBPath+"/indexdb", nil)
+	if err != nil {
+		return nil, err
+	}
 
 	return &Blockchain{
+		ChainID: cfg.ChainID,
 		DB:      db,
 		TxPool:  txPool,
 		StateDB: stateDB,
+		IndexDB: indexdb,
 		//StateRoot: nil,
 		//currentBlockHash: currentBlockHash,
 		CurBlockNum:  curBlockNum,
@@ -115,9 +124,7 @@ func (bc *Blockchain) handleTransaction(signtx *SignedTx) {
 	}
 	if valid {
 		fmt.Println("\n签名合法")
-
 		signtx.Tx.PrintTransaction()
-
 		// 交易加入交易池
 		bc.addTx(signtx.Tx)
 		fmt.Printf("交易池累计交易数：\n Pending: %d, Queued: %d\n", bc.TxPool.PendingSize(), bc.TxPool.QueuedSize())
@@ -184,9 +191,11 @@ func (bc *Blockchain) AddBlock(block *Block) {
 	str := fmt.Sprintf("%s", block.Header.Number)
 	fmt.Println(str)
 	block.PrintBlock()
-	bc.ConfirmBlock(block) //修改账户状态MPT
-	bc.DB.Put(str, block)
-	bc.TxPool.ClearPackedTxs(block.Transactions)
+	bc.ConfirmBlock(block)                       //修改账户状态MPT
+	bc.DB.Put(str, block)                        //存入数据库区块高度->区块
+	bc.StoreBlockIndex(block)                    // 添加索引:区块哈希->区块高度,方便查找
+	bc.StoreTxIndex(block)                       // 添加交易索引
+	bc.TxPool.ClearPackedTxs(block.Transactions) //清理交易池,防止重复打包
 	fmt.Printf("上链，交易池：\n Pending: %d, Queued: %d\n", bc.TxPool.PendingSize(), bc.TxPool.QueuedSize())
 	bc.CurBlockNum = block.Header.Number
 	bc.CurrentBlockHash = block.Hash
@@ -285,7 +294,7 @@ func CalculateMerkleRoot(transactions []*Transaction) []byte {
 	return crypto.ComputeMerkleRoot(txHashes)
 }
 
-// 读取编号从From到To的区块，返回列表
+// 读取编号从From到To编号的区块，返回列表
 func (bc *Blockchain) GetBlocksInRange(from, to *big.Int) ([]*Block, error) {
 	var blocks []*Block
 	one := big.NewInt(1)

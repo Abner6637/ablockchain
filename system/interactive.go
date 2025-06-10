@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"log"
 	"math/big"
+	"net/http"
 	"os"
 	"strconv"
 	"strings"
@@ -132,6 +133,8 @@ func (c *Commander) Run() {
 		case "id":
 			fmt.Printf("listenAddr: %v\n", c.sys.p2pNode.Host.Addrs())
 			fmt.Printf("p2pID:%s", c.sys.p2pNode.ID)
+		case "http":
+			c.http()
 		case "exit":
 			c.running = false
 		case "help":
@@ -169,6 +172,17 @@ func (c *Commander) handleSend(msg string) {
 	}
 }
 
+func (c *Commander) http() {
+	// 启动 RPC 服务（放入 goroutine，不阻塞主线程）
+	go func() {
+		http.HandleFunc("/", c.sys.Handler)
+		fmt.Println("RPC Server listening on http://localhost:8545")
+		if err := http.ListenAndServe(":8545", nil); err != nil {
+			log.Fatalf("启动失败: %v", err)
+		}
+	}()
+}
+
 func (c *Commander) handleBroadcast(msg string) {
 	if len(c.sys.p2pNode.Peers()) < 1 {
 		fmt.Println("错误: 未连接任何节点")
@@ -201,7 +215,7 @@ func (c *Commander) handleTx(from, to string, value uint64) {
 		return
 	}
 	c.sys.blockChain.Noncelist[from] += 1 //本地记录nonce值
-	tx := core.NewTransaction(from, to, value, c.sys.blockChain.Noncelist[from])
+	tx := core.NewTransaction(from, to, value, "", c.sys.blockChain.Noncelist[from])
 	signtx, err := core.SignTx(tx) // 本地没有账户私钥
 	if err != nil {
 		c.sys.blockChain.Noncelist[from] -= 1
