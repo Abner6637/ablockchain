@@ -201,15 +201,21 @@ func (sys *System) handleSingleRequest(req RPCRequest) RPCResponse {
 		var paramMaps []map[string]interface{}
 		if err := json.Unmarshal(req.Params, &paramMaps); err != nil {
 			res.Error = &RPCError{Code: -32602, Message: "Invalid params"}
+			break
 		}
-		// 第二步：提取所有值到字符串列表
-		var values []string
-		for _, param := range paramMaps {
-			for _, v := range param {
-				values = append(values, fmt.Sprintf("%v", v)) // 任意类型转为字符串
-			}
+		if len(paramMaps) == 0 {
+			res.Error = &RPCError{Code: -32602, Message: "Missing transaction object"}
+			break
 		}
-		res.Result = sys.eth_sendTransaction(values[0], values[1], values[2], values[3])
+		param := paramMaps[0] // 通常只有一个交易对象
+		// 第二步：显式提取字段
+		from, _ := param["from"].(string)
+		data, _ := param["data"].(string)
+		value, _ := param["value"].(string)
+		gas, _ := param["gas"].(string)
+		// 第三步：传给处理函数（根据你需要的字段）
+		res.Result = sys.eth_sendTransaction(from, data, value, gas)
+
 	case "eth_sendRawTransaction":
 		res.Result = "1"
 	case "eth_getTransactionReceipt":

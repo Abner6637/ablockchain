@@ -4,9 +4,11 @@ import (
 	"ablockchain/core"
 	"ablockchain/event"
 	"ablockchain/p2p"
+	"encoding/hex"
 	"fmt"
 	"log"
 	"strconv"
+	"strings"
 
 	"github.com/ethereum/go-ethereum/rlp"
 )
@@ -24,11 +26,20 @@ func (sys *System) eth_getBalance(acc string) string {
 }
 
 func (sys *System) eth_estimateGas() string {
-	return "100"
+	return "0x1"
 }
 
 func (sys *System) eth_getTransactionByHash(txhash string) map[string]interface{} {
-	index, err := sys.blockChain.QueryTxIndex([]byte(txhash))
+	// 去掉前缀 "0x"（不区分大小写）
+	cleanInput := strings.TrimPrefix(txhash, "0x")
+	cleanInput = strings.TrimPrefix(cleanInput, "0X")
+	// 解码 hex 字符串为 []byte
+	hashBytes, err := hex.DecodeString(cleanInput)
+	if err != nil {
+		fmt.Println("解码失败:", err)
+		return nil
+	}
+	index, err := sys.blockChain.QueryTxIndex([]byte(hashBytes))
 	if err != nil {
 		fmt.Printf("通过hash获取TxIndex失败: %v\n", err)
 		return nil
@@ -54,7 +65,7 @@ func (sys *System) eth_getTransactionByHash(txhash string) map[string]interface{
 	result := map[string]interface{}{
 		"hash":             txhash,
 		"nonce":            fmt.Sprintf("0x%x", tx.Nonce),
-		"blockHash":        string(index.BlockHash),
+		"blockHash":        "0x" + hex.EncodeToString(index.BlockHash),
 		"blockNumber":      hexStr,
 		"transactionIndex": fmt.Sprintf("0x%x", index.TxIndex),
 		"from":             tx.From,
@@ -81,11 +92,11 @@ func (sys *System) eth_requestAccounts() string {
 }
 
 func (sys *System) eth_accounts() []string {
-	return append(sys.blockChain.Acclist, sys.blockChain.Contrlist...)
+	return sys.blockChain.Acclist //append(sys.blockChain.Acclist, sys.blockChain.Contrlist...)
 }
 
 func (sys *System) eth_blockNumber() string {
-	return "0x1a"
+	return sys.blockChain.CurBlockNum.String()
 }
 
 func (sys *System) eth_getBlockByNumber(num string) map[string]interface{} {
@@ -97,9 +108,9 @@ func (sys *System) eth_getBlockByNumber(num string) map[string]interface{} {
 			fmt.Println("RLP decode error:", err)
 		}
 		result := map[string]interface{}{
-			"number":       key,
-			"hash":         value.Hash,
-			"parentHash":   value.Header.ParentHash,
+			"number":       "0x" + key,
+			"hash":         "0x" + hex.EncodeToString(value.Hash),
+			"parentHash":   "0x" + hex.EncodeToString(value.Header.ParentHash),
 			"transactions": value.Transactions,
 		}
 		return result
@@ -146,7 +157,7 @@ func (sys *System) eth_call() string {
 func (sys *System) eth_sendTransaction(from string, data string, value string, gas string) string {
 	acc, ok := sys.blockChain.GetAccState(from)
 	if !ok {
-		fmt.Println("错误: 付款账户不存在")
+		fmt.Printf("错误: 付款账户不存在:%s\n", from)
 	}
 	v, err := strconv.ParseUint(value, 0, 64)
 	if err != nil {
@@ -177,15 +188,34 @@ func (sys *System) eth_sendTransaction(from string, data string, value string, g
 	if err := sys.p2pNode.BroadcastMessage(string(encodedP2PMsg)); err != nil {
 		fmt.Printf("发送失败: %v\n", err)
 	}
-	result := tx.TxHash
-	return string(result)
+	result := "0x" + hex.EncodeToString(tx.TxHash)
+	// 添加临时收据所需数据
+	sys.tempTxReceipt = core.CalculateContractAddress(from, sys.blockChain.Noncelist[from])
+	return result
 }
 
 func (sys *System) eth_getTransactionReceipt(txhash string) map[string]interface{} {
-	index, err := sys.blockChain.QueryTxIndex([]byte(txhash))
+	// 去掉前缀 "0x"（不区分大小写）
+	cleanInput := strings.TrimPrefix(txhash, "0x")
+	cleanInput = strings.TrimPrefix(cleanInput, "0X")
+	// 解码 hex 字符串为 []byte
+	hashBytes, err := hex.DecodeString(cleanInput)
+	if err != nil {
+		fmt.Println("解码失败:", err)
+		return nil
+	}
+
+	index, err := sys.blockChain.QueryTxIndex(hashBytes)
 	if err != nil {
 		fmt.Printf("通过hash获取TxIndex失败: %v\n", err)
-		return nil
+		result := map[string]interface{}{
+			"transactionHash":   txhash,
+			"contractAddress":   sys.tempTxReceipt,
+			"status":            "0x1",
+			"blockNumber":       sys.blockChain.CurBlockNum.String(),
+			"cumulativeGasUsed": "0x1",
+		}
+		return result
 	}
 	tx := sys.blockChain.GetTxByIndex(index)
 	blockNum, err := sys.blockChain.GetBlockNumByHash(index.BlockHash)
@@ -202,13 +232,12 @@ func (sys *System) eth_getTransactionReceipt(txhash string) map[string]interface
 	// 将整数格式化为带有0x前缀的十六进制字符串
 	hexStr := fmt.Sprintf("0x%X", num)
 
-	// 伪造交易收据
 	result := map[string]interface{}{
-		"transactionHash":   string(tx.TxHash),
+		"transactionHash":   txhash,
 		"contractAddress":   core.CalculateContractAddress(tx.From, tx.Nonce),
 		"status":            "0x1",
 		"blockNumber":       hexStr,
-		"cumulativeGasUsed": "0x5208",
+		"cumulativeGasUsed": "0x1",
 	}
 	return result
 }
