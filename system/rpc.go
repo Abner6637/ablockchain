@@ -210,11 +210,12 @@ func (sys *System) handleSingleRequest(req RPCRequest) RPCResponse {
 		param := paramMaps[0] // 通常只有一个交易对象
 		// 第二步：显式提取字段
 		from, _ := param["from"].(string)
+		to, _ := param["to"].(string)
 		data, _ := param["data"].(string)
 		value, _ := param["value"].(string)
 		gas, _ := param["gas"].(string)
 		// 第三步：传给处理函数（根据你需要的字段）
-		res.Result = sys.eth_sendTransaction(from, data, value, gas)
+		res.Result = sys.eth_sendTransaction(from, to, data, value, gas)
 
 	case "eth_sendRawTransaction":
 		res.Result = "1"

@@ -154,7 +154,7 @@ func (sys *System) eth_call() string {
 }
 
 // 部署合约：创建并发布合约交易
-func (sys *System) eth_sendTransaction(from string, data string, value string, gas string) string {
+func (sys *System) eth_sendTransaction(from string, to string, data string, value string, gas string) string {
 	acc, ok := sys.blockChain.GetAccState(from)
 	if !ok {
 		fmt.Printf("错误: 付款账户不存在:%s\n", from)
@@ -167,31 +167,62 @@ func (sys *System) eth_sendTransaction(from string, data string, value string, g
 		fmt.Println("错误: 付款账户余额不足")
 	}
 	sys.blockChain.Noncelist[from] += 1 //本地记录nonce值
-	tx := core.NewTransaction(from, "0x", v, data, sys.blockChain.Noncelist[from])
-	signtx, err := core.SignTx(tx) // 本地没有账户私钥
-	if err != nil {
-		sys.blockChain.Noncelist[from] -= 1
+	if to == "" {
+		fmt.Printf("~~~~~~~~~~~~部署合约~~~~~~~~~~~~~~~\n")
+		tx := core.NewTransaction(from, "0x", v, data, sys.blockChain.Noncelist[from])
+		signtx, err := core.SignTx(tx) // 本地没有账户私钥
+		if err != nil {
+			sys.blockChain.Noncelist[from] -= 1
+		}
+		p2pdata, err := rlp.EncodeToBytes(signtx)
+		if err != nil {
+			log.Fatalf("rlp err: %v", err)
+		}
+		p2pMsg := &p2p.Message{
+			Type: p2p.TransactionMessage,
+			Data: p2pdata,
+		}
+		encodedP2PMsg, err := p2pMsg.Encode()
+		if err != nil {
+			log.Fatal("消息编码失败:encodedP2PMsg, err := p2pMsg.Encode()")
+		}
+		event.Bus.Publish("TransactionMessage", signtx) //自己节点也要把交易加入交易池,blockchain.StartMiner中处理
+		if err := sys.p2pNode.BroadcastMessage(string(encodedP2PMsg)); err != nil {
+			fmt.Printf("发送失败: %v\n", err)
+		}
+		result := "0x" + hex.EncodeToString(tx.TxHash)
+		// 添加临时收据所需数据
+		sys.tempTxReceipt = core.CalculateContractAddress(from, sys.blockChain.Noncelist[from])
+		return result
+	} else {
+		fmt.Printf("~~~~~~~~~~~~调用合约~~~~~~~~~~~~~~~\n")
+		tx := core.NewTransaction(from, to, v, data, sys.blockChain.Noncelist[from])
+		signtx, err := core.SignTx(tx) // 本地没有账户私钥
+		if err != nil {
+			sys.blockChain.Noncelist[from] -= 1
+		}
+		p2pdata, err := rlp.EncodeToBytes(signtx)
+		if err != nil {
+			log.Fatalf("rlp err: %v", err)
+		}
+		p2pMsg := &p2p.Message{
+			Type: p2p.TransactionMessage,
+			Data: p2pdata,
+		}
+		encodedP2PMsg, err := p2pMsg.Encode()
+		if err != nil {
+			log.Fatal("消息编码失败:encodedP2PMsg, err := p2pMsg.Encode()")
+		}
+		event.Bus.Publish("TransactionMessage", signtx) //自己节点也要把交易加入交易池,blockchain.StartMiner中处理
+		if err := sys.p2pNode.BroadcastMessage(string(encodedP2PMsg)); err != nil {
+			fmt.Printf("发送失败: %v\n", err)
+		}
+		result := "0x" + hex.EncodeToString(tx.TxHash)
+		// 添加临时收据所需数据（调用合约时直接保存合约地址）
+		sys.tempTxReceipt = to
+		return result
 	}
-	p2pdata, err := rlp.EncodeToBytes(signtx)
-	if err != nil {
-		log.Fatalf("rlp err: %v", err)
-	}
-	p2pMsg := &p2p.Message{
-		Type: p2p.TransactionMessage,
-		Data: p2pdata,
-	}
-	encodedP2PMsg, err := p2pMsg.Encode()
-	if err != nil {
-		log.Fatal("消息编码失败:encodedP2PMsg, err := p2pMsg.Encode()")
-	}
-	event.Bus.Publish("TransactionMessage", signtx) //自己节点也要把交易加入交易池,blockchain.StartMiner中处理
-	if err := sys.p2pNode.BroadcastMessage(string(encodedP2PMsg)); err != nil {
-		fmt.Printf("发送失败: %v\n", err)
-	}
-	result := "0x" + hex.EncodeToString(tx.TxHash)
-	// 添加临时收据所需数据
-	sys.tempTxReceipt = core.CalculateContractAddress(from, sys.blockChain.Noncelist[from])
-	return result
+
 }
 
 func (sys *System) eth_getTransactionReceipt(txhash string) map[string]interface{} {
