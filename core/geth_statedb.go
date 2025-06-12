@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/rawdb"
@@ -158,7 +159,7 @@ func (bc *Blockchain) GetAccState(address string) (*AccState, bool) {
 		accstate.Address = address
 		accstate.Balance = bc.StateDB.GetBalance(addr).Uint64()
 		accstate.Nonce = bc.StateDB.GetNonce(addr)
-
+		accstate.Code = bc.StateDB.GetCode(addr)
 		return &accstate, true
 
 	}
@@ -295,7 +296,11 @@ func (bc *Blockchain) ConfirmBlock(block *Block) error {
 		}
 		// 通过To的地址（是否为"0x"）判断是否为部署合约的交易
 		if tx.To == "0x" {
-			bc.NewContract(CalculateContractAddress(tx.From, tx.Nonce), tx.Value, []byte(tx.Data))
+			data, err := hex.DecodeString(strings.TrimPrefix(tx.Data, "0x"))
+			if err != nil {
+				fmt.Println("数据转换失败:", err)
+			}
+			bc.NewContract(CalculateContractAddress(tx.From, tx.Nonce), tx.Value, data)
 		} else {
 			to, ok := bc.GetAccState(tx.To)
 			if ok {

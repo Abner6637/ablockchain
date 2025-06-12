@@ -1,6 +1,7 @@
 package core
 
 import (
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"log"
@@ -45,6 +46,8 @@ func (bc *Blockchain) NewContract(address string, balance uint64, code []byte) (
 		return nil, fmt.Errorf("New account should be empty")
 	}
 	// 创建后立即设置代码和初始状态
+	fmt.Println("90909090909090909090909090909090909")
+	fmt.Println(hex.EncodeToString(code))
 	bc.StateDB.SetCode(addr, code)
 	bc.StateDB.SetNonce(addr, 1, 0) // 合约账户初始nonce为1
 	bc.StateDB.SetBalance(addr, uint256.NewInt(balance), 0)
@@ -231,4 +234,47 @@ func printResult(result interface{}) {
 			fmt.Printf("未知类型（%T）: %v\n", val, val)
 		}
 	}
+}
+
+func (bc *Blockchain) RunEVMCall(senderAddr string, contractAddr string, input []byte, gasLimit uint64, value *big.Int) ([]byte, uint64, error) {
+	if senderAddr == "" || contractAddr == "" {
+		return nil, 0, errors.New("地址不能为空")
+	}
+	// 获取账户状态
+	_, ok := bc.GetAccState(senderAddr)
+	if !ok {
+		return nil, 0, fmt.Errorf("发送者账户不存在: %s", senderAddr)
+	}
+	_, ok = bc.GetAccState(contractAddr)
+	if !ok {
+		return nil, 0, fmt.Errorf("合约账户不存在: %s", contractAddr)
+	}
+	sender := common.HexToAddress(senderAddr)
+	contract := common.HexToAddress(contractAddr)
+
+	// 构造运行时环境
+	runtimeCfg := runtime.Config{
+		Origin:      sender,
+		State:       bc.StateDB,
+		GasLimit:    gasLimit,
+		Value:       value,
+		BlockNumber: bc.CurBlockNum,
+		ChainConfig: &params.ChainConfig{
+			ChainID:             big.NewInt(1),
+			HomesteadBlock:      big.NewInt(0),
+			ByzantiumBlock:      big.NewInt(0),
+			ConstantinopleBlock: big.NewInt(0),
+			EIP150Block:         big.NewInt(0),
+			EIP155Block:         big.NewInt(0),
+			EIP158Block:         big.NewInt(0),
+			PetersburgBlock:     big.NewInt(0),
+			IstanbulBlock:       big.NewInt(0),
+		},
+	}
+	// EVM 执行
+	output, gasUsed, err := runtime.Call(contract, input, &runtimeCfg)
+	if err != nil {
+		return nil, gasUsed, fmt.Errorf("EVM执行失败: %v", err)
+	}
+	return output, gasUsed, nil
 }

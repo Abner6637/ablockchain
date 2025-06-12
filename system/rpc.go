@@ -228,9 +228,40 @@ func (sys *System) handleSingleRequest(req RPCRequest) RPCResponse {
 			res.Result = sys.eth_getTransactionReceipt(txhash)
 		}
 	case "eth_getCode":
-		res.Result = sys.eth_getCode()
+		var params []interface{}
+		if err := json.Unmarshal(req.Params, &params); err != nil || len(params) < 1 {
+			res.Error = &RPCError{Code: -32602, Message: "Invalid params"}
+		} else {
+			addr := params[0].(string)
+			res.Result = sys.eth_getCode(addr)
+		}
 	case "eth_call":
-		res.Result = sys.eth_call()
+		var params []json.RawMessage
+		if err := json.Unmarshal(req.Params, &params); err != nil {
+			res.Error = &RPCError{Code: -32602, Message: "Invalid params"}
+			break
+		}
+		if len(params) < 1 {
+			res.Error = &RPCError{Code: -32602, Message: "Missing call object"}
+			break
+		}
+		// 提取第一个参数（交易对象）
+		var callObj map[string]string
+		if err := json.Unmarshal(params[0], &callObj); err != nil {
+			res.Error = &RPCError{Code: -32602, Message: "Invalid call object"}
+			break
+		}
+		from := callObj["from"]
+		to := callObj["to"]
+		data := callObj["data"]
+		value := callObj["value"] // 通常是 "0x0"，可选
+		// 第二个参数（区块高度标签），可以忽略或默认 "latest"
+		// blockTag := "latest"
+		// if len(params) > 1 {
+		// 	_ = json.Unmarshal(params[1], &blockTag)
+		// }
+		res.Result = sys.eth_call(from, to, data, value)
+
 	case "eth_estimateGas":
 		res.Result = sys.eth_estimateGas()
 	case "eth_maxPriorityFeePerGas":

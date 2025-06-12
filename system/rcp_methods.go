@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"log"
+	"math/big"
 	"strconv"
 	"strings"
 
@@ -125,32 +126,35 @@ func (sys *System) eth_getBlockByNumber(num string) map[string]interface{} {
 	}
 }
 
-func (sys *System) eth_getCode() string {
-	// 根据地址决定返回内容，这里简单模拟
-	// var params []string
-	// if err := json.Unmarshal(req.Params, &params); err != nil || len(params) < 1 {
-	// 	res.Error = &RPCError{
-	// 		Code:    -32602,
-	// 		Message: "Invalid params",
-	// 	}
-	// 	break
-	// }
-
-	// address := params[0]
-	// if address == "0x0000000000000000000000000000000000000002" {
-	// 	// 模拟该地址有合约代码
-	// 	res.Result = "0x6080604052348015600f57600080fd5b5060..."
-	// } else {
-	// 	// 否则返回空
-	// 	res.Result = "0x"
-	// }
-	return "0x6080604052348015600f57600080fd5b5060..."
+func (sys *System) eth_getCode(addr string) string {
+	accState, exists := sys.blockChain.GetAccState(addr)
+	if !exists {
+		fmt.Printf("账户 %s 不存在于状态数据库中\n", addr)
+	}
+	println("Address: " + accState.Address)
+	result := "0x" + hex.EncodeToString(accState.Code)
+	println("GetCode: " + result)
+	return result
 }
 
-func (sys *System) eth_call() string {
-	// 模拟返回 ABI 编码的字符串："Hello from Go"
-	result := "0x48656c6c6f2066726f6d20476f"
-	return result
+func (sys *System) eth_call(from string, to string, data string, value string) string {
+	storeInput, err := hex.DecodeString(strings.TrimPrefix(data, "0x"))
+	if err != nil {
+		fmt.Println("数据转换失败:", err)
+	}
+	result, _, err := sys.blockChain.RunEVMCall(
+		from,
+		to,
+		storeInput,
+		1000000,
+		big.NewInt(0),
+	)
+	if err != nil {
+		fmt.Println("合约执行失败:", err)
+	}
+	fmt.Println("向remix返回结果：")
+	fmt.Println("0x" + hex.EncodeToString(result))
+	return "0x" + hex.EncodeToString(result)
 }
 
 // 部署合约：创建并发布合约交易
@@ -220,6 +224,23 @@ func (sys *System) eth_sendTransaction(from string, to string, data string, valu
 		result := "0x" + hex.EncodeToString(tx.TxHash)
 		// 添加临时收据所需数据（调用合约时直接保存合约地址）
 		sys.tempTxReceipt = to
+
+		storeInput, err := hex.DecodeString(strings.TrimPrefix(data, "0x"))
+		if err != nil {
+			fmt.Println("数据转换失败:", err)
+		}
+		// 只进行状态修改，无返回值（要查看状态需要调用eth_call）
+		_, _, err = sys.blockChain.RunEVMCall(
+			from,
+			to,
+			storeInput,
+			1000000,
+			big.NewInt(0),
+		)
+		if err != nil {
+			fmt.Println("合约执行失败:", err)
+		}
+
 		return result
 	}
 
