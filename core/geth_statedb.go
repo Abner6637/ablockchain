@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"log"
+	"math/big"
 	"os"
 	"strings"
 
@@ -142,9 +143,6 @@ func (bc *Blockchain) UpdateAccState(accstate *AccState) {
 	bc.StateDB.SetNonce(addr, accstate.Nonce, tracing.NonceChangeUnspecified)
 	if accstate.Code != nil {
 		bc.StateDB.SetCode(addr, accstate.Code)
-
-		fmt.Printf("$$ 合约账户: 地址: %s | 余额: %d | Nonce: %d\n", accstate.Address, accstate.Balance, accstate.Nonce)
-		fmt.Printf("$$ 合约代码 %s: \n", hex.EncodeToString(accstate.Code))
 	} else {
 		fmt.Printf("$$ 账户信息更新: 地址: %s | 余额: %d | Nonce: %d\n", accstate.Address, accstate.Balance, accstate.Nonce)
 	}
@@ -275,7 +273,7 @@ func (bc *Blockchain) ConfirmBlock(block *Block) error {
 			// }
 			from.Balance -= tx.Value
 			from.Nonce += 1
-			bc.UpdateAccState(from)
+			//bc.UpdateAccState(from)
 		} else { // ###########实际情况下不应该记录from账户，因为初始余额为0不可能发起交易##### 正确做法是触发同步
 			// 特殊情况：部署合约时，From为未记录的地址（TODO：触发同步）
 			if tx.To == "0x" {
@@ -284,6 +282,7 @@ func (bc *Blockchain) ConfirmBlock(block *Block) error {
 					Balance: oribalance - tx.Value,
 					Nonce:   1,
 				}
+				fmt.Println("特殊情况：部署合约时，From为未记录的地址（TODO：触发同步）")
 				bc.UpdateAccState(accs)
 			} else {
 				accs := &AccState{
@@ -291,6 +290,7 @@ func (bc *Blockchain) ConfirmBlock(block *Block) error {
 					Balance: oribalance - tx.Value,
 					Nonce:   1,
 				}
+				fmt.Println("外部账户收录")
 				bc.UpdateAccState(accs)
 			}
 		}
@@ -300,11 +300,18 @@ func (bc *Blockchain) ConfirmBlock(block *Block) error {
 			if err != nil {
 				fmt.Println("数据转换失败:", err)
 			}
-			bc.NewContract(CalculateContractAddress(tx.From, tx.Nonce), tx.Value, data)
+			bc.PrintAllAccounts()
+			fmt.Println("开始创建合约...")
+			_, err = bc.NewContract(tx.From, tx.Nonce, tx.Value, data)
+			if err != nil {
+				fmt.Println("NewContract失败:", err)
+			}
+			bc.PrintAllAccounts()
 		} else {
 			to, ok := bc.GetAccState(tx.To)
 			if ok {
 				to.Balance += tx.Value
+				fmt.Println("GetAccState(tx.To)成功，正常交易更新")
 				bc.UpdateAccState(to)
 			} else { //若mpt中没有，说明是新建的账户
 				accs := &AccState{
@@ -312,13 +319,38 @@ func (bc *Blockchain) ConfirmBlock(block *Block) error {
 					Balance: oribalance + tx.Value,
 					Nonce:   0,
 				}
+				fmt.Println("mpt中没有，说明是新建的账户")
 				bc.UpdateAccState(accs)
 			}
+
+			// tx.To不为空，且tx.Data有值，则调用合约
+			if tx.Data != "" {
+				fmt.Println("调用合约...")
+				storeInput, err := hex.DecodeString(strings.TrimPrefix(tx.Data, "0x"))
+				if err != nil {
+					fmt.Println("数据转换失败:", err)
+				}
+				_, _, err = bc.RunEVMCall(
+					tx.From,
+					tx.To,
+					storeInput,
+					1000000,
+					big.NewInt(0),
+				)
+				if err != nil {
+					fmt.Println("RunEVMCall执行失败:", err)
+				}
+			}
 		}
+
+		// from为一个副本，必须在miner前更新，否则miner的更新无效（若miner和from为同一账户）
+		fmt.Println("UpdateAccState(from)")
+		bc.UpdateAccState(from)
 
 		miner, ok := bc.GetAccState(block.Header.Coinbase)
 		if ok {
 			miner.Balance += reward
+			fmt.Println("￥￥更新矿工奖励￥￥")
 			bc.UpdateAccState(miner)
 		} else { //若mpt中没有，说明是新建的账户
 			accs := &AccState{
@@ -326,6 +358,7 @@ func (bc *Blockchain) ConfirmBlock(block *Block) error {
 				Balance: oribalance + reward,
 				Nonce:   0,
 			}
+			fmt.Println("GetAccState(block.Header.Coinbase)失败，说明是新账户")
 			bc.UpdateAccState(accs)
 		}
 

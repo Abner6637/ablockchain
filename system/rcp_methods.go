@@ -132,9 +132,7 @@ func (sys *System) eth_getCode(addr string) string {
 		fmt.Printf("账户 %s 不存在于状态数据库中\n", addr)
 	}
 	println("Address: " + accState.Address)
-	result := "0x" + hex.EncodeToString(accState.Code)
-	println("GetCode: " + result)
-	return result
+	return "0x" + hex.EncodeToString(accState.Code)
 }
 
 func (sys *System) eth_call(from string, to string, data string, value string) string {
@@ -225,21 +223,22 @@ func (sys *System) eth_sendTransaction(from string, to string, data string, valu
 		// 添加临时收据所需数据（调用合约时直接保存合约地址）
 		sys.tempTxReceipt = to
 
-		storeInput, err := hex.DecodeString(strings.TrimPrefix(data, "0x"))
-		if err != nil {
-			fmt.Println("数据转换失败:", err)
-		}
-		// 只进行状态修改，无返回值（要查看状态需要调用eth_call）
-		_, _, err = sys.blockChain.RunEVMCall(
-			from,
-			to,
-			storeInput,
-			1000000,
-			big.NewInt(0),
-		)
-		if err != nil {
-			fmt.Println("合约执行失败:", err)
-		}
+		// 在共识完成，确认交易后，再用evm运行合约
+		// storeInput, err := hex.DecodeString(strings.TrimPrefix(data, "0x"))
+		// if err != nil {
+		// 	fmt.Println("数据转换失败:", err)
+		// }
+		// // 只进行状态修改，无返回值（要查看状态需要调用eth_call）
+		// _, _, err = sys.blockChain.RunEVMCall(
+		// 	from,
+		// 	to,
+		// 	storeInput,
+		// 	1000000,
+		// 	big.NewInt(0),
+		// )
+		// if err != nil {
+		// 	fmt.Println("合约执行失败:", err)
+		// }
 
 		return result
 	}

@@ -1,7 +1,6 @@
 package core
 
 import (
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"log"
@@ -15,17 +14,23 @@ import (
 	"github.com/ethereum/go-ethereum/core/vm/runtime"
 	gethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/params"
-	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/holiman/uint256"
 )
 
 // 合约账户
-func (bc *Blockchain) NewContract(address string, balance uint64, code []byte) (*Account, error) {
+func (bc *Blockchain) NewContract(address string, nonce uint64, balance uint64, code []byte) (*Account, error) {
+
+	runtimeCode, _, _, err := bc.RunEVMCreate(address, code, 100000, big.NewInt(0))
+	if err != nil {
+		fmt.Println("bc.RunEVMCreate失败: " + err.Error())
+	}
+	contractAddr := CalculateContractAddress(address, nonce)
+
 	accstate := &AccState{
-		Address: address,
+		Address: contractAddr,
 		Balance: balance,
 		Nonce:   1,
-		Code:    code,
+		Code:    runtimeCode,
 	}
 	account := &Account{
 		PrivateKey: nil,
@@ -33,10 +38,10 @@ func (bc *Blockchain) NewContract(address string, balance uint64, code []byte) (
 	}
 
 	//暂存到内存中，不提交（产生交易后才提交）
-	addr := common.HexToAddress(address)
-	if bc.StateDB.Exist(addr) {
-		return nil, fmt.Errorf("Account should not exist initially")
-	}
+	addr := common.HexToAddress(contractAddr)
+	// if bc.StateDB.Exist(addr) {
+	// 	return nil, fmt.Errorf("Account should not exist initially")
+	// }
 
 	bc.StateDB.CreateAccount(addr)
 	if !bc.StateDB.Exist(addr) {
@@ -46,9 +51,7 @@ func (bc *Blockchain) NewContract(address string, balance uint64, code []byte) (
 		return nil, fmt.Errorf("New account should be empty")
 	}
 	// 创建后立即设置代码和初始状态
-	fmt.Println("90909090909090909090909090909090909")
-	fmt.Println(hex.EncodeToString(code))
-	bc.StateDB.SetCode(addr, code)
+	bc.StateDB.SetCode(addr, runtimeCode)
 	bc.StateDB.SetNonce(addr, 1, 0) // 合约账户初始nonce为1
 	bc.StateDB.SetBalance(addr, uint256.NewInt(balance), 0)
 
@@ -57,11 +60,11 @@ func (bc *Blockchain) NewContract(address string, balance uint64, code []byte) (
 
 	//s.stateObjects[account.State.Address] = accstate
 
-	log.Printf("创建合约成功，地址: %s\n", address)
-	bc.AddContrList(address)
+	log.Printf("创建合约成功，地址: %s\n", contractAddr)
+	bc.AddContrList(contractAddr)
 	// 保存到本地
 	_ = os.MkdirAll(privkeyaddr, 0700)
-	err := SaveAccountToFile(account, privkeyaddr)
+	err = SaveAccountToFile(account, privkeyaddr)
 	if err != nil {
 		return nil, fmt.Errorf("保存账户文件失败: %v", err)
 	}
@@ -81,21 +84,27 @@ func (bc *Blockchain) AddContrList(contract string) {
 }
 
 // 收到部署合约的交易后，计算合约地址
-func CalculateContractAddress(sender_address string, sender_nonce uint64) string {
-	//转换 address
-	address := common.HexToAddress(sender_address)
-	//构造 RLP 编码对象（数组 [address, nonce]）
-	rlpInput := []interface{}{address, sender_nonce}
-	//RLP 编码
-	encoded, err := rlp.EncodeToBytes(rlpInput)
-	if err != nil {
-		log.Fatalf("RLP encode failed: %v", err)
-	}
-	contract_address := gethcrypto.Keccak256(encoded)[12:]
-	fmt.Printf("计算合约地址: 0x%x\n", contract_address)
-	return fmt.Sprintf("0x%x", contract_address)
+//
+//	func CalculateContractAddress(sender_address string, sender_nonce uint64) string {
+//		//转换 address
+//		address := common.HexToAddress(sender_address)
+//		//构造 RLP 编码对象（数组 [address, nonce]）
+//		rlpInput := []interface{}{address, sender_nonce}
+//		//RLP 编码
+//		encoded, err := rlp.EncodeToBytes(rlpInput)
+//		if err != nil {
+//			log.Fatalf("RLP encode failed: %v", err)
+//		}
+//		contract_address := gethcrypto.Keccak256(encoded)[12:]
+//		fmt.Printf("计算合约地址: 0x%x\n", contract_address)
+//		return fmt.Sprintf("0x%x", contract_address)
+//	}
+func CalculateContractAddress(sender string, nonce uint64) string {
+	addr := gethcrypto.CreateAddress(common.HexToAddress(sender), nonce)
+	return addr.Hex()
 }
 
+// 需要abi，暂时弃用
 func (bc *Blockchain) RunCode(sender_addr string, contr_addr string, abi_string string, gas_limit uint64, function string, args ...interface{}) (interface{}, uint64, error) {
 	// 参数检查
 	if sender_addr == "" || contr_addr == "" {
@@ -277,4 +286,48 @@ func (bc *Blockchain) RunEVMCall(senderAddr string, contractAddr string, input [
 		return nil, gasUsed, fmt.Errorf("EVM执行失败: %v", err)
 	}
 	return output, gasUsed, nil
+}
+
+func (bc *Blockchain) RunEVMCreate(
+	senderAddr string,
+	deployCode []byte,
+	gasLimit uint64,
+	value *big.Int,
+) ([]byte, []byte, uint64, error) {
+	if senderAddr == "" {
+		return nil, nil, 0, errors.New("发送者地址不能为空")
+	}
+
+	_, ok := bc.GetAccState(senderAddr)
+	if !ok {
+		return nil, nil, 0, fmt.Errorf("发送者账户不存在: %s", senderAddr)
+	}
+
+	sender := common.HexToAddress(senderAddr)
+
+	runtimeCfg := runtime.Config{
+		Origin:      sender,
+		State:       bc.StateDB,
+		GasLimit:    gasLimit,
+		Value:       value,
+		BlockNumber: bc.CurBlockNum,
+		ChainConfig: &params.ChainConfig{
+			ChainID:             big.NewInt(1),
+			HomesteadBlock:      big.NewInt(0),
+			ByzantiumBlock:      big.NewInt(0),
+			ConstantinopleBlock: big.NewInt(0),
+			EIP150Block:         big.NewInt(0),
+			EIP155Block:         big.NewInt(0),
+			EIP158Block:         big.NewInt(0),
+			PetersburgBlock:     big.NewInt(0),
+			IstanbulBlock:       big.NewInt(0),
+		},
+	}
+
+	code, contractAddr, gasUsed, err := runtime.Create(deployCode, &runtimeCfg)
+	if err != nil {
+		return nil, nil, gasUsed, fmt.Errorf("runtime.Create失败: %v", err)
+	}
+
+	return code, contractAddr.Bytes(), gasUsed, nil
 }

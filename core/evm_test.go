@@ -29,7 +29,7 @@ func TestContractCreation(t *testing.T) {
 	code := []byte{0x60, 0x60, 0x60, 0x40, 0x52} // PUSH1 0x60 PUSH1 0x60 PUSH1 0x40 MSTORE
 
 	// 创建合约
-	account, err := bc.NewContract("0x6769811e7d937e8f849201f2e0e34e019db5f3bc", 1000, code)
+	account, err := bc.NewContract("0x6769811e7d937e8f849201f2e0e34e019db5f3bc", 1, 1000, code)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, account.State.Address)
 
@@ -48,7 +48,7 @@ func TestSimpleContractCall(t *testing.T) {
 	codeHex := "6080604052348015600f57600080fd5b506004361060285760003560e01c80636d4ce63c14602d575b600080fd5b60336047565b604051603e91906067565b60405180910390f35b6000602a905090565b6000819050919050565b6061816050565b82525050565b6000602082019050607a6000830184605a565b9291505056fea2646970667358221220857e54f745071af59d359e42dfacba868b7c6695cb"
 	code, err := hex.DecodeString(codeHex)
 	assert.NoError(t, err, "Failed to decode bytecode")
-	contract, err := bc.NewContract("0x6769811e7d937e8f849201f2e0e34e019db5f3bc", 1000, code)
+	contract, err := bc.NewContract("0x6769811e7d937e8f849201f2e0e34e019db5f3bc", 1, 1000, code)
 	acc, err := bc.NewAccount()
 	assert.NoError(t, err)
 
@@ -80,7 +80,7 @@ func TestStorageContract(t *testing.T) {
 	assert.NoError(t, err, "Failed to decode bytecode")
 
 	// 创建合约账户
-	contract, err := bc.NewContract("0x6769811e7d937e8f849201f2e0e34e019db5f3bc", 1000, code)
+	contract, err := bc.NewContract("0x6769811e7d937e8f849201f2e0e34e019db5f3bc", 1, 1000, code)
 	assert.NoError(t, err)
 
 	// 合约ABI
@@ -131,25 +131,25 @@ func TestStorageContract(t *testing.T) {
 func TestRunEVMCall(t *testing.T) {
 	bc := setupTestBlockchain(t)
 
-	// 1. 合约 bytecode（仅 runtime 部分）
-	bytecode := "608060405234801561001057600080fd5b50600436106100365760003560e01c80632e64cec11461003b5780636057361d14610059575b600080fd5b610043610075565b60405161005091906100a1565b60405180910390f35b610073600480360381019061006e91906100ed565b61007e565b005b60008054905090565b8060008190555050565b6000819050919050565b61009b81610088565b82525050565b60006020820190506100b66000830184610092565b92915050565b600080fd5b6100ca81610088565b81146100d557600080fd5b50565b6000813590506100e7816100c1565b92915050565b600060208284031215610103576101026100bc565b5b6000610111848285016100d8565b9150509291505056fea26469706673582212207bbff281ae8c9b6ea56e4da77beab4556e6bc57e474bf6d5e5b2e37f"
+	// 1. 合约 bytecode（完整部署代码）
+	bytecode := "608060405234801561001057600080fd5b50610150806100206000396000f3fe608060405234801561001057600080fd5b50600436106100365760003560e01c80632e64cec11461003b5780636057361d14610059575b600080fd5b610043610075565b60405161005091906100a1565b60405180910390f35b610073600480360381019061006e91906100ed565b61007e565b005b60008054905090565b8060008190555050565b6000819050919050565b61009b81610088565b82525050565b60006020820190506100b66000830184610092565b92915050565b600080fd5b6100ca81610088565b81146100d557600080fd5b50565b6000813590506100e7816100c1565b92915050565b600060208284031215610103576101026100bc565b5b6000610111848285016100d8565b9150509291505056fea26469706673582212207bbff281ae8c9b6ea56e4da77beab4556e6bc57e474bf6d5e5b2e37fbc6f003364736f6c63430008110033"
 
 	code, err := hex.DecodeString(bytecode)
 	assert.NoError(t, err, "Failed to decode bytecode")
 
-	// 2. 创建合约账户
-	contract, err := bc.NewContract("0x6769811e7d937e8f849201f2e0e34e019db5f3bc", 1000, code)
+	// 2. 创建发送者账户
+	sender, err := bc.NewAccount()
 	assert.NoError(t, err)
 
-	// 3. 创建发送者账户
-	sender, err := bc.NewAccount()
+	// 3. 创建合约账户
+	contract, err := bc.NewContract(sender.State.Address, 1, 1000, code)
 	assert.NoError(t, err)
 
 	// 4. 构造 store(100) 的 ABI 编码数据
 	// 方法签名：store(uint256) → keccak256 前4字节 + padded 参数
 	// 方法ID: keccak("store(uint256)")[:4] = 0x6057361d
 	// 参数: 100 (uint256，填充32字节) = 0x...00000064
-	storeData := "0x6057361d" + strings.Repeat("0", 64-len("64")) + "64"
+	storeData := "0x6057361d" + strings.Repeat("0", 64-len("6")) + "6"
 	storeInput, err := hex.DecodeString(strings.TrimPrefix(storeData, "0x"))
 	assert.NoError(t, err, "Invalid store input")
 
@@ -180,5 +180,33 @@ func TestRunEVMCall(t *testing.T) {
 	// 8. 解析返回的 output（应为 uint256 100）
 	assert.Len(t, output, 32, "Output should be 32 bytes")
 	result := new(big.Int).SetBytes(output)
-	assert.Equal(t, big.NewInt(100), result, "retrieve() should return 100")
+	assert.Equal(t, big.NewInt(6), result, "retrieve() should return 100")
+}
+
+func TestRunEVMCreate(t *testing.T) {
+	bc := setupTestBlockchain(t)
+
+	// 1. 创建发送者账户
+	sender, err := bc.NewAccount()
+	assert.NoError(t, err)
+
+	// 2. 合约部署字节码（含 constructor）
+	deployHex := "0x608060405234801561001057600080fd5b50610150806100206000396000f3fe608060405234801561001057600080fd5b50600436106100365760003560e01c80632e64cec11461003b5780636057361d14610059575b600080fd5b610043610075565b60405161005091906100a1565b60405180910390f35b610073600480360381019061006e91906100ed565b61007e565b005b60008054905090565b8060008190555050565b6000819050919050565b61009b81610088565b82525050565b60006020820190506100b66000830184610092565b92915050565b600080fd5b6100ca81610088565b81146100d557600080fd5b50565b6000813590506100e7816100c1565b92915050565b600060208284031215610103576101026100bc565b5b6000610111848285016100d8565b9150509291505056fea26469706673582212207bbff281ae8c9b6ea56e4da77beab4556e6bc57e474bf6d5e5b2e37fbc6f003364736f6c63430008110033"
+	deployCode, err := hex.DecodeString(strings.TrimPrefix(deployHex, "0x"))
+	assert.NoError(t, err, "Decode deploy code failed")
+
+	// 3. 执行 RunEVMCreate 提取 runtime code
+	runtimeCode, contractAddrBytes, gasUsed, err := bc.RunEVMCreate(
+		sender.State.Address,
+		deployCode,
+		1000000,
+		big.NewInt(0),
+	)
+	assert.NoError(t, err, "RunEVMCreate failed")
+	assert.NotEmpty(t, runtimeCode, "Runtime code should not be empty")
+
+	// 4. 打印结果便于人工对比
+	t.Logf("Contract Address: 0x%x", contractAddrBytes)
+	t.Logf("Gas Used: %d", gasUsed)
+	t.Logf("Runtime Code:\n%s", hex.EncodeToString(runtimeCode))
 }

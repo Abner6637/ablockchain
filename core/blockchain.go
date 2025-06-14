@@ -143,6 +143,7 @@ func (bc *Blockchain) addTx(tx *Transaction) {
 			maxNonce = from.Nonce
 		}
 	}
+	fmt.Printf("tx.Nonce：%d ； maxNonce：%d\n", tx.Nonce, maxNonce)
 	if tx.Nonce == maxNonce+1 {
 		bc.TxPool.AddPending(tx)
 	} else {
