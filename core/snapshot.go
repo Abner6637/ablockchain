@@ -17,7 +17,7 @@ type Snapshot struct {
 	ID     string
 	Number *big.Int // 快照最高区块的编号
 	Hash   []byte   // 快照最高区块的哈希
-	Root   []byte   // StateRoot
+	//Root   []byte   // StateRoot
 }
 
 func (s *Snapshot) EncodeSnapshot() ([]byte, error) {
@@ -43,7 +43,7 @@ func (bc *Blockchain) CreateSnapshot() *Snapshot {
 	snapshot := &Snapshot{
 		Number: new(big.Int).Set(bc.CurBlockNum),
 		Hash:   bc.CurrentBlockHash,
-		Root:   bc.StateRoot,
+		//Root:   bc.StateDB.StateRoot,
 	}
 	return snapshot
 }
@@ -56,7 +56,7 @@ func (bc *Blockchain) RestoreSnapshot(snap *Snapshot) error {
 
 	bc.CurBlockNum = new(big.Int).Set(snap.Number)
 	bc.CurrentBlockHash = snap.Hash
-	bc.StateRoot = snap.Root
+	//bc.StateRoot = snap.Root
 
 	/* if err := bc.StateDB.RevertToRoot(snap.Root); err != nil {
 		return fmt.Errorf("failed to revert state: %v", err)
@@ -76,7 +76,7 @@ func (bc *Blockchain) SyncSnapshot(snap *Snapshot) error {
 
 	bc.CurBlockNum = new(big.Int).Set(snap.Number)
 	bc.CurrentBlockHash = snap.Hash
-	bc.StateRoot = snap.Root
+	//bc.StateRoot = snap.Root
 
 	/* if err := bc.StateDB.RevertToRoot(snap.Root); err != nil {
 		return fmt.Errorf("failed to revert state: %v", err)
@@ -95,7 +95,7 @@ func (snap *Snapshot) PrintSnapshot() {
 	fmt.Printf("Snapshot ID: %s\n", snap.ID)
 	fmt.Printf("Block Number: %s\n", snap.Number.String())
 	fmt.Printf("Block Hash: %x\n", snap.Hash)
-	fmt.Printf("State Root: %x\n", snap.Root)
+	//fmt.Printf("State Root: %x\n", snap.Root)
 }
 
 // type SnapshotMessage struct {

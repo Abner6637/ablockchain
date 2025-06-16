@@ -108,9 +108,9 @@ func (c *IPCCommander) executeCommand(cmd string) {
 		}
 		c.handleAddVal(parts[1], value)
 	case "newacc":
-		c.sys.blockChain.StateDB.NewAccount()
+		c.sys.blockChain.NewAccount()
 	case "accls":
-		c.sys.blockChain.StateDB.PrintAccounts()
+		c.sys.blockChain.PrintAllAccounts()
 	case "miner":
 		if len(parts) < 2 {
 			c.output.Write([]byte("用法: miner <miner address>\n"))
@@ -211,18 +211,18 @@ func (c *IPCCommander) handleBroadcast(msg string) {
 }
 
 func (c *IPCCommander) handleAddVal(address string, value uint64) {
-	acc, ok := c.sys.blockChain.StateDB.GetAccState(address)
+	acc, ok := c.sys.blockChain.GetAccState(address)
 	if !ok {
 		fmt.Println("错误: 账户不存在")
 		return
 	}
 	acc.Balance += value
-	c.sys.blockChain.StateDB.UpdateAccState(acc)
+	c.sys.blockChain.UpdateAccState(acc)
 }
 
 // 发送交易
 func (c *IPCCommander) handleTx(from, to string, value uint64) {
-	acc, ok := c.sys.blockChain.StateDB.GetAccState(from)
+	acc, ok := c.sys.blockChain.GetAccState(from)
 	if !ok {
 		fmt.Println("错误: 付款账户不存在")
 		return
@@ -231,11 +231,11 @@ func (c *IPCCommander) handleTx(from, to string, value uint64) {
 		fmt.Println("错误: 付款账户余额不足")
 		return
 	}
-	c.sys.blockChain.StateDB.Noncelist[from] += 1 //本地记录nonce值
-	tx := core.NewTransaction(from, to, value, c.sys.blockChain.StateDB.Noncelist[from])
+	c.sys.blockChain.Noncelist[from] += 1 //本地记录nonce值
+	tx := core.NewTransaction(from, to, value, "", c.sys.blockChain.Noncelist[from])
 	signtx, err := core.SignTx(tx) // 本地没有账户私钥
 	if err != nil {
-		c.sys.blockChain.StateDB.Noncelist[from] -= 1
+		c.sys.blockChain.Noncelist[from] -= 1
 		return
 	}
 	data, err := rlp.EncodeToBytes(signtx)

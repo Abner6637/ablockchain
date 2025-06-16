@@ -15,6 +15,7 @@
 /key_store/
 /privkey/
 /core/test_db/
+/core/privkey/
 /testStore/
 
 # 日志和临时文件

@@ -33,7 +33,7 @@ func (s *LevelDB) Put(key string, value interface{}) error {
 	return s.db.Put([]byte(key), data, nil)
 }
 
-// Get 读取数据
+// Get 读取数据(bc.DB.Get(key, &value))
 func (s *LevelDB) Get(key string, value interface{}) error {
 	data, err := s.db.Get([]byte(key), nil)
 	if err != nil {

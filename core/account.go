@@ -27,6 +27,7 @@ type AccState struct {
 	Address string
 	Balance uint64
 	Nonce   uint64
+	Code    []byte // only for smart contract account
 }
 
 // 打包 签名和交易
@@ -86,12 +87,12 @@ func loadAccountKeysFromFile(address, dir string) ([]byte, error) {
 func SignTx(tx *Transaction) (*SignedTx, error) {
 	privkey, err := loadAccountKeysFromFile(tx.From, privkeyaddr)
 	if err != nil {
-		fmt.Println("没有该账户私钥，无法签名交易\n") //待docker测试
+		fmt.Println("没有该账户私钥，无法签名交易") //待docker测试
 		return nil, err
 	}
 	encodetx, err := tx.EncodeTx()
 	if err != nil {
-		fmt.Println("交易编码失败\n")
+		fmt.Println("交易编码失败")
 		return nil, err
 	}
 	hashTx := crypto.GlobalHashAlgorithm.Hash(encodetx) //编码后计算hash

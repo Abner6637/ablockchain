@@ -43,12 +43,12 @@ type System struct {
 	p2pNode    *p2p.Node
 	blockChain *core.Blockchain
 	// accountManager *core.AccountManager
-	consensus consensus.Consensus
+	consensus     consensus.Consensus
+	tempTxReceipt string // 临时保存交易收据，快速发送给remix
 }
 
 func StartSystem(cfg *cli.Config) *System {
 	var sys System
-
 	// 启动 P2P 节点
 	node := StartListen(cfg)
 	sys.p2pNode = node
