@@ -110,8 +110,8 @@ func (sys *System) handleSingleRequest(req RPCRequest) RPCResponse {
 
 	switch req.Method {
 	/*************** Accounts ***************/
-	case "eth_requestAccounts":
-		res.Result = sys.eth_requestAccounts()
+	// case "eth_requestAccounts":
+	// 	res.Result = sys.eth_requestAccounts()
 	case "eth_accounts":
 		res.Result = sys.eth_accounts()
 	case "eth_getBalance":

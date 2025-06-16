@@ -88,9 +88,9 @@ func (sys *System) net_version() string {
 }
 
 // =========================-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-==-=-=-=-=-=-=-=-=-=-
-func (sys *System) eth_requestAccounts() string {
-	return "0x0000000000000000000000000000000000000001"
-}
+// func (sys *System) eth_requestAccounts() string {
+// 	return "0x0000000000000000000000000000000000000001"
+// }
 
 func (sys *System) eth_accounts() []string {
 	return sys.blockChain.Acclist //append(sys.blockChain.Acclist, sys.blockChain.Contrlist...)
@@ -258,7 +258,8 @@ func (sys *System) eth_getTransactionReceipt(txhash string) map[string]interface
 
 	index, err := sys.blockChain.QueryTxIndex(hashBytes)
 	if err != nil {
-		fmt.Printf("通过hash获取TxIndex失败: %v\n", err)
+		fmt.Printf("交易还未完成共识, 返回预设收据: %v\n", err)
+		// 此处需要将合约地址提前返回，如果返回nil，则remix端会不停重复发送eth_getTransactionReceipt
 		result := map[string]interface{}{
 			"transactionHash":   txhash,
 			"contractAddress":   sys.tempTxReceipt,
