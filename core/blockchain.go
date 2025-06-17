@@ -309,12 +309,7 @@ func (bc *Blockchain) GetBlocksInRange(from, to *big.Int) ([]*Block, error) {
 
 // 获取最新的5个区块
 func (bc *Blockchain) GetChain() ([]*Block, error) {
-	if bc.CurBlockNum.Cmp(big.NewInt(5)) > 0 {
-		// 读取编号从CurBlockNum-5到CurBlockNum的区块
-		return bc.GetBlocksInRange(new(big.Int).Sub(bc.CurBlockNum, big.NewInt(5)), bc.CurBlockNum)
-	} else {
-		return bc.GetBlocksInRange(big.NewInt(0), bc.CurBlockNum)
-	}
+	return bc.GetBlocksInRange(big.NewInt(0), bc.CurBlockNum)
 }
 
 func (bc *Blockchain) GetBlockByIndex(index int) (*Block, error) {

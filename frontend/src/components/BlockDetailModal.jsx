@@ -1,23 +1,22 @@
 export default function BlockDetailModal({ block, onClose }) {
   return (
-    <div
-      style={{
-        position: 'fixed',
-        top: '20%',
-        left: '20%',
-        width: '60%',
-        backgroundColor: 'white',
-        border: '1px solid #333',
-        padding: '20px',
-        zIndex: 1000
-      }}
-    >
-      <h2>Block Detail</h2>
-      <p><strong>Number:</strong> {block.Header.Number}</p>
-      <p><strong>Timestamp:</strong> {block.Header.Time}</p>
-      <p><strong>Hash:</strong> {block.Hash}</p>
-      <p><strong>Parent Hash:</strong> {block.Header.ParentHash}</p>
-      <button onClick={onClose}>Close</button>
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+      <div className="bg-white rounded-lg w-full max-w-2xl p-6 relative shadow-lg">
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 text-gray-600 hover:text-red-500"
+        >✕</button>
+        <h2 className="text-2xl font-bold mb-4 text-blue-700">Block Details</h2>
+        <div className="grid grid-cols-2 gap-4 text-sm">
+          <div><strong>Number:</strong> {block.Header.Number}</div>
+          <div><strong>Timestamp:</strong> {new Date(block.Header.Time * 1000).toLocaleString()}</div>
+          <div className="col-span-2"><strong>Hash:</strong> {block.Hash}</div>
+          <div className="col-span-2"><strong>Parent Hash:</strong> {block.Header.ParentHash}</div>
+          <div><strong>Difficulty:</strong> {block.Header.Difficulty}</div>
+          <div><strong>Nonce:</strong> {block.Header.Nonce}</div>
+          <div><strong>Coinbase:</strong> {block.Header.Coinbase}</div>
+        </div>
+      </div>
     </div>
   );
 }
