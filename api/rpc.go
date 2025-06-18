@@ -43,14 +43,18 @@ func NewAPI(bc *core.Blockchain, node *p2p.Node) *API {
 }
 
 func (a *API) Handler(w http.ResponseWriter, r *http.Request) {
-	// 添加 CORS 头
+	// CORS headers
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
 	w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
 
-	// 对于浏览器的预检请求，直接返回 200
 	if r.Method == http.MethodOptions {
 		w.WriteHeader(http.StatusOK)
+		return
+	}
+
+	if r.Method != http.MethodPost {
+		http.Error(w, "Only POST is supported", http.StatusMethodNotAllowed)
 		return
 	}
 
@@ -59,6 +63,7 @@ func (a *API) Handler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid or empty body", http.StatusBadRequest)
 		return
 	}
+
 	var requests []JSONRPCRequest
 	isBatch := false
 
@@ -101,48 +106,6 @@ func (a *API) Handler(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte("Unexpected server condition"))
 	}
-
-	// switch req.Method {
-	// case "getChain":
-	// 	var err error
-	// 	result, err = a.bc.GetChain()
-	// 	if err != nil {
-	// 		errResp = &RPCError{-32000, "Failed to get chain"}
-	// 	}
-	// case "getBlockByIndex":
-	// 	if len(req.Params) != 1 {
-	// 		errResp = &RPCError{-32602, "Expected 1 parameter"}
-	// 		break
-	// 	}
-	// 	var index int
-	// 	if err := json.Unmarshal(req.Params[0], &index); err != nil {
-	// 		errResp = &RPCError{-32602, "Invalid parameter"}
-	// 		break
-	// 	}
-	// 	block, err := a.bc.GetBlockByIndex(index)
-	// 	if err != nil {
-	// 		errResp = &RPCError{-32000, "Block not found"}
-	// 		break
-	// 	}
-	// 	result = block
-
-	// default:
-	// 	errResp = &RPCError{-32601, "Method not found"}
-	// }
-
-	// resp := JSONRPCResponse{
-	// 	JSONRPC: "2.0",
-	// 	ID:      req.ID,
-	// }
-
-	// if errResp != nil {
-	// 	resp.Error = errResp
-	// } else {
-	// 	resp.Result = result
-	// }
-
-	// w.Header().Set("Content-Type", "application/json")
-	// json.NewEncoder(w).Encode(resp)
 }
 
 // func writeError(w http.ResponseWriter, id int, code int, message string) {
