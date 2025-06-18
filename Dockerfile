@@ -20,6 +20,15 @@ COPY . .
 # 编译静态二进制文件
 RUN go build -o /ablockchain/ablockchain ./main.go
 
+# ==== 构建前端 ====
+FROM node:20-alpine AS frontend-builder
+WORKDIR /frontend
+COPY frontend/package.json frontend/package-lock.json ./
+RUN npm install
+COPY frontend ./
+RUN npm run build
+
+
 # 第二阶段：构建轻量级生产镜像
 FROM alpine:latest
 
@@ -33,19 +42,27 @@ ENV TZ=Asia/Shanghai
 
 RUN apk add bash
 
+RUN apk add curl nodejs npm
+
 # 创建工作目录并确保权限正确
 WORKDIR /ablockchain
 
 # 从构建阶段复制编译好的二进制文件
 COPY --from=builder /ablockchain/ablockchain .
 COPY --from=builder /ablockchain/genesis.json .
+COPY --from=frontend-builder /frontend/dist /frontend
 
 
 # 暴露应用程序使用的端口（根据实际情况修改）
 EXPOSE 32000
+EXPOSE 26666
+EXPOSE 5137
 
 COPY entrypoint.sh /ablockchain/entrypoint.sh
 RUN chmod +x /ablockchain/entrypoint.sh
+
+# 默认值，docker运行时环境变量可以覆盖是谁、、
+ENV API_URL=http://localhost:26666
 
 # 启动应用程序
 ENTRYPOINT ["/ablockchain/entrypoint.sh"]

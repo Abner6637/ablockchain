@@ -2,6 +2,7 @@ package core
 
 import (
 	"ablockchain/crypto"
+	"encoding/json"
 	"fmt"
 	"log"
 	"time"
@@ -63,6 +64,17 @@ func DecodeTx(data []byte) (*Transaction, error) {
 		return nil, err
 	}
 	return &tx, nil
+}
+
+func (t *Transaction) MarshalJSON() ([]byte, error) {
+	type Alias Transaction
+	return json.Marshal(&struct {
+		*Alias
+		TxHash string `json:"TxHash"`
+	}{
+		Alias:  (*Alias)(t),
+		TxHash: fmt.Sprintf("%x", t.TxHash), // 将哈希转换为十六进制字符串
+	})
 }
 
 func (tx *Transaction) PrintTransaction() {

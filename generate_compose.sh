@@ -1,5 +1,6 @@
 #!/bin/bash
 
+# 目前有个问题，最多只能支持10个节点
 read -p "请输入节点数量: " NODE_COUNT
 START_IP=10
 
@@ -34,20 +35,24 @@ for ((i=0; i<NODE_COUNT; i++)); do
     container_name: node${i}
     depends_on:
       - bootnode
-    image: ablockchain:0.0.5
+    image: ablockchain:0.1.0
     networks:
       customnet:
         ipv4_address: 172.28.0.${node_ip}
     ports:
       - "3300${i}:32000"
+      - "2600${i}:26666"
+      - "2200${i}:5173"
     volumes:
       - ./key_store/nodekey${i}:/ablockchain/key_store/nodekey${i}
       - ./genesis.json:/ablockchain/genesis.json
+    environment:
+      - API_URL=http://192.168.2.127:2600${i}
     command: >
       ./ablockchain 
       --listen /ip4/0.0.0.0/tcp/32000 
       --nodekey ./key_store/nodekey${i} 
-      --consensus hotstuff
+      --consensus pbft
       ${VALADDR_ARGS}
       ${PEERADDR_ARGS}
       --backend=true

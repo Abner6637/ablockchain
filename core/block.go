@@ -3,6 +3,7 @@ package core
 import (
 	"ablockchain/crypto"
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"log"
 	"math/big"
@@ -31,6 +32,21 @@ func NewBlockHeader(parentHash []byte, dif uint64, num *big.Int, merkleroot []by
 		MerkleRoot: merkleroot,
 		Coinbase:   coinbase,
 	}
+}
+
+func (h *BlockHeader) MarshalJSON() ([]byte, error) {
+	type Alias BlockHeader
+	return json.Marshal(&struct {
+		*Alias
+		ParentHash string `json:"ParentHash"`
+		MerkleRoot string `json:"MerkleRoot"`
+		Number     uint64 `json:"Number"` // big.Int 需要转成 uint64
+	}{
+		Alias:      (*Alias)(h),
+		ParentHash: fmt.Sprintf("%x", h.ParentHash),
+		MerkleRoot: fmt.Sprintf("%x", h.MerkleRoot),
+		Number:     h.Number.Uint64(),
+	})
 }
 
 // 计算区块头哈希
@@ -83,6 +99,17 @@ func DecodeBlock(data []byte) (*Block, error) {
 		return nil, err
 	}
 	return &bk, nil
+}
+
+func (b *Block) MarshalJSON() ([]byte, error) {
+	type Alias Block // 创建一个别名类型，避免递归调用 MarshalJSON
+	return json.Marshal(&struct {
+		*Alias
+		Hash string `json:"Hash"`
+	}{
+		Alias: (*Alias)(b),
+		Hash:  fmt.Sprintf("%x", b.Hash), // 将哈希转换为十六进制字符串
+	})
 }
 
 func NewGenesisBlock(dif uint64) *Block {

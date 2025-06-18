@@ -126,7 +126,7 @@ func (c *Core) HandleEvents() {
 			if msg, ok := eventData.([]byte); ok {
 				err := c.HandleMessage(msg)
 				if err != nil {
-					log.Println("failed to handle the message: %v", err)
+					log.Printf("failed to handle the message: %v", err)
 				}
 			}
 		case "FinalCommitedBlock":

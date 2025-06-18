@@ -157,9 +157,9 @@ func (c *Core) HandleEvents() {
 				blsPubKey.DeserializeHexStr(info.BLSPubKeyHex)
 				c.addrToBLSPub[info.EthAddr] = blsPubKey
 			}
-			for addr, id := range c.addrToID {
+			/* for addr, id := range c.addrToID {
 				log.Printf("addr到ID的映射：addr: %s, id: %s", addr, id)
-			}
+			} */
 		default:
 			log.Printf("consensus未知事件类型: %s", eventNames[chosen])
 		}
