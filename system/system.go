@@ -421,8 +421,8 @@ func StartAutoDiscovery(ctx context.Context, kad *dht.IpfsDHT, h host.Host) {
 func StartRPCHandler(a *api.API) {
 	http.HandleFunc("/", a.Handler)
 
-	log.Println("RPC server listening on :26666")
-	if err := http.ListenAndServe(":26666", nil); err != nil {
+	log.Println("RPC server listening on :8545")
+	if err := http.ListenAndServe(":8545", nil); err != nil {
 		log.Fatal(err)
 	}
 }

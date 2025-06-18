@@ -55,14 +55,14 @@ COPY --from=frontend-builder /frontend/dist /frontend
 
 # 暴露应用程序使用的端口（根据实际情况修改）
 EXPOSE 32000
-EXPOSE 26666
+EXPOSE 8545
 EXPOSE 5137
 
 COPY entrypoint.sh /ablockchain/entrypoint.sh
 RUN chmod +x /ablockchain/entrypoint.sh
 
 # 默认值，docker运行时环境变量可以覆盖是谁、、
-ENV API_URL=http://localhost:26666
+ENV API_URL=http://localhost:8545
 
 # 启动应用程序
 ENTRYPOINT ["/ablockchain/entrypoint.sh"]

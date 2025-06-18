@@ -140,15 +140,13 @@ func (a *API) handleSingleRequest(req JSONRPCRequest) JSONRPCResponse {
 			res.Error = &RPCError{Code: -32000, Message: "Failed to get chain"}
 		}
 	case "getBlockByIndex":
-		if len(req.Params) != 1 {
-			res.Error = &RPCError{Code: -32602, Message: "Expected 1 parameter"}
+		var params []int
+		if err := json.Unmarshal(req.Params, &params); err != nil || len(params) != 1 {
+			res.Error = &RPCError{Code: -32602, Message: "Expected 1 integer parameter"}
 			break
 		}
-		var index int
-		if err := json.Unmarshal(req.Params, &index); err != nil { //req.Params[0]?
-			res.Error = &RPCError{Code: -32602, Message: "Invalid parameter"}
-			break
-		}
+		index := params[0]
+
 		block, err := a.bc.GetBlockByIndex(index)
 		if err != nil {
 			res.Error = &RPCError{Code: -32000, Message: "Block not found"}
