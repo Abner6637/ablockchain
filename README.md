@@ -155,3 +155,9 @@ bash generate_compose.sh
 ``` sh
 docker-compose up -d
 ```
+
+## 前端
+
+1. 本地环境安装Node.js
+2. 进入前端路径，即frontend，运行 npm install 下载安装所需的依赖
+3. 在frondend路径下，运行如 npm run dev 开启前端服务器
