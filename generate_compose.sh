@@ -52,7 +52,7 @@ for ((i=0; i<NODE_COUNT; i++)); do
       ./ablockchain 
       --listen /ip4/0.0.0.0/tcp/32000 
       --nodekey ./key_store/nodekey${i} 
-      --consensus hotstuff
+      --consensus pbft
       ${VALADDR_ARGS}
       ${PEERADDR_ARGS}
       --backend=true

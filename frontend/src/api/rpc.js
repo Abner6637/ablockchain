@@ -1,6 +1,11 @@
 export async function jsonRpcCall(method, params = [], id = 1) {
-  const API_URL = window.__API_URL__ || 'http://localhost:26666';
+  let API_URL;
 
+  if (typeof window !== 'undefined' && window.__API_URL__ && !window.__API_URL__.includes('__API_URL_PLACEHOLDER__')) {
+    API_URL = window.__API_URL__;
+  } else {
+    API_URL = import.meta.env.VITE_API_URL || 'http://localhost:26666';
+  }
   
   const response = await fetch(`${API_URL}/rpc`, {
     method: 'POST',
