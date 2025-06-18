@@ -109,7 +109,7 @@ func StartSystem(cfg *cli.Config) *System {
 	ListenNewBlocks(bc)         // 异步进程，监听是否有新区块生成，若有则处理
 	ListenSynchronization(&sys) // 异步进程，监听是否有状态同步消息
 
-	api := api.NewAPI(bc)
+	api := api.NewAPI(bc, node)
 	sys.api = api
 
 	// 图形界面所需的RPC服务
