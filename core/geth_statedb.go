@@ -273,7 +273,7 @@ func (bc *Blockchain) ConfirmBlock(block *Block) error {
 			// }
 			from.Balance -= tx.Value
 			from.Nonce += 1
-			//bc.UpdateAccState(from)
+			bc.UpdateAccState(from)
 		} else { // ###########实际情况下不应该记录from账户，因为初始余额为0不可能发起交易##### 正确做法是触发同步
 			// 特殊情况：部署合约时，From为未记录的地址（TODO：触发同步）
 			if tx.To == "0x" {
@@ -345,7 +345,7 @@ func (bc *Blockchain) ConfirmBlock(block *Block) error {
 
 		// from为一个副本，必须在miner前更新，否则miner的更新无效（若miner和from为同一账户）
 		fmt.Println("UpdateAccState(from)")
-		bc.UpdateAccState(from)
+		//bc.UpdateAccState(from)
 
 		miner, ok := bc.GetAccState(block.Header.Coinbase)
 		if ok {
