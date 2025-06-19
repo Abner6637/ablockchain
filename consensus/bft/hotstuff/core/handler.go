@@ -141,9 +141,6 @@ func (c *Core) HandleEvents() {
 
 				// 更新共识状态，准备处理下一个区块
 				c.StartNewProcess(big.NewInt(0))
-
-				// TODO: 状态是否是在这里修改为最初状态的呢？
-				c.setState(hotstufftypes.StateAcceptRequest)
 			}
 		case "TimeoutEvent":
 			log.Printf("consensus检测到TimeoutEvent事件")
@@ -157,12 +154,12 @@ func (c *Core) HandleEvents() {
 				blsPubKey.DeserializeHexStr(info.BLSPubKeyHex)
 				c.addrToBLSPub[info.EthAddr] = blsPubKey
 			}
-			for addr, id := range c.addrToID {
+			/* for addr, id := range c.addrToID {
 				log.Printf("addr到ID的映射：addr: %x, id: %s", addr, id)
 			}
 			for addr, key := range c.addrToBLSPub {
 				log.Printf("addr到bls pubKey的映射：addr: %x, blsPubKey: %s", addr, key.SerializeToHexStr())
-			}
+			} */
 		default:
 			log.Printf("consensus未知事件类型: %s", eventNames[chosen])
 		}

@@ -21,7 +21,8 @@ func (c *Core) HandleCommit(msg *pbfttypes.Message) error {
 	}
 
 	if c.consensusState.Preprepare != nil {
-		if commit.View.Cmp(c.consensusState.View) != 0 {
+		if commit.View.Cmp(c.consensusState.View) != 0 || commit.Sequence.Cmp(c.consensusState.Sequence) != 0 {
+			log.Printf("Commit消息的View或Sequence不匹配，丢弃消息")
 			return nil
 		}
 	} else {

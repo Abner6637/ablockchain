@@ -141,9 +141,6 @@ func (c *Core) HandleEvents() {
 
 				// 更新共识状态，准备处理下一个区块
 				c.StartNewProcess(big.NewInt(0))
-
-				// TODO: 状态是否是在这里修改为最初状态的呢？
-				c.setState(pbfttypes.StateAcceptRequest)
 			}
 		case "TimeoutEvent":
 			log.Printf("consensus检测到TimeoutEvent事件")

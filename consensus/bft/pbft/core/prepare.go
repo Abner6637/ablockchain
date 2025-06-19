@@ -21,7 +21,8 @@ func (c *Core) HandlePrepare(msg *pbfttypes.Message) error {
 	}
 
 	if c.consensusState.Preprepare != nil {
-		if prepare.View.Cmp(c.consensusState.View) != 0 {
+		if prepare.View.Cmp(c.consensusState.View) != 0 || prepare.Sequence.Cmp(c.consensusState.Sequence) != 0 {
+			log.Printf("Prepare消息的View或Sequence不匹配，丢弃消息")
 			return nil
 		}
 	} else {

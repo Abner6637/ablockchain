@@ -32,6 +32,12 @@ func (c *Core) HandlePreprepare(msg *pbfttypes.Message) error {
 		return nil
 	}
 
+	if preprepare.Sequence.Cmp(c.consensusState.Sequence) > 0 {
+		log.Printf("接收到可能来自未来的preprepare，存储")
+		c.storePreprepare(msg)
+		return nil
+	}
+
 	if c.state.Cmp(pbfttypes.StatePreprepared) >= 0 {
 		log.Printf("警告：当前core的状态>=StatePreprepared")
 		return nil
@@ -90,4 +96,45 @@ func (c *Core) SendPreprepare(request *bft.Request) error {
 	c.setState(pbfttypes.StatePreprepared)
 
 	return nil
+}
+
+func (c *Core) storePreprepare(preprepareMsg *pbfttypes.Message) {
+	c.pendingPrepreparesMu.Lock()
+	defer c.pendingPrepreparesMu.Unlock()
+
+	var preprepare *bft.Preprepare
+	preprepareMsg.Decode(&preprepare)
+
+	c.pendingPreprepares.Push(preprepareMsg, float32(-preprepare.Sequence.Int64()))
+	log.Printf("存储preprepareMsg：%+v", preprepareMsg)
+}
+
+func (c *Core) ProcessPreprepare() {
+	c.pendingPrepreparesMu.Lock()
+	defer c.pendingPrepreparesMu.Unlock()
+
+	for !(c.pendingPreprepares.Empty()) {
+		m, p := c.pendingPreprepares.Pop()
+		preMsg, ok := m.(*pbfttypes.Message)
+		if !ok {
+			log.Printf("格式不正确的preprepareMsg：%+v", m)
+			continue
+		}
+
+		var pre *bft.Preprepare
+		preMsg.Decode(&pre)
+
+		if pre.Sequence.Cmp(c.consensusState.getSequence()) < 0 {
+			log.Printf("pendingPreprepares中的该条prepare是旧的prepare，跳过")
+			continue
+		} else if pre.Sequence.Cmp(c.consensusState.getSequence()) > 0 {
+			c.pendingRequests.Push(m, p)
+			log.Printf("pendingPreprepares中的该条preprepare是以后需要处理的preprepare，重新放回pendingPreprepares队列")
+			break
+		} else {
+			log.Printf("取出pendingPreprepares中的preprepare，开始准备处理……")
+			c.HandlePreprepare(preMsg)
+			break
+		}
+	}
 }

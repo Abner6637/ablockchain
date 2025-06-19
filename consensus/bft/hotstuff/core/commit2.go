@@ -27,7 +27,8 @@ func (c *Core) HandleCommit2(msg *hotstufftypes.Message) error {
 	}
 
 	if c.consensusState.Preprepare != nil {
-		if commit.View.Cmp(c.consensusState.View) != 0 {
+		if commit.View.Cmp(c.consensusState.View) != 0 || commit.Sequence.Cmp(c.consensusState.Sequence) != 0 {
+			log.Printf("Commit2消息的View或Sequence不匹配，丢弃消息")
 			return nil
 		}
 	} else {
@@ -75,7 +76,7 @@ func (c *Core) SendCommit2() error {
 	}
 
 	// 打印使用
-	log.Printf("生成Commit：%+v", commit)
+	log.Printf("生成Commit2：%+v", commit)
 
 	msg.Msg = encodedCommit
 	msg.Address = c.address

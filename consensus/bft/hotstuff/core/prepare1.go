@@ -26,7 +26,8 @@ func (c *Core) HandlePrepare1(msg *hotstufftypes.Message) error {
 	}
 
 	if c.consensusState.Preprepare != nil {
-		if prepare.View.Cmp(c.consensusState.View) != 0 {
+		if prepare.View.Cmp(c.consensusState.View) != 0 || prepare.Sequence.Cmp(c.consensusState.Sequence) != 0 {
+			log.Printf("Prepare1消息的View或Sequence不匹配，丢弃消息")
 			return nil
 		}
 	} else {
@@ -58,7 +59,7 @@ func (c *Core) SendPrepare1() error {
 	}
 
 	// 打印使用
-	log.Printf("生成Prepare：%+v", prepare)
+	log.Printf("生成Prepare1：%+v", prepare)
 
 	msg.Msg = encodedPrepare
 	msg.Address = c.address

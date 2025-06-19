@@ -27,7 +27,8 @@ func (c *Core) HandleCommit1(msg *hotstufftypes.Message) error {
 	}
 
 	if c.consensusState.Preprepare != nil {
-		if commit.View.Cmp(c.consensusState.View) != 0 {
+		if commit.View.Cmp(c.consensusState.View) != 0 || commit.Sequence.Cmp(c.consensusState.Sequence) != 0 {
+			log.Printf("Commit1消息的View或Sequence不匹配，丢弃消息")
 			return nil
 		}
 	} else {
@@ -37,7 +38,8 @@ func (c *Core) HandleCommit1(msg *hotstufftypes.Message) error {
 	c.consensusState.addCommit(msg)
 	log.Printf("目前已存储的Commit消息数目：%d", len(c.consensusState.Commits.messages))
 
-	if len(c.consensusState.Commits.messages) >= 2*c.ByzantineSize+1 && c.state.Cmp(hotstufftypes.StateCommitted) < 0 {
+	// 这里需要2f个，因为除了主节点自己以外，需要2f
+	if len(c.consensusState.Commits.messages) >= 2*c.ByzantineSize && c.state.Cmp(hotstufftypes.StateCommitted) < 0 {
 		c.setState(hotstufftypes.StateCommitted)
 
 		c.SendCommit2()
@@ -77,7 +79,7 @@ func (c *Core) SendCommit1() error {
 	}
 
 	// 打印使用
-	log.Printf("生成Commit：%+v", commit)
+	log.Printf("生成Commit1：%+v", commit)
 
 	msg.Msg = encodedCommit
 	msg.Address = c.address

@@ -40,6 +40,9 @@ type Core struct {
 	pendingRequests   *prque.Prque
 	pendingRequestsMu *sync.Mutex
 
+	pendingPreprepares   *prque.Prque // 存储未处理的preprepare消息
+	pendingPrepreparesMu *sync.Mutex  // 保护pendingPreprepares的并发访问
+
 	events       []event.EventSubscription
 	timeoutEvent event.EventSubscription
 	helloEvent   event.EventSubscription
@@ -79,21 +82,23 @@ func NewCore(cfg *cli.Config, p2pNode *p2p.Node) *Core {
 	log.Printf("HexValSet: %x", valSet)
 
 	return &Core{
-		p2pNode:           p2pNode,
-		state:             pbfttypes.StateAcceptRequest,
-		privateKey:        p2pNode.PrivateKey,
-		address:           crypto.PubkeyToAddress(p2pNode.PrivateKey.PublicKey).Bytes(),
-		addrToID:          make(map[string]string),
-		addrToBLSPub:      make(map[string]crypto.BLSPubKey),
-		ByzantineSize:     (cfg.ConsensusNum - 1) / 3,
-		NodeSize:          cfg.ConsensusNum,
-		pendingRequests:   prque.New(),
-		pendingRequestsMu: new(sync.Mutex),
-		curCommitedBlock:  &core.Block{},
-		ValSet:            valSet,
-		Primary:           address, // 初始化为自身的地址（后续初始化过程中会更改）
-		ViewChanges:       make(map[uint64]*messageSet),
-		wg:                &sync.WaitGroup{},
+		p2pNode:              p2pNode,
+		state:                pbfttypes.StateAcceptRequest,
+		privateKey:           p2pNode.PrivateKey,
+		address:              crypto.PubkeyToAddress(p2pNode.PrivateKey.PublicKey).Bytes(),
+		addrToID:             make(map[string]string),
+		addrToBLSPub:         make(map[string]crypto.BLSPubKey),
+		ByzantineSize:        (cfg.ConsensusNum - 1) / 3,
+		NodeSize:             cfg.ConsensusNum,
+		pendingRequests:      prque.New(),
+		pendingRequestsMu:    new(sync.Mutex),
+		pendingPreprepares:   prque.New(),
+		pendingPrepreparesMu: new(sync.Mutex),
+		curCommitedBlock:     &core.Block{},
+		ValSet:               valSet,
+		Primary:              address, // 初始化为自身的地址（后续初始化过程中会更改）
+		ViewChanges:          make(map[uint64]*messageSet),
+		wg:                   &sync.WaitGroup{},
 	}
 }
 
@@ -235,13 +240,19 @@ func (c *Core) addViewChange(view *big.Int, msg *pbfttypes.Message) {
 func (c *Core) StartNewProcess(num *big.Int) {
 	log.Printf("准备开始新一轮共识")
 	if c.consensusState == nil { // 初始化
-		c.consensusState = NewConsensusState(big.NewInt(0), big.NewInt(0), nil)
+		c.consensusState = NewConsensusState(big.NewInt(0), big.NewInt(1), nil) // 初始序列号为1，因为已经存在创世区块0
 	} else {
 		if num.Cmp(big.NewInt(0)) == 0 { // 没有视图切换
 			c.consensusState = NewConsensusState(c.consensusState.getView(), new(big.Int).Add(c.curCommitedBlock.Header.Number, big.NewInt(1)), nil)
 
+			// 状态回到准备处理request（对于主节点）或preprepare（对于非主节点）
+			c.setState(pbfttypes.StateAcceptRequest)
 			// 正常共识完一个request后（没有视图转换等），开始处理队列中的下一个request（如果有的话）
-			c.ProcessRequest()
+			if c.IsPrimary() {
+				c.ProcessRequest()
+			} else {
+				c.ProcessPreprepare() // 非主节点时，查看是否需要处理pendingPreprepares中的preprepare消息
+			}
 		} else { // 发生视图切换
 			c.consensusState = NewConsensusState(num, c.consensusState.getSequence(), c.consensusState.Preprepare) // preprepare继续上一视图正在进行的
 		}
