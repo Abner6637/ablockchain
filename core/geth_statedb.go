@@ -19,9 +19,9 @@ import (
 	"github.com/holiman/uint256"
 )
 
-var oribalance = uint64(1000)
+var oribalance = uint64(0) // 账户初始余额
 var privkeyaddr = "./privkey"
-var reward = uint64(10)
+var reward = uint64(10) // 一次挖矿的奖励
 
 // StateDB 管理账户状态(内存操作，提交到Trie后才是持久化存储)
 // type StateDB struct {
@@ -259,9 +259,13 @@ func (bc *Blockchain) PrintAllAccounts() {
 
 // 区块上链后，根据区块信息改变账户状态，并提交至MPT
 // TODO: 验证交易与账户的nonce信息，是否按顺序进行
-func (bc *Blockchain) ConfirmBlock(block *Block) error {
+func (bc *Blockchain) ConfirmBlock(block *Block) bool {
+	if block.Header.Number.Uint64() != bc.CurBlockNum.Uint64()+1 {
+		// 收到区块打
+		return false
+	}
 	for _, tx := range block.Transactions {
-		from, ok := bc.GetAccState(tx.From)
+		from, ok := bc.GetAccState(tx.From) //首先判断付款账户是否有本地记录（若没有，应该触发同步）
 		if ok {
 			// TODO: 是否需要在这里验证nonce的顺序？
 			// if from.Nonce+1 == tx.Nonce {
@@ -344,7 +348,7 @@ func (bc *Blockchain) ConfirmBlock(block *Block) error {
 		}
 
 		// from为一个副本，必须在miner前更新，否则miner的更新无效（若miner和from为同一账户）
-		fmt.Println("UpdateAccState(from)")
+		//fmt.Println("UpdateAccState(from)")
 		//bc.UpdateAccState(from)
 
 		miner, ok := bc.GetAccState(block.Header.Coinbase)
@@ -366,7 +370,7 @@ func (bc *Blockchain) ConfirmBlock(block *Block) error {
 
 	}
 	bc.Commit() //更新MPT
-	return nil
+	return true
 }
 
 // 将account插入mpt，并将acc和mpt都提交到leveldb

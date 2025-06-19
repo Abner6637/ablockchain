@@ -152,7 +152,8 @@ func (c *Commander) handleConnect(addr string) {
 	if err := c.sys.p2pNode.ConnectToPeer(addr); err != nil {
 		fmt.Printf("连接失败: %v\n", err)
 	} else {
-		fmt.Println("连接成功")
+		//c.sys.p2pNode.Synchronization(strings.Split(addr, "/p2p/")[1])
+		fmt.Println("连接成功, 进行同步...")
 	}
 }
 

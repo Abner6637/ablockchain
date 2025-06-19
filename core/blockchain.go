@@ -188,11 +188,13 @@ func (bc *Blockchain) mineNewBlock(miner string) (*Block, error) {
 	return block, nil
 }
 
-func (bc *Blockchain) AddBlock(block *Block) {
+func (bc *Blockchain) AddBlock(block *Block) bool {
 	str := fmt.Sprintf("%s", block.Header.Number)
 	fmt.Println(str)
 	block.PrintBlock()
-	bc.ConfirmBlock(block)                       //修改账户状态MPT
+	if !bc.ConfirmBlock(block) { // 状态异常，触发同步
+		return false
+	}
 	bc.DB.Put(str, block)                        //存入数据库区块高度->区块
 	bc.StoreBlockIndex(block)                    // 添加索引:区块哈希->区块高度,方便查找
 	bc.StoreTxIndex(block)                       // 添加交易索引
@@ -200,6 +202,7 @@ func (bc *Blockchain) AddBlock(block *Block) {
 	fmt.Printf("上链，交易池：\n Pending: %d, Queued: %d\n", bc.TxPool.PendingSize(), bc.TxPool.QueuedSize())
 	bc.CurBlockNum = block.Header.Number
 	bc.CurrentBlockHash = block.Hash
+	return true
 }
 
 // 返回上一个区块的默克尔根
