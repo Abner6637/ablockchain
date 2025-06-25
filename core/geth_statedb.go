@@ -125,6 +125,13 @@ func (bc *Blockchain) NewAccount() (*Account, error) {
 		return nil, fmt.Errorf("保存账户文件失败: %v", err)
 	}
 
+	// 默认将第一个创建的账户设置为矿工
+	if bc.MinerAddr == "" {
+		bc.MinerAddr = address
+		log.Printf("开启挖矿，设置矿工地址: %s\n", address)
+		bc.StartMiner()
+	}
+
 	return account, nil
 }
 
@@ -258,7 +265,9 @@ func (bc *Blockchain) ConfirmBlock(block *Block) bool {
 			// 	return nil
 			// }
 			from.Balance -= tx.Value
-			from.Nonce += 1
+			if tx.To != "0x" { //运行创建合约代码时，from.Nonce会自动+1
+				from.Nonce += 1
+			}
 			bc.UpdateAccState(from)
 		} else { // ###########实际情况下不应该记录from账户，因为初始余额为0不可能发起交易##### 正确做法是触发同步
 			// 部署合约时，From为未记录的地址（TODO：触发同步）

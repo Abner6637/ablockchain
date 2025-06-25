@@ -147,10 +147,6 @@ func (sys *System) RandomSyc() {
 	}
 	// 发送给第一个连接的节点（实际应用可扩展选择机制）
 	targetPeer := sys.p2pNode.Peers()[0]
-	if err != nil {
-		log.Fatal("Peer ID 解码失败: %w", err)
-		return
-	}
 	p2pMsg := &p2p.Message{
 		Type: p2p.GetSnapshotMessage,
 		Data: encodedGetSnapshotmsg,

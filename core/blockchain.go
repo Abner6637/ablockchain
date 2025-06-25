@@ -32,6 +32,7 @@ type Blockchain struct {
 	CurrentBlockHash []byte
 	CurBlockNum      *big.Int
 	NewBlockChan     chan *Block
+	MinerAddr        string // 矿工地址（方便初始化和动态修改）
 
 	Noncelist map[string]uint64 // 管理本地交易的nonce，发送多笔交易时保证交易nonce的连续性
 	Acclist   []string          // 记录账户列表（geth的statedb迭代器无法被外部调用，因此不能遍历账户。暂时用这种方式在外部进行记录）
@@ -87,7 +88,7 @@ func NewBlockchain(cfg *cli.Config) (*Blockchain, error) {
 }
 
 // 开始一个异步的矿工进程
-func (bc *Blockchain) StartMiner(miner string) {
+func (bc *Blockchain) StartMiner() {
 	// 订阅交易消息
 	txCh := event.Bus.Subscribe("TransactionMessage")
 
@@ -106,7 +107,7 @@ func (bc *Blockchain) StartMiner(miner string) {
 			default:
 				// 当交易池足够大时，打包区块
 				if bc.TxPool.PendingSize() >= MinTransactionsPerBlock {
-					bc.mineNewBlock(miner)
+					bc.mineNewBlock(bc.MinerAddr)
 				}
 				time.Sleep(BlockInterval)
 			}

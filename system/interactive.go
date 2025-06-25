@@ -86,8 +86,8 @@ func (c *Commander) Run() {
 				fmt.Println("用法: miner <miner address>")
 				continue
 			}
-			c.sys.blockChain.StartMiner(parts[1])
-			fmt.Println("开启挖矿，矿工账户地址：", parts[1])
+			c.sys.blockChain.MinerAddr = parts[1]
+			fmt.Println("设置矿工账户地址：", parts[1])
 		case "tx":
 			if len(parts) < 4 {
 				fmt.Println("用法: tx <From(adress)> <To(adress)> <Value>")
@@ -208,6 +208,7 @@ func (c *Commander) handleTx(from, to string, value uint64) {
 		c.sys.blockChain.Noncelist[from] -= 1
 		return
 	}
+	event.Bus.Publish("TransactionMessage", signtx) //自己节点也要把交易加入交易池,blockchain.StartMiner中处理
 	data, err := rlp.EncodeToBytes(signtx)
 	if err != nil {
 		log.Fatalf("rlp err: %v", err)
@@ -220,7 +221,6 @@ func (c *Commander) handleTx(from, to string, value uint64) {
 	if err != nil {
 		log.Fatal("消息编码失败:encodedP2PMsg, err := p2pMsg.Encode()")
 	}
-	event.Bus.Publish("TransactionMessage", signtx) //自己节点也要把交易加入交易池,blockchain.StartMiner中处理
 	if err := c.sys.p2pNode.BroadcastMessage(string(encodedP2PMsg)); err != nil {
 		fmt.Printf("发送失败: %v\n", err)
 	}
