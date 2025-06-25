@@ -23,10 +23,10 @@ const MaxTransactionsPerBlock int = 10
 
 type Blockchain struct {
 	ChainID string
-	DB      *storage.LevelDB
+	DB      *storage.LevelDB // 用于存储区块链本体，键值对为区块编号-区块数据
 	TxPool  *TxPool
-	StateDB *state.StateDB
-	IndexDB *leveldb.DB // 用于保存索引:哈希->区块高度, 哈希->交易索引等
+	StateDB *state.StateDB // from geth
+	IndexDB *leveldb.DB    // 用于保存索引:哈希->区块高度, 哈希->交易索引等
 	//StateRoot []byte         // Merkle Patricia Tree的根哈希
 
 	CurrentBlockHash []byte
@@ -34,15 +34,14 @@ type Blockchain struct {
 	NewBlockChan     chan *Block
 
 	Noncelist map[string]uint64 // 管理本地交易的nonce，发送多笔交易时保证交易nonce的连续性
-	Acclist   []string          // 记录账户列表（geth的statedb迭代器被隐藏，暂时无法遍历账户）
+	Acclist   []string          // 记录账户列表（geth的statedb迭代器无法被外部调用，因此不能遍历账户。暂时用这种方式在外部进行记录）
 	Contrlist []string          // 记录合约地址
 }
 
 // TODO: 区块链侧可能也需要加一个计时器，当某个区块共识一直没好时，重新把这个区块发给共识模块
 func NewBlockchain(cfg *cli.Config) (*Blockchain, error) {
 	// path := "./block_storage"
-	DBPath := cfg.DBPath
-	db, err := storage.NewLevelDB(DBPath)
+	db, err := storage.NewLevelDB(cfg.DBPath)
 	if err != nil {
 		return nil, err
 	}
@@ -58,7 +57,7 @@ func NewBlockchain(cfg *cli.Config) (*Blockchain, error) {
 	}
 	log.Printf("加载创世配置……\n")
 
-	stateDB := NewStateDB(DBPath + "_state")
+	stateDB := NewStateDB(cfg.DBPath + "_state")
 
 	// 创建创世区块
 	genesisBlock := NewGenesisBlock(genensisConfig.Difficulty)
@@ -68,7 +67,7 @@ func NewBlockchain(cfg *cli.Config) (*Blockchain, error) {
 
 	// // 计算初始 stateRoot
 	// stateRoot := stateDB.trie.RootHash()
-	indexdb, err := leveldb.OpenFile(cfg.DBPath+"/indexdb", nil)
+	indexdb, err := leveldb.OpenFile(cfg.DBPath+"_index", nil)
 	if err != nil {
 		return nil, err
 	}

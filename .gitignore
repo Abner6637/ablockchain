@@ -12,6 +12,10 @@
 /pkg/
 /block_storage/
 /block_storage_state/
+/block_db/
+/block_db_index/
+/block_db_state/
+/block_db/
 /key_store/
 /privkey/
 /core/test_db/

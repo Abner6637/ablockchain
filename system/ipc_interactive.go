@@ -144,7 +144,7 @@ func (c *IPCCommander) executeCommand(cmd string) {
 			fmt.Println("用法: syc <addr>")
 			return
 		}
-		c.sys.p2pNode.Synchronization(parts[1])
+		c.sys.Synchronization(parts[1])
 	case "testmine":
 		if len(parts) < 2 {
 			c.output.Write([]byte("用法: testmine <blockNumber>\n"))

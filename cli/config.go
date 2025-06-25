@@ -48,7 +48,7 @@ func ParseFlags() (*Config, bool) {
 	cfg := &Config{}
 	// 添加 -db 选项，默认为 "./block_storage"
 	flag.StringVar(&cfg.ChainID, "id", "42", "链id")
-	flag.StringVar(&cfg.DBPath, "db", "./block_storage", "数据库存储路径")
+	flag.StringVar(&cfg.DBPath, "db", "./block_db", "数据库存储路径")
 	flag.StringVar(&cfg.ListenAddr, "listen", "/ip4/0.0.0.0/tcp/0", "监听地址")
 	flag.StringVar(&cfg.ConsensusType, "consensus", "pbft", "共识协议: pow || pbft || hotstuff")
 	flag.IntVar(&cfg.ConsensusNum, "consensusnum", 4, "共识节点数目")

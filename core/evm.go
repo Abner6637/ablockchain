@@ -245,6 +245,7 @@ func printResult(result interface{}) {
 	}
 }
 
+// 运行合约代码
 func (bc *Blockchain) RunEVMCall(senderAddr string, contractAddr string, input []byte, gasLimit uint64, value *big.Int) ([]byte, uint64, error) {
 	if senderAddr == "" || contractAddr == "" {
 		return nil, 0, errors.New("地址不能为空")
@@ -288,6 +289,7 @@ func (bc *Blockchain) RunEVMCall(senderAddr string, contractAddr string, input [
 	return output, gasUsed, nil
 }
 
+// 部署合约，运行合约部署代码，返回runtimeCode（保存到合约账户）
 func (bc *Blockchain) RunEVMCreate(
 	senderAddr string,
 	deployCode []byte,

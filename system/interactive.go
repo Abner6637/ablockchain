@@ -118,7 +118,7 @@ func (c *Commander) Run() {
 				fmt.Println("用法: syc <addr>")
 				continue
 			}
-			c.sys.p2pNode.Synchronization(parts[1])
+			c.sys.Synchronization(parts[1])
 		case "testmine":
 			if len(parts) < 2 {
 				fmt.Println("用法: testmine <blockNumber>")
@@ -152,7 +152,7 @@ func (c *Commander) handleConnect(addr string) {
 	if err := c.sys.p2pNode.ConnectToPeer(addr); err != nil {
 		fmt.Printf("连接失败: %v\n", err)
 	} else {
-		c.sys.p2pNode.Synchronization(strings.Split(addr, "/p2p/")[1])
+		c.sys.Synchronization(strings.Split(addr, "/p2p/")[1])
 		fmt.Println("连接成功, 进行同步...")
 	}
 }

@@ -95,7 +95,7 @@ func ProcessMessage(msg *Message, peerid string) {
 
 	case SnapshotMessage:
 		fmt.Println("SnapshotMessage...")
-		snapmsg, err := core.DecodeSnapshotMessage(msg.Data)
+		snapmsg, err := DecodeSnapshotMessage(msg.Data)
 		if err != nil {
 			fmt.Printf("解码失败: %v\n", err)
 		}
@@ -103,7 +103,7 @@ func ProcessMessage(msg *Message, peerid string) {
 
 	case BlocksMessage:
 		fmt.Println("BlocksMessage...")
-		blkmsg, err := core.DecodeBlocksMessage(msg.Data)
+		blkmsg, err := DecodeBlocksMessage(msg.Data)
 		if err != nil {
 			fmt.Printf("解码失败: %v\n", err)
 		}
@@ -111,7 +111,7 @@ func ProcessMessage(msg *Message, peerid string) {
 
 	case GetBlocksMessage:
 		fmt.Println("GetBlocksMessage...")
-		gblkmsg, err := core.DecodeGetBlocksMessage(msg.Data)
+		gblkmsg, err := DecodeGetBlocksMessage(msg.Data)
 		if err != nil {
 			fmt.Printf("解码失败: %v\n", err)
 		}

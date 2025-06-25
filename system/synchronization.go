@@ -8,11 +8,14 @@ import (
 	"fmt"
 	"log"
 	"math/big"
+
+	"github.com/ethereum/go-ethereum/rlp"
+	"github.com/libp2p/go-libp2p/core/peer"
 )
 
 // 同步函数在p2p/node.go中 func (node *Node) Synchronization(addr string)
 
-func ListenSynchronization(sys *System) {
+func (sys *System) ListenSynchronization() {
 	getSnapshotMessage := event.Bus.Subscribe("GetSnapshotMessage")
 	snapshotMessage := event.Bus.Subscribe("SnapshotMessage")
 	getBlocksMessage := event.Bus.Subscribe("GetBlocksMessage")
@@ -28,7 +31,7 @@ func ListenSynchronization(sys *System) {
 					continue
 				}
 				fmt.Printf("\n收到GetSnapshotMessage, PeerID: %s", pid)
-				snapshotsmsg := &core.SnapshotMessage{
+				snapshotsmsg := &p2p.SnapshotMsg{
 					PeerID:   sys.p2pNode.ID,
 					Snapshot: sys.blockChain.CreateSnapshot(),
 				}
@@ -39,7 +42,7 @@ func ListenSynchronization(sys *System) {
 				sys.p2pNode.SendP2PMessage(pid, p2p.SnapshotMessage, encodedgetSnapshotsmsg)
 
 			case msg := <-snapshotMessage:
-				data, ok := msg.(*core.SnapshotMessage)
+				data, ok := msg.(*p2p.SnapshotMsg)
 				if !ok {
 					log.Fatal("转换失败data, ok := msg.(core.SnapshotMessage)")
 					continue
@@ -48,7 +51,7 @@ func ListenSynchronization(sys *System) {
 				data.Snapshot.PrintSnapshot()
 				switch sys.blockChain.CurBlockNum.Cmp(data.Snapshot.Number) {
 				case -1: // 区块数量落后，请求最新区块
-					getBlocksmsg := &core.GetBlocksMessage{
+					getBlocksmsg := &p2p.GetBlocksMsg{
 						PeerID: sys.p2pNode.ID,
 						From:   new(big.Int).Add(sys.blockChain.CurBlockNum, big.NewInt(1)),
 						To:     data.Snapshot.Number,
@@ -71,7 +74,7 @@ func ListenSynchronization(sys *System) {
 				}
 
 			case msg := <-getBlocksMessage:
-				data, ok := msg.(*core.GetBlocksMessage)
+				data, ok := msg.(*p2p.GetBlocksMsg)
 				if !ok {
 					log.Fatal("转换失败")
 					continue
@@ -83,7 +86,7 @@ func ListenSynchronization(sys *System) {
 					log.Fatal("读取区块链失败")
 					continue
 				}
-				blocksmsg := &core.BlocksMessage{
+				blocksmsg := &p2p.BlocksMsg{
 					PeerID: sys.p2pNode.ID,
 					Blocks: bloks,
 				}
@@ -94,7 +97,7 @@ func ListenSynchronization(sys *System) {
 				sys.p2pNode.SendP2PMessage(data.PeerID, p2p.BlocksMessage, encodedblocksmsg)
 
 			case msg := <-blocksMessage:
-				data, ok := msg.(*core.BlocksMessage)
+				data, ok := msg.(*p2p.BlocksMsg)
 				if !ok {
 					log.Fatal("转换失败")
 					continue
@@ -129,4 +132,68 @@ func (sys *System) isValidBlock(block *core.Block) bool {
 		return false
 	}
 	return true
+}
+
+// 不指定目标地址，与peers列表中第一个节点进行同步
+func (sys *System) RandomSyc() {
+	if len(sys.p2pNode.Peers()) < 1 {
+		fmt.Println("错误: 未连接任何节点")
+		return
+	}
+	encodedGetSnapshotmsg, err := rlp.EncodeToBytes(sys.p2pNode.ID)
+	if err != nil {
+		log.Fatal("RLP encoding failed:", err)
+		return
+	}
+	// 发送给第一个连接的节点（实际应用可扩展选择机制）
+	targetPeer := sys.p2pNode.Peers()[0]
+	if err != nil {
+		log.Fatal("Peer ID 解码失败: %w", err)
+		return
+	}
+	p2pMsg := &p2p.Message{
+		Type: p2p.GetSnapshotMessage,
+		Data: encodedGetSnapshotmsg,
+	}
+	encodedMsg, err := p2pMsg.Encode()
+	if err != nil {
+		log.Fatal("消息编码失败: %w", err)
+		return
+	}
+	if err := sys.p2pNode.SendMessage(targetPeer, string(encodedMsg)); err != nil {
+		log.Fatal("发送消息失败: %w", err)
+		return
+	}
+}
+
+func (sys *System) Synchronization(addr string) {
+	if len(sys.p2pNode.Peers()) < 1 {
+		fmt.Println("错误: 未连接任何节点")
+		return
+	}
+	encodedGetSnapshotmsg, err := rlp.EncodeToBytes(sys.p2pNode.ID)
+	if err != nil {
+		log.Fatal("RLP encoding failed:", err)
+		return
+	}
+	// 发送给第一个连接的节点（实际应用可扩展选择机制）
+	// targetPeer := sys.p2pNode.Peers()[0]
+	targetPeer, err := peer.Decode(addr)
+	if err != nil {
+		log.Fatal("Peer ID 解码失败: %w", err)
+		return
+	}
+	p2pMsg := &p2p.Message{
+		Type: p2p.GetSnapshotMessage,
+		Data: encodedGetSnapshotmsg,
+	}
+	encodedMsg, err := p2pMsg.Encode()
+	if err != nil {
+		log.Fatal("消息编码失败: %w", err)
+		return
+	}
+	if err := sys.p2pNode.SendMessage(targetPeer, string(encodedMsg)); err != nil {
+		log.Fatal("发送消息失败: %w", err)
+		return
+	}
 }
