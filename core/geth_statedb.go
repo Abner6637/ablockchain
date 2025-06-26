@@ -8,6 +8,7 @@ import (
 	"math/big"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/rawdb"
@@ -354,6 +355,7 @@ func (bc *Blockchain) ConfirmBlock(block *Block) bool {
 		}
 	}
 	bc.Commit() //更新MPT
+	log.Printf("\n@@BLOCK_CONFIRMED BlockHash=%x time=%v\n", block.Hash, time.Now())
 	return true
 }
 

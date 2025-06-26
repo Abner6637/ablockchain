@@ -144,6 +144,10 @@ func (bc *Blockchain) addTx(tx *Transaction) {
 		}
 	}
 	fmt.Printf("tx.Nonce：%d ； maxNonce：%d\n", tx.Nonce, maxNonce)
+	if tx.Nonce <= maxNonce {
+		fmt.Println("过时的交易，直接丢弃")
+		return
+	}
 	if tx.Nonce == maxNonce+1 {
 		bc.TxPool.AddPending(tx)
 	} else {

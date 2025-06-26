@@ -208,7 +208,6 @@ func (c *Commander) handleTx(from, to string, value uint64) {
 		c.sys.blockChain.Noncelist[from] -= 1
 		return
 	}
-	event.Bus.Publish("TransactionMessage", signtx) //自己节点也要把交易加入交易池,blockchain.StartMiner中处理
 	data, err := rlp.EncodeToBytes(signtx)
 	if err != nil {
 		log.Fatalf("rlp err: %v", err)
@@ -221,8 +220,11 @@ func (c *Commander) handleTx(from, to string, value uint64) {
 	if err != nil {
 		log.Fatal("消息编码失败:encodedP2PMsg, err := p2pMsg.Encode()")
 	}
+	event.Bus.Publish("TransactionMessage", signtx) //自己节点也要把交易加入交易池,blockchain.StartMiner中处理
 	if err := c.sys.p2pNode.BroadcastMessage(string(encodedP2PMsg)); err != nil {
 		fmt.Printf("发送失败: %v\n", err)
+	} else {
+		log.Printf("\n@@TX_SUBMITTED TxHash=%x time=%v\n", tx.TxHash, time.Now())
 	}
 }
 
