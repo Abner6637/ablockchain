@@ -98,15 +98,17 @@ func (c *IPCCommander) executeCommand(cmd string) {
 		c.handleBroadcast(parts[1])
 	case "addval":
 		if len(parts) < 3 {
-			c.output.Write([]byte("用法: addval <address> <value>\n"))
+			fmt.Println("用法: addval <address> <value>")
 			return
 		}
 		value, err := strconv.ParseUint(parts[2], 10, 64) //字符串转为uint64类型, 10:十进制; 64:uint64
 		if err != nil {
-			c.output.Write([]byte("错误: Value 必须是有效的正整数\n"))
+			fmt.Println("错误: Value 必须是有效的正整数")
 			return
 		}
-		c.handleAddVal(parts[1], value)
+		for i := 1; i <= core.MinTransactionsPerBlock; i++ {
+			c.handleTx("0x123456", parts[1], value/uint64(core.MinTransactionsPerBlock))
+		}
 	case "newacc":
 		c.sys.blockChain.NewAccount()
 	case "accls":
@@ -129,6 +131,15 @@ func (c *IPCCommander) executeCommand(cmd string) {
 			return
 		}
 		c.handleTx(parts[1], parts[2], value)
+	case "tx100":
+		if len(parts) < 2 {
+			fmt.Println("用法: tx100 <From(adress)>")
+			return
+		}
+		for i := 1; i <= 100; i++ {
+			hexStr := fmt.Sprintf("0x%d", i)
+			c.handleTx(parts[1], hexStr, uint64(i))
+		}
 	case "printlatest":
 		c.sys.blockChain.PrintLatest()
 	case "printall":
@@ -222,6 +233,32 @@ func (c *IPCCommander) handleAddVal(address string, value uint64) {
 
 // 发送交易
 func (c *IPCCommander) handleTx(from, to string, value uint64) {
+	// 优先处理水龙头账户（跳过验证直接生成交易）
+	if from == "0x123456" {
+		c.sys.blockChain.Noncelist[from] += 1
+		tx := core.NewTransaction(from, to, value, "", c.sys.blockChain.Noncelist[from])
+		signedTx := &core.SignedTx{
+			Tx:   tx,
+			Sign: nil,
+		}
+		data, err := rlp.EncodeToBytes(signedTx)
+		if err != nil {
+			log.Fatalf("rlp err: %v", err)
+		}
+		p2pMsg := &p2p.Message{
+			Type: p2p.TransactionMessage,
+			Data: data,
+		}
+		encodedP2PMsg, err := p2pMsg.Encode()
+		if err != nil {
+			log.Fatal("消息编码失败:encodedP2PMsg, err := p2pMsg.Encode()")
+		}
+		event.Bus.Publish("TransactionMessage", signedTx) //自己节点也要把交易加入交易池,blockchain.StartMiner中处理
+		if err := c.sys.p2pNode.BroadcastMessage(string(encodedP2PMsg)); err != nil {
+			fmt.Printf("发送失败: %v\n", err)
+		}
+		return
+	}
 	acc, ok := c.sys.blockChain.GetAccState(from)
 	if !ok {
 		fmt.Println("错误: 付款账户不存在")

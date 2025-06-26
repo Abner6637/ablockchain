@@ -6,7 +6,6 @@ import (
 	"ablockchain/crypto"
 	"ablockchain/event"
 	"ablockchain/storage"
-	"bytes"
 	"fmt"
 	"log"
 	"math/big"
@@ -117,6 +116,12 @@ func (bc *Blockchain) StartMiner() {
 
 // 处理收到的交易
 func (bc *Blockchain) handleTransaction(signtx *SignedTx) {
+	// 水龙头账户特殊处理
+	if signtx.Tx.From == "0x123456" {
+		bc.addTx(signtx.Tx)
+		fmt.Printf("交易池累计交易数：\n Pending: %d, Queued: %d\n", bc.TxPool.PendingSize(), bc.TxPool.QueuedSize())
+		return
+	}
 	// 验证交易合法性
 	valid, err := signtx.Tx.VerifySignature(signtx.Sign)
 	if err != nil {
@@ -167,18 +172,73 @@ func (bc *Blockchain) addTx(tx *Transaction) {
 	}
 }
 
+// 从pending池打包前的二次校验
+func (bc *Blockchain) VerifyTxFromPending(tx *Transaction) bool {
+	//水龙头账户特殊处理
+	if tx.From == "0x123456" {
+		return true
+	}
+
+	from, ok := bc.GetAccState(tx.From)
+	if !ok {
+		log.Println("！验证交易失败：未查询到付款账户")
+		tx.PrintTransaction()
+		return false
+	} else if tx.Value > from.Balance {
+		log.Println("！验证交易失败：付款账户余额不足")
+		tx.PrintTransaction()
+		return false
+	} else if tx.Nonce <= from.Nonce {
+		log.Println("！验证交易失败：交易Nonce小于或等于账户Nonce")
+		tx.PrintTransaction()
+		return false
+	} else {
+		return true
+	}
+}
+
+// 从pending中打包有效交易，同时删除无效交易
+func (bc *Blockchain) GetPendingTxs(transactionsPerBlock int) []*Transaction {
+	bc.TxPool.lock.Lock()
+	defer bc.TxPool.lock.Unlock()
+
+	validTxs := make([]*Transaction, 0, transactionsPerBlock)
+	remainingTxs := make([]*Transaction, 0, len(bc.TxPool.Pending))
+
+	// 收集有效交易
+	for i, tx := range bc.TxPool.Pending {
+		if bc.VerifyTxFromPending(tx) {
+			if len(validTxs) < transactionsPerBlock {
+				validTxs = append(validTxs, tx)
+			}
+			remainingTxs = append(remainingTxs, tx) // 所有有效交易保留
+		}
+		// 无效交易没有记录到validTxs和remainingTxs中，即被删除
+		// 提前终止条件
+		if len(validTxs) == transactionsPerBlock {
+			// 记录剩余未遍历的交易
+			remainingTxs = append(remainingTxs, bc.TxPool.Pending[i+1:]...)
+			break
+		}
+	}
+	// 如果没有提前终止，remainingTxs已经包含所有有效交易
+	bc.TxPool.Pending = remainingTxs
+	return validTxs
+}
+
 func (bc *Blockchain) mineNewBlock(miner string) (*Block, error) {
-	txs := bc.TxPool.GetPendingTxs(MinTransactionsPerBlock)
+	txs := bc.GetPendingTxs(MinTransactionsPerBlock)
 	if len(txs) == 0 {
 		return nil, fmt.Errorf("no transaction!")
 	}
-	// 避免打包已经提交过的区块
+
 	merkleroot := CalculateMerkleRoot(txs)
-	if bytes.Equal(merkleroot, bc.GetLatestMR()) {
-		bc.TxPool.ClearPackedTxs(txs)
-		fmt.Printf("打包的区块已上链\n")
-		return nil, fmt.Errorf("重复区块")
-	}
+	// 避免打包已经提交过的区块
+	// if bytes.Equal(merkleroot, bc.GetLatestMR()) {
+	// 	bc.TxPool.ClearPackedTxs(txs)
+	// 	fmt.Printf("打包的区块已上链\n")
+	// 	return nil, fmt.Errorf("重复区块")
+	// }
 
 	// 创建新区块（该部分的difficulty需要进一步修改）
 	header := NewBlockHeader(bc.CurrentBlockHash, uint64(2), new(big.Int).Add(bc.CurBlockNum, big.NewInt(1)), merkleroot, miner)

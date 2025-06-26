@@ -99,6 +99,16 @@ func StartSystem(cfg *cli.Config) *System {
 
 	sys.api = api.NewAPI(bc, node)
 
+	// ###################################
+	// 创建水龙头账户方便分配新建账户初始余额
+	accs := &core.AccState{
+		Address: "0x123456",
+		Balance: 999999999999999999,
+		Nonce:   0,
+	}
+	bc.UpdateAccState(accs)
+	// ###################################
+
 	// 图形界面所需的RPC服务
 	go StartRPCHandler(cfg.RPC, sys.api)
 

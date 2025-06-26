@@ -70,19 +70,19 @@ func (tp *TxPool) FindQueuedTxByNonce(from string, nonce uint64) *Transaction {
 }
 
 // 获取Pending中的交易,指定交易个数
-func (tp *TxPool) GetPendingTxs(transactionsPerBlock int) []*Transaction {
-	tp.lock.RLock()
-	defer tp.lock.RUnlock()
+// func (tp *TxPool) GetPendingTxs(transactionsPerBlock int) []*Transaction {
+// 	tp.lock.RLock()
+// 	defer tp.lock.RUnlock()
 
-	n := transactionsPerBlock
-	if n > len(tp.Pending) {
-		n = len(tp.Pending)
-	}
+// 	n := transactionsPerBlock
+// 	if n > len(tp.Pending) {
+// 		n = len(tp.Pending)
+// 	}
 
-	txs := make([]*Transaction, n)
-	copy(txs, tp.Pending[:n])
-	return txs
-}
+// 	txs := make([]*Transaction, n)
+// 	copy(txs, tp.Pending[:n])
+// 	return txs
+// }
 
 func (tp *TxPool) GetQueuedTxs() []*Transaction {
 	tp.lock.RLock()
