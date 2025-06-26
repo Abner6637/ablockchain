@@ -81,7 +81,7 @@ func NewBlockchain(cfg *cli.Config) (*Blockchain, error) {
 		//StateRoot: nil,
 		//currentBlockHash: currentBlockHash,
 		CurBlockNum:  curBlockNum,
-		NewBlockChan: make(chan *Block, 10),
+		NewBlockChan: make(chan *Block, 100), // 设置为10时，遇到大规模交易容易堵塞(TODO:动态队列或事件总线 + 限流策略，避免固定容量 channel)
 		Noncelist:    make(map[string]uint64),
 	}, nil
 }
@@ -348,7 +348,7 @@ func NewTestBlockchain(DBPath string) (*Blockchain, error) {
 		//StateRoot: nil,
 		//currentBlockHash: currentBlockHash,
 		CurBlockNum:  curBlockNum,
-		NewBlockChan: make(chan *Block, 10),
+		NewBlockChan: make(chan *Block, 100),
 		Noncelist:    make(map[string]uint64),
 	}, nil
 }
