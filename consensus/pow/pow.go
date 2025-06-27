@@ -203,7 +203,7 @@ func (pow *ProofOfWork) HandleEvents() {
 						pow.p2pNode.BroadcastMessage(string(encodedP2PMsg))
 						event.Bus.Publish("ConsensusFinish", block)
 					} else {
-						fmt.Println("丢弃非法区块")
+						fmt.Println("丢弃非法区块，回收未执行的交易")
 						block = nil // 清除引用，便于垃圾回收
 					}
 				}()

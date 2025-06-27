@@ -19,6 +19,7 @@ import (
 const BlockInterval time.Duration = 5 * time.Second
 const MinTransactionsPerBlock int = 1 // 目前将区块交易数量固定为 MinTransactionsPerBlock
 const MaxTransactionsPerBlock int = 10
+const Difficulty uint64 = 2
 
 type Blockchain struct {
 	ChainID string
@@ -36,6 +37,7 @@ type Blockchain struct {
 	Noncelist map[string]uint64 // 管理本地交易的nonce，发送多笔交易时保证交易nonce的连续性
 	Acclist   []string          // 记录账户列表（geth的statedb迭代器无法被外部调用，因此不能遍历账户。暂时用这种方式在外部进行记录）
 	Contrlist []string          // 记录合约地址
+	Mining    bool              // 标识区块链是否在共识过程中（避免不停打包交易）
 }
 
 // TODO: 区块链侧可能也需要加一个计时器，当某个区块共识一直没好时，重新把这个区块发给共识模块
@@ -81,8 +83,9 @@ func NewBlockchain(cfg *cli.Config) (*Blockchain, error) {
 		//StateRoot: nil,
 		//currentBlockHash: currentBlockHash,
 		CurBlockNum:  curBlockNum,
-		NewBlockChan: make(chan *Block, 100), // 设置为10时，遇到大规模交易容易堵塞(TODO:动态队列或事件总线 + 限流策略，避免固定容量 channel)
+		NewBlockChan: make(chan *Block, 500), // 设置为10时，遇到大规模交易容易堵塞(TODO:动态队列或事件总线 + 限流策略，避免固定容量 channel)
 		Noncelist:    make(map[string]uint64),
+		Mining:       false,
 	}, nil
 }
 
@@ -105,7 +108,7 @@ func (bc *Blockchain) StartMiner() {
 
 			default:
 				// 当交易池足够大时，打包区块
-				if bc.TxPool.PendingSize() >= MinTransactionsPerBlock {
+				if bc.TxPool.PendingSize() >= MinTransactionsPerBlock && bc.Mining == false {
 					bc.mineNewBlock(bc.MinerAddr)
 				}
 				time.Sleep(BlockInterval)
@@ -174,11 +177,6 @@ func (bc *Blockchain) addTx(tx *Transaction) {
 
 // 从pending池打包前的二次校验
 func (bc *Blockchain) VerifyTxFromPending(tx *Transaction) bool {
-	//水龙头账户特殊处理
-	if tx.From == "0x123456" {
-		return true
-	}
-
 	from, ok := bc.GetAccState(tx.From)
 	if !ok {
 		log.Println("！验证交易失败：未查询到付款账户")
@@ -240,15 +238,20 @@ func (bc *Blockchain) mineNewBlock(miner string) (*Block, error) {
 	// 	return nil, fmt.Errorf("重复区块")
 	// }
 
-	// 创建新区块（该部分的difficulty需要进一步修改）
-	header := NewBlockHeader(bc.CurrentBlockHash, uint64(2), new(big.Int).Add(bc.CurBlockNum, big.NewInt(1)), merkleroot, miner)
+	// 创建新区块
+	header := NewBlockHeader(bc.CurrentBlockHash, Difficulty, new(big.Int).Add(bc.CurBlockNum, big.NewInt(1)), merkleroot, miner)
 	block := NewBlock(header, txs)
 
 	// bc.AddBlock(block)
 	bc.NewBlockChan <- block // 将新区块发送到通道
 
-	bc.TxPool.ClearPackedTxs(block.Transactions)
-	fmt.Printf("打包区块，交易池：\n Pending: %d, Queued: %d\n", bc.TxPool.PendingSize(), bc.TxPool.QueuedSize())
+	// bc.TxPool.ClearPackedTxs(block.Transactions) // 如果在这里清理，区块丢弃后要写回收交易的逻辑
+	fmt.Printf("打包区块%s，交易池：\n Pending: %d, Queued: %d\n", block.Header.Number.String(), bc.TxPool.PendingSize(), bc.TxPool.QueuedSize())
+	// if bc.TxPool.PendingSize() > 0 {
+	// 	fmt.Println("%下一笔交易：")
+	// 	bc.TxPool.Pending[0].PrintTransaction()
+	// }
+	bc.Mining = true
 	return block, nil
 }
 
@@ -266,6 +269,7 @@ func (bc *Blockchain) AddBlock(block *Block) bool {
 	fmt.Printf("上链，交易池：\n Pending: %d, Queued: %d\n", bc.TxPool.PendingSize(), bc.TxPool.QueuedSize())
 	bc.CurBlockNum = block.Header.Number
 	bc.CurrentBlockHash = block.Hash
+	bc.Mining = false
 	return true
 }
 

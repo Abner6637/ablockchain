@@ -119,6 +119,7 @@ func (c *IPCCommander) executeCommand(cmd string) {
 			return
 		}
 		c.sys.blockChain.MinerAddr = parts[1]
+		c.sys.blockChain.StartMiner()
 		fmt.Println("设置矿工账户地址：", parts[1])
 	case "tx":
 		if len(parts) < 4 {
