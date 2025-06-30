@@ -270,6 +270,9 @@ func (bc *Blockchain) ConfirmBlock(block *Block) bool {
 				from.Nonce += 1
 			}
 			bc.UpdateAccState(from)
+			if bc.Noncelist[tx.From] < from.Nonce { // 当多个节点同时拥有同一个账户并通过该账户发送交易时，可能出现这种情况
+				bc.Noncelist[tx.From] = from.Nonce
+			}
 		} else { // ###########实际情况下不应该记录from账户，因为初始余额为0不可能发起交易##### 正确做法是触发同步
 			// 部署合约时，From为未记录的地址（TODO：触发同步）
 			if tx.To == "0x" {
