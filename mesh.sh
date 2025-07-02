@@ -14,7 +14,7 @@ mkdir -p ./key_store/
 
 # 监听端口的起始值
 BASE_PORT=50000
-
+BASE_RPCPORT=8544
 # 存储所有节点的 P2P 地址
 declare -a NODE_ADDRS
 
@@ -25,11 +25,13 @@ for ((i=1; i<=NODE_COUNT; i++)); do
     NODE_PORT=$((BASE_PORT + i))
     NODE_LISTEN="/ip4/127.0.0.1/tcp/${NODE_PORT}"
     NODE_NODEKEY="./key_store/nodekey${i}"
+    RPC_PORT="$((BASE_RPCPORT + i))"
 
     # 启动当前节点
-    tmux new-session -d -s "node${i}" "go run main.go --db $NODE_DB --listen $NODE_LISTEN --consensus pow --nodekey $NODE_NODEKEY 2>&1 | tee $NODE_LOG"
+    tmux new-session -d -s "node${i}" "go run main.go --db $NODE_DB --listen $NODE_LISTEN --consensus pow --rpc $RPC_PORT  --nodekey $NODE_NODEKEY 2>&1 | tee $NODE_LOG"
 
-    # go run main.go --db ./block_storage/node3_data --listen /ip4/127.0.0.1/tcp/50003 --consensus pow --nodekey ./key_store/nodekey3 2>&1 | tee ./block_storage/node3.log
+    # go run main.go --db ./block_storage/node3_data --listen /ip4/127.0.0.1/tcp/50003 --consensus pow --rpc 8545 --nodekey ./key_store/nodekey3 2>&1 | tee ./block_storage/node3.log
+    # go run main.go --db ./block_storage/node4_data --listen /ip4/127.0.0.1/tcp/50004 --consensus pow --rpc 8546 --nodekey ./key_store/nodekey4 2>&1 | tee ./block_storage/node4.log
 
     # 确保节点启动完成
     sleep 3

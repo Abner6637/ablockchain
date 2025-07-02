@@ -76,7 +76,9 @@ func (c *Commander) Run() {
 				fmt.Println("错误: Value 必须是有效的正整数")
 				continue
 			}
-			c.handleAddVal(parts[1], value)
+			for i := 1; i <= core.MinTransactionsPerBlock; i++ {
+				c.handleTx("0x123456", parts[1], value/uint64(core.MinTransactionsPerBlock))
+			}
 		case "newacc":
 			c.sys.blockChain.NewAccount()
 		case "accls":
@@ -86,8 +88,9 @@ func (c *Commander) Run() {
 				fmt.Println("用法: miner <miner address>")
 				continue
 			}
-			c.sys.blockChain.StartMiner(parts[1])
-			fmt.Println("开启挖矿，矿工账户地址：", parts[1])
+			c.sys.blockChain.MinerAddr = parts[1]
+			c.sys.blockChain.StartMiner()
+			fmt.Println("设置矿工账户地址：", parts[1])
 		case "tx":
 			if len(parts) < 4 {
 				fmt.Println("用法: tx <From(adress)> <To(adress)> <Value>")
@@ -99,6 +102,15 @@ func (c *Commander) Run() {
 				continue
 			}
 			c.handleTx(parts[1], parts[2], value)
+		case "tx100":
+			if len(parts) < 2 {
+				fmt.Println("用法: tx100 <From(adress)>")
+				continue
+			}
+			for i := 1; i <= 100; i++ {
+				hexStr := fmt.Sprintf("0x%d", i)
+				c.handleTx(parts[1], hexStr, uint64(i))
+			}
 		case "printp":
 			c.sys.blockChain.TxPool.PrintPending()
 		case "printq":
@@ -118,7 +130,7 @@ func (c *Commander) Run() {
 				fmt.Println("用法: syc <addr>")
 				continue
 			}
-			c.sys.p2pNode.Synchronization(parts[1])
+			c.sys.Synchronization(parts[1])
 		case "testmine":
 			if len(parts) < 2 {
 				fmt.Println("用法: testmine <blockNumber>")
@@ -152,7 +164,8 @@ func (c *Commander) handleConnect(addr string) {
 	if err := c.sys.p2pNode.ConnectToPeer(addr); err != nil {
 		fmt.Printf("连接失败: %v\n", err)
 	} else {
-		fmt.Println("连接成功")
+		c.sys.Synchronization(strings.Split(addr, "/p2p/")[1])
+		fmt.Println("连接成功, 进行同步...")
 	}
 }
 
@@ -191,6 +204,34 @@ func (c *Commander) handleAddVal(address string, value uint64) {
 
 // 发送交易
 func (c *Commander) handleTx(from, to string, value uint64) {
+	// 优先处理水龙头账户（跳过验证直接生成交易）
+	if from == "0x123456" {
+		c.sys.blockChain.Noncelist[from] += 1
+		tx := core.NewTransaction(from, to, value, "", c.sys.blockChain.Noncelist[from])
+		signedTx := &core.SignedTx{
+			Tx:   tx,
+			Sign: nil,
+		}
+		data, err := rlp.EncodeToBytes(signedTx)
+		if err != nil {
+			log.Fatalf("rlp err: %v", err)
+		}
+		p2pMsg := &p2p.Message{
+			Type: p2p.TransactionMessage,
+			Data: data,
+		}
+		encodedP2PMsg, err := p2pMsg.Encode()
+		if err != nil {
+			log.Fatal("消息编码失败:encodedP2PMsg, err := p2pMsg.Encode()")
+		}
+		event.Bus.Publish("TransactionMessage", signedTx) //自己节点也要把交易加入交易池,blockchain.StartMiner中处理
+		if err := c.sys.p2pNode.BroadcastMessage(string(encodedP2PMsg)); err != nil {
+			fmt.Printf("发送失败: %v\n", err)
+		}
+		return
+	}
+
+	// 普通账户
 	acc, ok := c.sys.blockChain.GetAccState(from)
 	if !ok {
 		fmt.Println("错误: 付款账户不存在")
@@ -222,6 +263,8 @@ func (c *Commander) handleTx(from, to string, value uint64) {
 	event.Bus.Publish("TransactionMessage", signtx) //自己节点也要把交易加入交易池,blockchain.StartMiner中处理
 	if err := c.sys.p2pNode.BroadcastMessage(string(encodedP2PMsg)); err != nil {
 		fmt.Printf("发送失败: %v\n", err)
+	} else {
+		log.Printf("\n@@TX_SUBMITTED TxHash=%x time=%v\n", tx.TxHash, time.Now())
 	}
 }
 

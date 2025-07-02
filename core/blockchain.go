@@ -6,7 +6,6 @@ import (
 	"ablockchain/crypto"
 	"ablockchain/event"
 	"ablockchain/storage"
-	"bytes"
 	"fmt"
 	"log"
 	"math/big"
@@ -20,29 +19,31 @@ import (
 const BlockInterval time.Duration = 5 * time.Second
 const MinTransactionsPerBlock int = 1 // 目前将区块交易数量固定为 MinTransactionsPerBlock
 const MaxTransactionsPerBlock int = 10
+const Difficulty uint64 = 2
 
 type Blockchain struct {
 	ChainID string
-	DB      *storage.LevelDB
+	DB      *storage.LevelDB // 用于存储区块链本体，键值对为区块编号-区块数据
 	TxPool  *TxPool
-	StateDB *state.StateDB
-	IndexDB *leveldb.DB // 用于保存索引:哈希->区块高度, 哈希->交易索引等
+	StateDB *state.StateDB // from geth
+	IndexDB *leveldb.DB    // 用于保存索引:哈希->区块高度, 哈希->交易索引等
 	//StateRoot []byte         // Merkle Patricia Tree的根哈希
 
 	CurrentBlockHash []byte
 	CurBlockNum      *big.Int
 	NewBlockChan     chan *Block
+	MinerAddr        string // 矿工地址（方便初始化和动态修改）
 
 	Noncelist map[string]uint64 // 管理本地交易的nonce，发送多笔交易时保证交易nonce的连续性
-	Acclist   []string          // 记录账户列表（geth的statedb迭代器被隐藏，暂时无法遍历账户）
+	Acclist   []string          // 记录账户列表（geth的statedb迭代器无法被外部调用，因此不能遍历账户。暂时用这种方式在外部进行记录）
 	Contrlist []string          // 记录合约地址
+	Mining    bool              // 标识区块链是否在共识过程中（避免不停打包交易）
 }
 
 // TODO: 区块链侧可能也需要加一个计时器，当某个区块共识一直没好时，重新把这个区块发给共识模块
 func NewBlockchain(cfg *cli.Config) (*Blockchain, error) {
 	// path := "./block_storage"
-	DBPath := cfg.DBPath
-	db, err := storage.NewLevelDB(DBPath)
+	db, err := storage.NewLevelDB(cfg.DBPath)
 	if err != nil {
 		return nil, err
 	}
@@ -58,7 +59,7 @@ func NewBlockchain(cfg *cli.Config) (*Blockchain, error) {
 	}
 	log.Printf("加载创世配置……\n")
 
-	stateDB := NewStateDB(DBPath + "_state")
+	stateDB := NewStateDB(cfg.DBPath + "_state")
 
 	// 创建创世区块
 	genesisBlock := NewGenesisBlock(genensisConfig.Difficulty)
@@ -68,7 +69,7 @@ func NewBlockchain(cfg *cli.Config) (*Blockchain, error) {
 
 	// // 计算初始 stateRoot
 	// stateRoot := stateDB.trie.RootHash()
-	indexdb, err := leveldb.OpenFile(cfg.DBPath+"/indexdb", nil)
+	indexdb, err := leveldb.OpenFile(cfg.DBPath+"_index", nil)
 	if err != nil {
 		return nil, err
 	}
@@ -82,13 +83,14 @@ func NewBlockchain(cfg *cli.Config) (*Blockchain, error) {
 		//StateRoot: nil,
 		//currentBlockHash: currentBlockHash,
 		CurBlockNum:  curBlockNum,
-		NewBlockChan: make(chan *Block, 10),
+		NewBlockChan: make(chan *Block, 500), // 设置为10时，遇到大规模交易容易堵塞(TODO:动态队列或事件总线 + 限流策略，避免固定容量 channel)
 		Noncelist:    make(map[string]uint64),
+		Mining:       false,
 	}, nil
 }
 
 // 开始一个异步的矿工进程
-func (bc *Blockchain) StartMiner(miner string) {
+func (bc *Blockchain) StartMiner() {
 	// 订阅交易消息
 	txCh := event.Bus.Subscribe("TransactionMessage")
 
@@ -106,8 +108,8 @@ func (bc *Blockchain) StartMiner(miner string) {
 
 			default:
 				// 当交易池足够大时，打包区块
-				if bc.TxPool.PendingSize() >= MinTransactionsPerBlock {
-					bc.mineNewBlock(miner)
+				if bc.TxPool.PendingSize() >= MinTransactionsPerBlock && bc.Mining == false {
+					bc.mineNewBlock(bc.MinerAddr)
 				}
 				time.Sleep(BlockInterval)
 			}
@@ -117,6 +119,12 @@ func (bc *Blockchain) StartMiner(miner string) {
 
 // 处理收到的交易
 func (bc *Blockchain) handleTransaction(signtx *SignedTx) {
+	// 水龙头账户特殊处理
+	if signtx.Tx.From == "0x123456" {
+		bc.addTx(signtx.Tx)
+		fmt.Printf("交易池累计交易数：\n Pending: %d, Queued: %d\n", bc.TxPool.PendingSize(), bc.TxPool.QueuedSize())
+		return
+	}
 	// 验证交易合法性
 	valid, err := signtx.Tx.VerifySignature(signtx.Sign)
 	if err != nil {
@@ -144,6 +152,10 @@ func (bc *Blockchain) addTx(tx *Transaction) {
 		}
 	}
 	fmt.Printf("tx.Nonce：%d ； maxNonce：%d\n", tx.Nonce, maxNonce)
+	if tx.Nonce <= maxNonce {
+		fmt.Println("过时的交易，直接丢弃")
+		return
+	}
 	if tx.Nonce == maxNonce+1 {
 		bc.TxPool.AddPending(tx)
 	} else {
@@ -163,36 +175,93 @@ func (bc *Blockchain) addTx(tx *Transaction) {
 	}
 }
 
+// 从pending池打包前的二次校验
+func (bc *Blockchain) VerifyTxFromPending(tx *Transaction) bool {
+	from, ok := bc.GetAccState(tx.From)
+	if !ok {
+		log.Println("！验证交易失败：未查询到付款账户")
+		tx.PrintTransaction()
+		return false
+	} else if tx.Value > from.Balance {
+		log.Println("！验证交易失败：付款账户余额不足")
+		tx.PrintTransaction()
+		return false
+	} else if tx.Nonce <= from.Nonce {
+		log.Println("！验证交易失败：交易Nonce小于或等于账户Nonce")
+		tx.PrintTransaction()
+		return false
+	} else {
+		return true
+	}
+}
+
+// 从pending中打包有效交易，同时删除无效交易
+func (bc *Blockchain) GetPendingTxs(transactionsPerBlock int) []*Transaction {
+	bc.TxPool.lock.Lock()
+	defer bc.TxPool.lock.Unlock()
+
+	validTxs := make([]*Transaction, 0, transactionsPerBlock)
+	remainingTxs := make([]*Transaction, 0, len(bc.TxPool.Pending))
+
+	// 收集有效交易
+	for i, tx := range bc.TxPool.Pending {
+		if bc.VerifyTxFromPending(tx) {
+			if len(validTxs) < transactionsPerBlock {
+				validTxs = append(validTxs, tx)
+			}
+			remainingTxs = append(remainingTxs, tx) // 所有有效交易保留
+		}
+		// 无效交易没有记录到validTxs和remainingTxs中，即被删除
+		// 提前终止条件
+		if len(validTxs) == transactionsPerBlock {
+			// 记录剩余未遍历的交易
+			remainingTxs = append(remainingTxs, bc.TxPool.Pending[i+1:]...)
+			break
+		}
+	}
+	// 如果没有提前终止，remainingTxs已经包含所有有效交易
+	bc.TxPool.Pending = remainingTxs
+	return validTxs
+}
+
 func (bc *Blockchain) mineNewBlock(miner string) (*Block, error) {
-	txs := bc.TxPool.GetPendingTxs(MinTransactionsPerBlock)
+	txs := bc.GetPendingTxs(MinTransactionsPerBlock)
 	if len(txs) == 0 {
 		return nil, fmt.Errorf("no transaction!")
 	}
-	// 避免打包已经提交过的区块
-	merkleroot := CalculateMerkleRoot(txs)
-	if bytes.Equal(merkleroot, bc.GetLatestMR()) {
-		bc.TxPool.ClearPackedTxs(txs)
-		fmt.Printf("打包的区块已上链\n")
-		return nil, fmt.Errorf("重复区块")
-	}
 
-	// 创建新区块（该部分的difficulty需要进一步修改）
-	header := NewBlockHeader(bc.CurrentBlockHash, uint64(2), new(big.Int).Add(bc.CurBlockNum, big.NewInt(1)), merkleroot, miner)
+	merkleroot := CalculateMerkleRoot(txs)
+	// 避免打包已经提交过的区块
+	// if bytes.Equal(merkleroot, bc.GetLatestMR()) {
+	// 	bc.TxPool.ClearPackedTxs(txs)
+	// 	fmt.Printf("打包的区块已上链\n")
+	// 	return nil, fmt.Errorf("重复区块")
+	// }
+
+	// 创建新区块
+	header := NewBlockHeader(bc.CurrentBlockHash, Difficulty, new(big.Int).Add(bc.CurBlockNum, big.NewInt(1)), merkleroot, miner)
 	block := NewBlock(header, txs)
 
 	// bc.AddBlock(block)
 	bc.NewBlockChan <- block // 将新区块发送到通道
 
-	bc.TxPool.ClearPackedTxs(block.Transactions)
-	fmt.Printf("打包区块，交易池：\n Pending: %d, Queued: %d\n", bc.TxPool.PendingSize(), bc.TxPool.QueuedSize())
+	// bc.TxPool.ClearPackedTxs(block.Transactions) // 如果在这里清理，区块丢弃后要写回收交易的逻辑
+	fmt.Printf("打包区块%s，交易池：\n Pending: %d, Queued: %d\n", block.Header.Number.String(), bc.TxPool.PendingSize(), bc.TxPool.QueuedSize())
+	// if bc.TxPool.PendingSize() > 0 {
+	// 	fmt.Println("%下一笔交易：")
+	// 	bc.TxPool.Pending[0].PrintTransaction()
+	// }
+	bc.Mining = true
 	return block, nil
 }
 
-func (bc *Blockchain) AddBlock(block *Block) {
+func (bc *Blockchain) AddBlock(block *Block) bool {
 	str := fmt.Sprintf("%s", block.Header.Number)
 	fmt.Println(str)
 	block.PrintBlock()
-	bc.ConfirmBlock(block)                       //修改账户状态MPT
+	if !bc.ConfirmBlock(block) { // 状态异常，触发同步
+		return false
+	}
 	bc.DB.Put(str, block)                        //存入数据库区块高度->区块
 	bc.StoreBlockIndex(block)                    // 添加索引:区块哈希->区块高度,方便查找
 	bc.StoreTxIndex(block)                       // 添加交易索引
@@ -200,6 +269,8 @@ func (bc *Blockchain) AddBlock(block *Block) {
 	fmt.Printf("上链，交易池：\n Pending: %d, Queued: %d\n", bc.TxPool.PendingSize(), bc.TxPool.QueuedSize())
 	bc.CurBlockNum = block.Header.Number
 	bc.CurrentBlockHash = block.Hash
+	bc.Mining = false
+	return true
 }
 
 // 返回上一个区块的默克尔根
@@ -281,7 +352,7 @@ func NewTestBlockchain(DBPath string) (*Blockchain, error) {
 		//StateRoot: nil,
 		//currentBlockHash: currentBlockHash,
 		CurBlockNum:  curBlockNum,
-		NewBlockChan: make(chan *Block, 10),
+		NewBlockChan: make(chan *Block, 100),
 		Noncelist:    make(map[string]uint64),
 	}, nil
 }

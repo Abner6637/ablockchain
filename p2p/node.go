@@ -200,37 +200,70 @@ func (n *Node) PrintPeers() {
 	}
 }
 
-func (node *Node) Synchronization(addr string) {
-	if len(node.Peers()) < 1 {
-		fmt.Println("错误: 未连接任何节点")
-		return
-	}
-	encodedGetSnapshotmsg, err := rlp.EncodeToBytes(node.ID)
-	if err != nil {
-		log.Fatal("RLP encoding failed:", err)
-		return
-	}
-	// 发送给第一个连接的节点（实际应用可扩展选择机制）
-	// targetPeer := sys.p2pNode.Peers()[0]
-	targetPeer, err := peer.Decode(addr)
-	if err != nil {
-		log.Fatal("Peer ID 解码失败: %w", err)
-		return
-	}
-	p2pMsg := &Message{
-		Type: GetSnapshotMessage,
-		Data: encodedGetSnapshotmsg,
-	}
-	encodedMsg, err := p2pMsg.Encode()
-	if err != nil {
-		log.Fatal("消息编码失败: %w", err)
-		return
-	}
-	if err := node.SendMessage(targetPeer, string(encodedMsg)); err != nil {
-		log.Fatal("发送消息失败: %w", err)
-		return
-	}
-}
+// 搬到system/sync...
+// // 不指定目标地址，与peers列表中第一个节点进行同步
+// func (node *Node) RandomSyc() {
+// 	if len(node.Peers()) < 1 {
+// 		fmt.Println("错误: 未连接任何节点")
+// 		return
+// 	}
+// 	encodedGetSnapshotmsg, err := rlp.EncodeToBytes(node.ID)
+// 	if err != nil {
+// 		log.Fatal("RLP encoding failed:", err)
+// 		return
+// 	}
+// 	// 发送给第一个连接的节点（实际应用可扩展选择机制）
+// 	targetPeer := node.Peers()[0]
+// 	if err != nil {
+// 		log.Fatal("Peer ID 解码失败: %w", err)
+// 		return
+// 	}
+// 	p2pMsg := &Message{
+// 		Type: GetSnapshotMessage,
+// 		Data: encodedGetSnapshotmsg,
+// 	}
+// 	encodedMsg, err := p2pMsg.Encode()
+// 	if err != nil {
+// 		log.Fatal("消息编码失败: %w", err)
+// 		return
+// 	}
+// 	if err := node.SendMessage(targetPeer, string(encodedMsg)); err != nil {
+// 		log.Fatal("发送消息失败: %w", err)
+// 		return
+// 	}
+// }
+
+// func (node *Node) Synchronization(addr string) {
+// 	if len(node.Peers()) < 1 {
+// 		fmt.Println("错误: 未连接任何节点")
+// 		return
+// 	}
+// 	encodedGetSnapshotmsg, err := rlp.EncodeToBytes(node.ID)
+// 	if err != nil {
+// 		log.Fatal("RLP encoding failed:", err)
+// 		return
+// 	}
+// 	// 发送给第一个连接的节点（实际应用可扩展选择机制）
+// 	// targetPeer := sys.p2pNode.Peers()[0]
+// 	targetPeer, err := peer.Decode(addr)
+// 	if err != nil {
+// 		log.Fatal("Peer ID 解码失败: %w", err)
+// 		return
+// 	}
+// 	p2pMsg := &Message{
+// 		Type: GetSnapshotMessage,
+// 		Data: encodedGetSnapshotmsg,
+// 	}
+// 	encodedMsg, err := p2pMsg.Encode()
+// 	if err != nil {
+// 		log.Fatal("消息编码失败: %w", err)
+// 		return
+// 	}
+// 	if err := node.SendMessage(targetPeer, string(encodedMsg)); err != nil {
+// 		log.Fatal("发送消息失败: %w", err)
+// 		return
+// 	}
+// }
 
 type EthPeerInfo struct {
 	EthAddr      string

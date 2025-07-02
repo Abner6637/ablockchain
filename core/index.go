@@ -9,7 +9,7 @@ import (
 /*在与remix的通信中,需要用交易hash查询交易数据.
 为了实现这一功能,添加区块和交易的索引,存储在一个独立leveldb中*/
 
-// 定义索引结构：TxIndex 表示一个交易位于哪个区块中
+// 定义索引结构：TxIndex 表示一个交易在区块中对应的序号
 type TxIndex struct {
 	BlockHash []byte
 	TxIndex   int

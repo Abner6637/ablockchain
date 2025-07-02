@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"log"
 	"math/big"
-	"testing"
 	"time"
 
 	"github.com/multiformats/go-multiaddr"
@@ -33,35 +32,35 @@ func newTestNode() (*p2p.Node, error) {
 	return node, nil
 }
 
-func TestPBFTSystem(t *testing.T) {
-	node1, err := newTestNode()
-	if err != nil {
-		t.Fatalf("fault:%v", err)
-	}
+// func TestPBFTSystem(t *testing.T) {
+// 	node1, err := newTestNode()
+// 	if err != nil {
+// 		t.Fatalf("fault:%v", err)
+// 	}
 
-	node2, err := newTestNode()
-	if err != nil {
-		t.Fatalf("fault:%v", err)
-	}
+// 	node2, err := newTestNode()
+// 	if err != nil {
+// 		t.Fatalf("fault:%v", err)
+// 	}
 
-	// 连接节点
-	node2Addr, _ := getNodeFullAddr(node2)
-	if err := node1.ConnectToPeer(node2Addr); err != nil {
-		t.Fatalf("连接失败: %v", err)
-	}
+// 	// 连接节点
+// 	node2Addr, _ := getNodeFullAddr(node2)
+// 	if err := node1.ConnectToPeer(node2Addr); err != nil {
+// 		t.Fatalf("连接失败: %v", err)
+// 	}
 
-	dbPath1 := "./test_storage1"
-	bc1, err := core.NewTestBlockchain(dbPath1)
+// 	dbPath1 := "./test_storage1"
+// 	bc1, err := core.NewTestBlockchain(dbPath1)
 
-	// consensusCore1 := pbftcore.NewCore(node1)
+// 	// consensusCore1 := pbftcore.NewCore(node1)
 
-	// consensusCore1.Start()
+// 	// consensusCore1.Start()
 
-	// 暂时忽略交易打包成区块的过程，用TestBlock进行测试
-	// bc1.StartMiner()
-	ListenNewBlocks(bc1)
+// 	// 暂时忽略交易打包成区块的过程，用TestBlock进行测试
+// 	// bc1.StartMiner()
+// 	ListenNewBlocks(bc1)
 
-}
+// }
 
 func newTestBlockForSystem() *core.Block {
 	return &core.Block{

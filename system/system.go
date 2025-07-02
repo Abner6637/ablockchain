@@ -44,10 +44,8 @@ func (v BlankValidator) Select(_ string, vals [][]byte) (int, error) {
 type System struct {
 	p2pNode    *p2p.Node
 	blockChain *core.Blockchain
-	// accountManager *core.AccountManager
-	consensus     consensus.Consensus
-	tempTxReceipt string // 临时保存交易收据，快速发送给remix
-	api           *api.API
+	consensus  consensus.Consensus
+	api        *api.API
 }
 
 func StartSystem(cfg *cli.Config) *System {
@@ -73,15 +71,6 @@ func StartSystem(cfg *cli.Config) *System {
 
 	go sys.p2pNode.PeriodHelloBroadcast() // 定时发送Hello消息
 
-	// // 初始化账户管理和账户
-	// accountManager := core.NewAccountManager()
-	// sys.accountManager = accountManager
-	// account, err := accountManager.NewAccount()
-	// if err != nil {
-	// 	log.Printf("cannot create new account: %v", err)
-	// }
-	// accountManager.Accounts[account.Address] = account
-
 	bc, err := core.NewBlockchain(cfg)
 	if err != nil {
 		log.Fatalf("initial blockchain failed: %v", err)
@@ -105,15 +94,23 @@ func StartSystem(cfg *cli.Config) *System {
 
 	// 对于PBFT算法，非主节点应该不需要开启挖矿进程？
 	// 但其实正常开启没有问题。只要其他节点不接受来自非主节点的区块就可以了
-	// bc.StartMiner("")     // 异步进程，开启判断是否要打包交易生成区块
-	ListenNewBlocks(bc)         // 异步进程，监听是否有新区块生成，若有则处理
-	ListenSynchronization(&sys) // 异步进程，监听是否有状态同步消息
+	sys.ListenNewBlocks()       // 异步进程，监听是否有新区块生成，若有则处理
+	sys.ListenSynchronization() // 异步进程，监听是否有状态同步消息
 
-	api := api.NewAPI(bc, node)
-	sys.api = api
+	sys.api = api.NewAPI(bc, node)
+
+	// ###################################
+	// 创建水龙头账户方便分配新建账户初始余额
+	accs := &core.AccState{
+		Address: "0x123456",
+		Balance: 999999999999999999,
+		Nonce:   0,
+	}
+	bc.UpdateAccState(accs)
+	// ###################################
 
 	// 图形界面所需的RPC服务
-	go StartRPCHandler(api)
+	go StartRPCHandler(cfg.RPC, sys.api)
 
 	if cfg.IfBackend {
 		log.Printf("开启IPC Server")
@@ -211,14 +208,14 @@ func StartListen(cfg *cli.Config) *p2p.Node {
 	return node
 }
 
-func ListenNewBlocks(bc *core.Blockchain) {
+func (sys *System) ListenNewBlocks() {
 	consensusfinish := event.Bus.Subscribe("ConsensusFinish")
 	// publishTx := event.Bus.Subscribe("PublishTx")
 	go func() {
 		for {
 			select {
 			// 打包区块（触发共识）
-			case block := <-bc.NewBlockChan:
+			case block := <-sys.blockChain.NewBlockChan:
 				fmt.Println("\n##触发共识##")
 				handleNewBlock(block)
 			// 提交区块（上链）
@@ -229,7 +226,10 @@ func ListenNewBlocks(bc *core.Blockchain) {
 					continue
 				}
 				fmt.Println("\n##提交区块##")
-				bc.AddBlock(Block)
+				if !sys.blockChain.AddBlock(Block) {
+					fmt.Println("\n区块信息与当前状态不匹配，触发同步！")
+					sys.RandomSyc()
+				}
 
 				// case signtx := <-publishTx:
 				// 	txBytes, ok := signtx.([]byte)
@@ -418,11 +418,11 @@ func StartAutoDiscovery(ctx context.Context, kad *dht.IpfsDHT, h host.Host) {
 	}
 }
 
-func StartRPCHandler(a *api.API) {
+func StartRPCHandler(port string, a *api.API) {
 	http.HandleFunc("/", a.Handler)
 
-	log.Println("RPC server listening on :8545")
-	if err := http.ListenAndServe(":8545", nil); err != nil {
+	log.Println("RPC server listening on :" + port)
+	if err := http.ListenAndServe(":"+port, nil); err != nil {
 		log.Fatal(err)
 	}
 }

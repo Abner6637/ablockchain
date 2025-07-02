@@ -1,19 +1,20 @@
-package core
+package p2p
 
 import (
+	"ablockchain/core"
 	"log"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/rlp"
 )
 
-type GetBlocksMessage struct {
+type GetBlocksMsg struct {
 	PeerID string
 	From   *big.Int
 	To     *big.Int
 }
 
-func (s *GetBlocksMessage) EncodeGetBlocksMessage() ([]byte, error) {
+func (s *GetBlocksMsg) EncodeGetBlocksMessage() ([]byte, error) {
 	encodedGetBlocksMessage, err := rlp.EncodeToBytes(s)
 	if err != nil {
 		log.Fatal("RLP encoding failed:", err)
@@ -22,8 +23,8 @@ func (s *GetBlocksMessage) EncodeGetBlocksMessage() ([]byte, error) {
 	return encodedGetBlocksMessage, nil
 }
 
-func DecodeGetBlocksMessage(data []byte) (*GetBlocksMessage, error) {
-	var s GetBlocksMessage
+func DecodeGetBlocksMessage(data []byte) (*GetBlocksMsg, error) {
+	var s GetBlocksMsg
 	err := rlp.DecodeBytes(data, &s)
 	if err != nil {
 		log.Fatal("Failed to decode RLP data:", err)
@@ -32,12 +33,12 @@ func DecodeGetBlocksMessage(data []byte) (*GetBlocksMessage, error) {
 	return &s, nil
 }
 
-type BlocksMessage struct {
+type BlocksMsg struct {
 	PeerID string
-	Blocks []*Block
+	Blocks []*core.Block
 }
 
-func (s *BlocksMessage) EncodeBlocksMessage() ([]byte, error) {
+func (s *BlocksMsg) EncodeBlocksMessage() ([]byte, error) {
 	encodedBlocksMessage, err := rlp.EncodeToBytes(s)
 	if err != nil {
 		log.Fatal("RLP encoding failed:", err)
@@ -46,8 +47,8 @@ func (s *BlocksMessage) EncodeBlocksMessage() ([]byte, error) {
 	return encodedBlocksMessage, nil
 }
 
-func DecodeBlocksMessage(data []byte) (*BlocksMessage, error) {
-	var s BlocksMessage
+func DecodeBlocksMessage(data []byte) (*BlocksMsg, error) {
+	var s BlocksMsg
 	err := rlp.DecodeBytes(data, &s)
 	if err != nil {
 		log.Fatal("Failed to decode RLP data:", err)
@@ -60,12 +61,12 @@ func DecodeBlocksMessage(data []byte) (*BlocksMessage, error) {
 // 	PeerID string
 // }
 
-type SnapshotMessage struct {
+type SnapshotMsg struct {
 	PeerID   string
-	Snapshot *Snapshot
+	Snapshot *core.Snapshot
 }
 
-func (s *SnapshotMessage) EncodeSnapshotMessage() ([]byte, error) {
+func (s *SnapshotMsg) EncodeSnapshotMessage() ([]byte, error) {
 	encodedSnapshotMessage, err := rlp.EncodeToBytes(s)
 	if err != nil {
 		log.Fatal("RLP encoding failed:", err)
@@ -74,8 +75,8 @@ func (s *SnapshotMessage) EncodeSnapshotMessage() ([]byte, error) {
 	return encodedSnapshotMessage, nil
 }
 
-func DecodeSnapshotMessage(data []byte) (*SnapshotMessage, error) {
-	var s SnapshotMessage
+func DecodeSnapshotMessage(data []byte) (*SnapshotMsg, error) {
+	var s SnapshotMsg
 	err := rlp.DecodeBytes(data, &s)
 	if err != nil {
 		log.Fatal("Failed to decode RLP data:", err)

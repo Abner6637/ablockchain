@@ -8,6 +8,7 @@ import (
 	"math/big"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/rawdb"
@@ -19,9 +20,9 @@ import (
 	"github.com/holiman/uint256"
 )
 
-var oribalance = uint64(1000)
+var oribalance = uint64(0) // 账户初始余额
 var privkeyaddr = "./privkey"
-var reward = uint64(10)
+var reward = uint64(10) // 一次挖矿的奖励
 
 // StateDB 管理账户状态(内存操作，提交到Trie后才是持久化存储)
 // type StateDB struct {
@@ -124,6 +125,13 @@ func (bc *Blockchain) NewAccount() (*Account, error) {
 	if err != nil {
 		return nil, fmt.Errorf("保存账户文件失败: %v", err)
 	}
+
+	// 默认将第一个创建的账户设置为矿工
+	// if bc.MinerAddr == "" {
+	// 	bc.MinerAddr = address
+	// 	log.Printf("开启挖矿，设置矿工地址: %s\n", address)
+	// 	bc.StartMiner()
+	// }
 
 	return account, nil
 }
@@ -239,29 +247,15 @@ func (bc *Blockchain) PrintAllAccounts() {
 // 	return true
 // }
 
-// 打印 StateDB 中的所有账户及其余额
-
-// func (bc *Blockchain) PrintAccounts() {
-// 	fmt.Println("=== StateDB中的账户 ===")
-// 	for _, accs := range bc.StateDB.stateObjects {
-// 		fmt.Printf("地址: %s | 余额: %d | Nonce: %d\n", accs.Address, accs.Balance, accs.Nonce)
-// 	}
-
-// 	// fmt.Println("=== MPT中的账户 ===")
-// 	// s.TraverseAccState(func(key string, accs *AccState) {
-// 	// 	fmt.Printf("地址: %s | 余额: %d | Nonce: %d\n", accs.Address, accs.Balance, accs.Nonce)
-// 	// })
-// }
-
-// func (s *StateDB) Close() {
-// 	s.trie.DB.Close()
-// }
-
 // 区块上链后，根据区块信息改变账户状态，并提交至MPT
 // TODO: 验证交易与账户的nonce信息，是否按顺序进行
-func (bc *Blockchain) ConfirmBlock(block *Block) error {
+func (bc *Blockchain) ConfirmBlock(block *Block) bool {
+	if block.Header.Number.Uint64() != bc.CurBlockNum.Uint64()+1 {
+		// 收到区块打
+		return false
+	}
 	for _, tx := range block.Transactions {
-		from, ok := bc.GetAccState(tx.From)
+		from, ok := bc.GetAccState(tx.From) //首先判断付款账户是否有本地记录（若没有，应该触发同步）
 		if ok {
 			// TODO: 是否需要在这里验证nonce的顺序？
 			// if from.Nonce+1 == tx.Nonce {
@@ -272,17 +266,22 @@ func (bc *Blockchain) ConfirmBlock(block *Block) error {
 			// 	return nil
 			// }
 			from.Balance -= tx.Value
-			from.Nonce += 1
+			if tx.To != "0x" { //运行创建合约代码时，from.Nonce会自动+1
+				from.Nonce += 1
+			}
 			bc.UpdateAccState(from)
+			if bc.Noncelist[tx.From] < from.Nonce { // 当多个节点同时拥有同一个账户并通过该账户发送交易时，可能出现这种情况
+				bc.Noncelist[tx.From] = from.Nonce
+			}
 		} else { // ###########实际情况下不应该记录from账户，因为初始余额为0不可能发起交易##### 正确做法是触发同步
-			// 特殊情况：部署合约时，From为未记录的地址（TODO：触发同步）
+			// 部署合约时，From为未记录的地址（TODO：触发同步）
 			if tx.To == "0x" {
 				accs := &AccState{
 					Address: tx.From,
 					Balance: oribalance - tx.Value,
 					Nonce:   1,
 				}
-				fmt.Println("特殊情况：部署合约时，From为未记录的地址（TODO：触发同步）")
+				fmt.Println("部署合约时，From为未记录的地址（TODO：触发同步）")
 				bc.UpdateAccState(accs)
 			} else {
 				accs := &AccState{
@@ -290,7 +289,7 @@ func (bc *Blockchain) ConfirmBlock(block *Block) error {
 					Balance: oribalance - tx.Value,
 					Nonce:   1,
 				}
-				fmt.Println("外部账户收录")
+				fmt.Println("外部账户收录（TODO：触发同步）")
 				bc.UpdateAccState(accs)
 			}
 		}
@@ -319,7 +318,7 @@ func (bc *Blockchain) ConfirmBlock(block *Block) error {
 					Balance: oribalance + tx.Value,
 					Nonce:   0,
 				}
-				fmt.Println("mpt中没有，说明是新建的账户")
+				fmt.Println("GetAccState(tx.To)失败，说明是新建账户")
 				bc.UpdateAccState(accs)
 			}
 
@@ -343,10 +342,6 @@ func (bc *Blockchain) ConfirmBlock(block *Block) error {
 			}
 		}
 
-		// from为一个副本，必须在miner前更新，否则miner的更新无效（若miner和from为同一账户）
-		fmt.Println("UpdateAccState(from)")
-		//bc.UpdateAccState(from)
-
 		miner, ok := bc.GetAccState(block.Header.Coinbase)
 		if ok {
 			miner.Balance += reward
@@ -361,12 +356,10 @@ func (bc *Blockchain) ConfirmBlock(block *Block) error {
 			fmt.Println("GetAccState(block.Header.Coinbase)失败，说明是新账户")
 			bc.UpdateAccState(accs)
 		}
-
-		// 添加交易索引:交易哈希->区块哈希+位置索引(目前选择在外部添加:CreateBlockIndex)
-
 	}
 	bc.Commit() //更新MPT
-	return nil
+	log.Printf("\n@@BLOCK_CONFIRMED BlockHash=%x time=%v\n", block.Hash, time.Now())
+	return true
 }
 
 // 将account插入mpt，并将acc和mpt都提交到leveldb

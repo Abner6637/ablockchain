@@ -30,7 +30,32 @@ func NewProofOfWork(p2pNode *p2p.Node) *ProofOfWork {
 	}
 }
 
-// 准备用于计算hash的数据
+// 实现共识接口
+func (pow *ProofOfWork) Start() error {
+	if pow.running {
+		fmt.Println("PoW 已经在运行")
+		return nil
+	}
+	fmt.Println("\nPoW Start")
+
+	pow.running = true
+	pow.SubcribeEvents() // 订阅事件
+	pow.HandleEvents()   // 监听&处理事件
+	return nil
+}
+
+func (pow *ProofOfWork) Stop() error {
+	if !pow.running {
+		fmt.Println("PoW 已经停止")
+		return nil
+	}
+	pow.running = false
+	event.Bus.Publish("ConsensusStop", true)
+	fmt.Println("PoW stop")
+	return nil
+}
+
+// 准备用于计算hash的数据，将nonce打包
 func (pow *ProofOfWork) prepareData(nonce uint64) []byte {
 	data := bytes.Join(
 		[][]byte{
@@ -46,21 +71,20 @@ func (pow *ProofOfWork) prepareData(nonce uint64) []byte {
 	return data
 }
 
-// 共识的核心逻辑
+// 共识的核心逻辑：输入区块，计算nonce
 func (pow *ProofOfWork) Run(block *core.Block) {
-	var hashInt big.Int
 	var hash []byte
+	var hashInt big.Int // 便于比较大小
 	pow.stopcount = false
 	nonce := uint64(0)
-	maxNonce := uint64(9223372036854775807)
 	pow.block = block
 	target := big.NewInt(1)
-	target.Lsh(target, uint(256-pow.block.Header.Difficulty*4))
+	target.Lsh(target, uint(256-pow.block.Header.Difficulty*4)) // 目标值，形如"01000000..."
 	pow.target = target
 
 	fmt.Printf("Mining the block \"%d\"\n", pow.block.Header.Number)
-	for nonce < maxNonce {
-		if pow.stopcount { //为监听到其他区块,继续挖矿
+	for nonce < uint64(9223372036854775807) {
+		if pow.stopcount { // 每一轮计算前，先确认其他节点是否先一步完成计算
 			fmt.Printf("\n 收到其他区块,停止计算...")
 			break
 		}
@@ -77,11 +101,10 @@ func (pow *ProofOfWork) Run(block *core.Block) {
 		}
 		time.Sleep(time.Millisecond * 10)
 	}
-	fmt.Print("\n\n")
 	if !pow.stopcount {
 		block.Hash = hash[:]
 		block.Header.Nonce = nonce
-	} else { //返回非法区块
+	} else { //停止计算的情况下，返回非法区块（验证阶段会被自动丢弃）
 		block.Hash = nil
 		block.Header.Nonce = 0
 	}
@@ -109,31 +132,6 @@ func Validate(block *core.Block) bool {
 	isValid := hashInt.Cmp(target) == -1
 
 	return isValid
-}
-
-// 实现共识接口
-func (pow *ProofOfWork) Start() error {
-	if pow.running {
-		fmt.Println("PoW 已经在运行")
-		return nil
-	}
-	fmt.Println("\nPoW Start")
-
-	pow.running = true
-	pow.SubcribeEvents()
-	pow.HandleEvents()
-	return nil
-}
-
-func (pow *ProofOfWork) Stop() error {
-	if !pow.running {
-		fmt.Println("PoW 已经停止")
-		return nil
-	}
-	pow.running = false
-	event.Bus.Publish("ConsensusStop", true)
-	fmt.Println("PoW stop")
-	return nil
 }
 
 func (pow *ProofOfWork) SubcribeEvents() {
@@ -170,16 +168,13 @@ func (pow *ProofOfWork) HandleEvents() {
 		for {
 			// 阻塞监听事件
 			chosen, value, ok := reflect.Select(cases)
-
 			// 处理通道关闭
 			if !ok {
 				log.Printf("事件通道关闭: %s", eventNames[chosen])
 				return
 			}
-
 			// 获取事件数据
 			eventData := value.Interface()
-
 			// 根据事件名称路由处理
 			switch eventNames[chosen] {
 			case "ConsensusStart":
@@ -188,7 +183,7 @@ func (pow *ProofOfWork) HandleEvents() {
 					log.Fatal("转换失败: 事件数据不是 *core.Block 类型")
 				}
 				fmt.Println("PoW 收到共识事件，开始计算区块:", block.Header.Number)
-				go func() {
+				go func() { // 并发执行：监听到区块后可立即中断nonce计算
 					pow.Run(block)
 					if Validate(block) {
 						fmt.Println("验证通过，准备上链")
@@ -208,7 +203,8 @@ func (pow *ProofOfWork) HandleEvents() {
 						pow.p2pNode.BroadcastMessage(string(encodedP2PMsg))
 						event.Bus.Publish("ConsensusFinish", block)
 					} else {
-						fmt.Println("丢弃非法区块")
+						fmt.Println("丢弃非法区块，回收未执行的交易")
+						block = nil // 清除引用，便于垃圾回收
 					}
 				}()
 
@@ -220,7 +216,6 @@ func (pow *ProofOfWork) HandleEvents() {
 
 			case "BlockMessage":
 				fmt.Println("\n收到BlockMessage,开始验证")
-				pow.stopcount = true
 				block, ok := eventData.(*core.Block)
 				if !ok {
 					log.Fatal("转换失败: 事件数据不是 *core.Block 类型")
