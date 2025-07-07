@@ -69,13 +69,13 @@ func StartSystem(cfg *cli.Config) *System {
 		log.Printf("peer address length: 0")
 	}
 
-	go sys.p2pNode.PeriodHelloBroadcast() // 定时发送Hello消息
-
 	bc, err := core.NewBlockchain(cfg)
 	if err != nil {
 		log.Fatalf("initial blockchain failed: %v", err)
 	}
 	sys.blockChain = bc
+
+	go sys.p2pNode.PeriodHelloBroadcast() // 定时发送Hello消息
 
 	switch cfg.ConsensusType {
 	case "pbft":
@@ -98,16 +98,6 @@ func StartSystem(cfg *cli.Config) *System {
 	sys.ListenSynchronization() // 异步进程，监听是否有状态同步消息
 
 	sys.api = api.NewAPI(bc, node)
-
-	// ###################################
-	// 创建水龙头账户方便分配新建账户初始余额
-	accs := &core.AccState{
-		Address: "0x123456",
-		Balance: 999999999999999999,
-		Nonce:   0,
-	}
-	bc.UpdateAccState(accs)
-	// ###################################
 
 	// 图形界面所需的RPC服务
 	go StartRPCHandler(cfg.RPC, sys.api)

@@ -74,19 +74,31 @@ func NewBlockchain(cfg *cli.Config) (*Blockchain, error) {
 		return nil, err
 	}
 
-	return &Blockchain{
-		ChainID: cfg.ChainID,
-		DB:      db,
-		TxPool:  txPool,
-		StateDB: stateDB,
-		IndexDB: indexdb,
-		//StateRoot: nil,
-		//currentBlockHash: currentBlockHash,
+	bc := &Blockchain{
+		ChainID:      cfg.ChainID,
+		DB:           db,
+		TxPool:       txPool,
+		StateDB:      stateDB,
+		IndexDB:      indexdb,
 		CurBlockNum:  curBlockNum,
-		NewBlockChan: make(chan *Block, 500), // 设置为10时，遇到大规模交易容易堵塞(TODO:动态队列或事件总线 + 限流策略，避免固定容量 channel)
+		NewBlockChan: make(chan *Block, 500),
 		Noncelist:    make(map[string]uint64),
 		Mining:       false,
-	}, nil
+	}
+
+	// ###################################
+	// 创建并提交水龙头账户
+	// ###################################
+	fmt.Print("创建水龙头账户...")
+	accs := &AccState{
+		Address: "0x0000000000000000000000000000000000000001",
+		Balance: 999999999999999999,
+		Nonce:   0,
+	}
+	bc.UpdateAccState(accs)
+	// ###################################
+
+	return bc, nil
 }
 
 // 开始一个异步的矿工进程
@@ -120,7 +132,7 @@ func (bc *Blockchain) StartMiner() {
 // 处理收到的交易
 func (bc *Blockchain) handleTransaction(signtx *SignedTx) {
 	// 水龙头账户特殊处理
-	if signtx.Tx.From == "0x123456" {
+	if signtx.Tx.From == "0x0000000000000000000000000000000000000001" {
 		bc.addTx(signtx.Tx)
 		fmt.Printf("交易池累计交易数：\n Pending: %d, Queued: %d\n", bc.TxPool.PendingSize(), bc.TxPool.QueuedSize())
 		return

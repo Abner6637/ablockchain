@@ -107,7 +107,7 @@ func (c *IPCCommander) executeCommand(cmd string) {
 			return
 		}
 		for i := 1; i <= core.MinTransactionsPerBlock; i++ {
-			c.handleTx("0x123456", parts[1], value/uint64(core.MinTransactionsPerBlock))
+			c.handleTx("0x0000000000000000000000000000000000000001", parts[1], value/uint64(core.MinTransactionsPerBlock))
 		}
 	case "newacc":
 		c.sys.blockChain.NewAccount()
@@ -235,7 +235,7 @@ func (c *IPCCommander) handleAddVal(address string, value uint64) {
 // 发送交易
 func (c *IPCCommander) handleTx(from, to string, value uint64) {
 	// 优先处理水龙头账户（跳过验证直接生成交易）
-	if from == "0x123456" {
+	if from == "0x0000000000000000000000000000000000000001" {
 		c.sys.blockChain.Noncelist[from] += 1
 		tx := core.NewTransaction(from, to, value, "", c.sys.blockChain.Noncelist[from])
 		signedTx := &core.SignedTx{
