@@ -121,7 +121,7 @@ func (bc *Blockchain) StartMiner() {
 			default:
 				// 当交易池足够大时，打包区块
 				if bc.TxPool.PendingSize() >= MinTransactionsPerBlock && bc.Mining == false {
-					bc.mineNewBlock(bc.MinerAddr)
+					bc.MineNewBlock(bc.MinerAddr)
 				}
 				time.Sleep(BlockInterval)
 			}
@@ -236,7 +236,7 @@ func (bc *Blockchain) GetPendingTxs(transactionsPerBlock int) []*Transaction {
 	return validTxs
 }
 
-func (bc *Blockchain) mineNewBlock(miner string) (*Block, error) {
+func (bc *Blockchain) MineNewBlock(miner string) (*Block, error) {
 	txs := bc.GetPendingTxs(MinTransactionsPerBlock)
 	if len(txs) == 0 {
 		return nil, fmt.Errorf("no transaction!")

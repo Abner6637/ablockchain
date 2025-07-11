@@ -79,10 +79,25 @@ func (tp *TxPool) FindQueuedTxByNonce(from string, nonce uint64) *Transaction {
 // 		n = len(tp.Pending)
 // 	}
 
-// 	txs := make([]*Transaction, n)
-// 	copy(txs, tp.Pending[:n])
-// 	return txs
-// }
+//		txs := make([]*Transaction, n)
+//		copy(txs, tp.Pending[:n])
+//		return txs
+//	}
+//
+// 获取所有Pending中的交易
+func (tp *TxPool) GetPendingTxs() []*Transaction {
+	tp.lock.RLock()
+	defer tp.lock.RUnlock()
+
+	txs := make([]*Transaction, len(tp.Pending))
+	copy(txs, tp.Pending)
+	return txs
+}
+func (tp *TxPool) ClearPendingTxs() {
+	tp.lock.Lock()
+	defer tp.lock.Unlock()
+	tp.Pending = []*Transaction{}
+}
 
 func (tp *TxPool) GetQueuedTxs() []*Transaction {
 	tp.lock.RLock()
@@ -163,3 +178,5 @@ func (tp *TxPool) ClearPackedTxs(txs []*Transaction) {
 		}
 	}
 }
+
+var TxPoolInstance = NewTxPool()

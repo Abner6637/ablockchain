@@ -17,7 +17,7 @@ done
 PEERADDR_ARGS=""
 for ((i=0; i<NODE_COUNT; i++)); do
   PEERADDR=$(cat ./key_store/p2pID${i})
-  PEERADDR_ARGS+="--peer /ip4/172.28.0.$((START_IP + i))/tcp/32000/p2p/${PEERADDR} "
+  PEERADDR_ARGS+="--peer /ip4/172.30.0.$((START_IP + i))/tcp/32000/p2p/${PEERADDR} "
 done
 
 # 3. 写入 docker-compose.yml 头部
@@ -31,28 +31,28 @@ EOF
 for ((i=0; i<NODE_COUNT; i++)); do
   node_ip=$((START_IP + i))
   cat >> docker-compose.yml <<EOF
-  node${i}:
-    container_name: node${i}
+  node$((i + 20)):
+    container_name: node$((i + 20))
     depends_on:
       - bootnode
-    image: ablockchain:2.0.0
+    image: ablockchain:2.2.3
     networks:
-      customnet:
-        ipv4_address: 172.28.0.${node_ip}
+      customnet2:
+        ipv4_address: 172.30.0.${node_ip}
     ports:
-      - "3300${i}:32000"
-      - "2600${i}:8545"
-      - "2200${i}:5173"
+      - "3320${i}:32000"
+      - "2620${i}:8545"
+      - "2220${i}:5173"
     volumes:
       - ./key_store/nodekey${i}:/ablockchain/key_store/nodekey${i}
       - ./genesis.json:/ablockchain/genesis.json
     environment:
-      - API_URL=http://192.168.2.127:2600${i}
+      - API_URL=http://192.168.2.127:2620${i}
     command: >
       ./ablockchain 
       --listen /ip4/0.0.0.0/tcp/32000 
       --nodekey ./key_store/nodekey${i} 
-      --consensus pbft
+      --consensus poa
       ${VALADDR_ARGS}
       ${PEERADDR_ARGS}
       --backend=true
@@ -62,11 +62,11 @@ done
 # 5. 写入网络配置
 cat >> docker-compose.yml <<EOF
 networks:
-  customnet:
+  customnet2:
     driver: bridge
     ipam:
       config:
-        - subnet: 172.28.0.0/16
+        - subnet: 172.30.0.0/16
 EOF
 
 echo "✅ docker-compose.yml 生成完毕！请使用 docker-compose up -d 启动集群。"

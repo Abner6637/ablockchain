@@ -59,7 +59,7 @@ func ParseFlags() (*Config, bool) {
 	flag.BoolVar(&cfg.IfBackend, "backend", false, "是否以后台方式运行")
 	flag.StringVar(&cfg.BootNode, "bootnode", "", "bootnode的multiAddr")
 	flag.StringVar(&cfg.IsBoot, "isboot", "false", "启动的节点是否是bootnode")
-	flag.StringVar(&cfg.RPC, "rpc", "8545", "json-rpc端口")
+	flag.StringVar(&cfg.RPC, "rpc", "8565", "json-rpc端口")
 
 	// 定义一个自定义类型变量，用于接收额外的字符串参数
 	var valAddresses stringSlice

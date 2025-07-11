@@ -1,26 +1,27 @@
 package poa
 
 import (
-	"fmt"
+	"ablockchain/p2p"
 )
 
-type PoA struct {
+type ProofOfAuthority struct {
+	p2pNode *p2p.Node
+	running bool
 }
 
-func NewPoA() *PoA {
-	consensus := new(PoA)
-
-	return consensus
+func NewProofOfAuthority(p2pNode *p2p.Node) *ProofOfAuthority {
+	return &ProofOfAuthority{
+		p2pNode: p2pNode,
+		running: false,
+	}
 }
 
-// 实现 Start 方法
-func (p *PoA) Start() error {
-	fmt.Println("PoA 共识已启动")
+func (poa *ProofOfAuthority) Start() error {
+	poa.running = true
 	return nil
 }
 
-// 实现 Stop 方法
-func (p *PoA) Stop() error {
-	fmt.Println("PoA 共识已停止")
+func (poa *ProofOfAuthority) Stop() error {
+	poa.running = false
 	return nil
 }
