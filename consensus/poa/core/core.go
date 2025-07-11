@@ -4,7 +4,8 @@ import (
 	"ablockchain/cli"
 	poatypes "ablockchain/consensus/poa/types"
 	"ablockchain/core"
-	"ablockchain/crypto"
+
+	//"ablockchain/crypto"
 	"ablockchain/p2p"
 	"bytes"
 	"crypto/ecdsa"
@@ -16,6 +17,9 @@ import (
 	"sync"
 
 	"github.com/libp2p/go-libp2p/core/peer"
+
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/crypto"
 )
 
 type Core struct {
@@ -245,8 +249,14 @@ func (c *Core) HandleMessage(msg *poatypes.Message) {
 	}
 }
 
+/*
+	 func (c *Core) Sign(data []byte) ([]byte, error) {
+		hash := crypto.GlobalHashAlgorithm.Hash(data)
+		return crypto.Sign(hash, c.privateKey)
+	}
+*/
 func (c *Core) Sign(data []byte) ([]byte, error) {
-	hash := crypto.GlobalHashAlgorithm.Hash(data)
+	hash := crypto.Keccak256(data)
 	return crypto.Sign(hash, c.privateKey)
 }
 
@@ -263,4 +273,17 @@ func (c *Core) SignMessage(msg *poatypes.Message) ([]byte, error) {
 	return sig, nil
 }
 
-func GetSignatureAddress(data []byte, sig []byte)
+//func GetSignatureAddress(data []byte, sig []byte)
+
+func GetSignatureAddress(data []byte, sig []byte) (common.Address, error) {
+	hash := crypto.Keccak256(data)
+	pubKeyBytes, err := crypto.Ecrecover(hash, sig)
+	if err != nil {
+		return common.Address{}, err
+	}
+	pubKey, err := crypto.UnmarshalPubkey(pubKeyBytes)
+	if err != nil {
+		return common.Address{}, err
+	}
+	return crypto.PubkeyToAddress(*pubKey), nil
+}
