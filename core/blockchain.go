@@ -411,3 +411,12 @@ func (bc *Blockchain) GetBlockByIndex(index int) (*Block, error) {
 	}
 	return &value, nil
 }
+
+func (bc *Blockchain) CurrentBlock() *Block {
+	block, err := bc.GetBlockByIndex(int(bc.CurBlockNum.Int64()))
+	if err != nil {
+		log.Printf("[CurrentBlock] 获取当前区块失败: %v", err)
+		return nil
+	}
+	return block
+}

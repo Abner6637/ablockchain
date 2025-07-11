@@ -6,7 +6,7 @@ import (
 	"ablockchain/consensus"
 	hotstuffcore "ablockchain/consensus/bft/hotstuff/core"
 	pbftcore "ablockchain/consensus/bft/pbft/core"
-	poa "ablockchain/consensus/poa/core"
+	poacore "ablockchain/consensus/poa/core"
 
 	//"ablockchain/consensus/poa"
 	"ablockchain/consensus/pow"
@@ -88,10 +88,12 @@ func StartSystem(cfg *cli.Config) *System {
 	case "pow":
 		sys.consensus = pow.NewProofOfWork(node)
 	case "poa":
-		sys.consensus = poa.NewCore(cfg, node, bc)
+		sys.consensus = poacore.NewCore(cfg, node, bc)
 	default:
 		sys.consensus = pbftcore.NewCore(cfg, node)
 	}
+
+	log.Printf("共识类型: %s", cfg.ConsensusType)
 
 	// 开启共识模块
 	sys.consensus.Start()

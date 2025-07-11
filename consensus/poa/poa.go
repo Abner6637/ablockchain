@@ -1,7 +1,8 @@
 package poa
 
-import (
+/* import (
 	"ablockchain/p2p"
+	"log"
 )
 
 type ProofOfAuthority struct {
@@ -17,6 +18,8 @@ func NewProofOfAuthority(p2pNode *p2p.Node) *ProofOfAuthority {
 }
 
 func (poa *ProofOfAuthority) Start() error {
+	log.Println("🚨 ProofOfAuthority Start() 被执行了")
+
 	poa.running = true
 	return nil
 }
@@ -24,4 +27,4 @@ func (poa *ProofOfAuthority) Start() error {
 func (poa *ProofOfAuthority) Stop() error {
 	poa.running = false
 	return nil
-}
+} */

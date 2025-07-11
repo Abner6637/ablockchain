@@ -2,288 +2,142 @@ package poacore
 
 import (
 	"ablockchain/cli"
-	poatypes "ablockchain/consensus/poa/types"
 	"ablockchain/core"
-
-	//"ablockchain/crypto"
+	"ablockchain/crypto"
 	"ablockchain/p2p"
-	"bytes"
 	"crypto/ecdsa"
 	"encoding/hex"
-	"errors"
+	"fmt"
 	"log"
-	"sort"
-	"strings"
 	"sync"
-
-	"github.com/libp2p/go-libp2p/core/peer"
-
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/crypto"
+	"time"
 )
 
+// Core 定义 PoA 共识核心
 type Core struct {
-	p2pNode    *p2p.Node
-	blockChain *core.Blockchain
+	p2pNode *p2p.Node
+
+	blockchain *core.Blockchain
 
 	privateKey *ecdsa.PrivateKey
 	address    []byte
 
-	addrToID map[string]string
-	ValSet   []string
-	Primary  []byte
-
-	NodeSize      int
-	ByzantineSize int
-
-	wg *sync.WaitGroup
-
-	// 新增: Prepare 和 Commit 收集
-	prepareSet map[string]map[string]bool // blockHash -> addr -> bool
-	commitSet  map[string]map[string]bool
+	ValSet []string
+	wg     *sync.WaitGroup
 }
 
-// 创建核心
+// 创建共识核心
 func NewCore(cfg *cli.Config, p2pNode *p2p.Node, bc *core.Blockchain) *Core {
 	address := crypto.PubkeyToAddress(p2pNode.PrivateKey.PublicKey).Bytes()
 
 	var valSet []string
 	if len(cfg.ValSet) != 0 {
-		for _, str := range cfg.ValSet {
-			str = strings.TrimPrefix(str, "0x")
-			strBytes, err := hex.DecodeString(str)
-			if err != nil {
-				log.Fatalf("地址转换失败: %v", err)
-			}
-			valSet = append(valSet, string(strBytes))
-		}
+		valSet = cfg.ValSet
 	} else {
 		valSet = append(valSet, string(address))
 	}
 
-	sort.Strings(valSet)
-
-	log.Printf("ValSet: %x", valSet)
-
 	return &Core{
-		p2pNode:       p2pNode,
-		blockChain:    bc,
-		privateKey:    p2pNode.PrivateKey,
-		address:       address,
-		addrToID:      make(map[string]string),
-		ValSet:        valSet,
-		Primary:       address,
-		NodeSize:      cfg.ConsensusNum,
-		ByzantineSize: (cfg.ConsensusNum - 1) / 3,
-		wg:            &sync.WaitGroup{},
-		prepareSet:    make(map[string]map[string]bool),
-		commitSet:     make(map[string]map[string]bool),
+		p2pNode:    p2pNode,
+		blockchain: bc,
+		privateKey: p2pNode.PrivateKey,
+		address:    address,
+		ValSet:     valSet,
+		wg:         &sync.WaitGroup{},
 	}
 }
 
+// 启动共识
 func (c *Core) Start() error {
-	log.Println("PoA core started")
-	log.Printf("HexAddress: 0x%x", c.Address())
-	c.Primary = []byte(c.ValSet[0])
-	log.Printf("当前主节点: 0x%x", c.Primary)
-
-	if c.IsPrimary() {
-		c.ProcessRequest()
-	}
+	log.Printf("[PoA] 启动, 我的地址: 0x%x", c.Address())
+	c.wg.Add(1)
+	go c.loopSeal()
 	return nil
 }
 
+// 停止共识
 func (c *Core) Stop() error {
-	log.Println("PoA core stopped")
+	c.wg.Wait()
+	log.Println("[PoA] 停止")
 	return nil
 }
 
+// 返回自己地址
 func (c *Core) Address() []byte {
 	return c.address
 }
 
-func (c *Core) IsPrimary() bool {
-	return bytes.Equal(c.Primary, c.address)
-}
+// 轮值定时器
+func (c *Core) loopSeal() {
+	defer c.wg.Done()
 
-func (c *Core) IsValidator(address []byte) bool {
-	for _, v := range c.ValSet {
-		if bytes.Equal([]byte(v), address) {
-			return true
+	ticker := time.NewTicker(5 * time.Second)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ticker.C:
+			c.trySeal()
 		}
 	}
-	return false
 }
 
-func (c *Core) Broadcast(msg *poatypes.Message) error {
-	payload, err := msg.EncodeMessage()
-	if err != nil {
-		return err
-	}
-	p2pMsg := &p2p.Message{
-		Type: p2p.ConsensusMessage,
-		Data: payload,
-	}
-	encoded, err := p2pMsg.Encode()
-	if err != nil {
-		return err
-	}
-	c.p2pNode.BroadcastMessage(string(encoded))
-	return nil
-}
+// 出块尝试
+func (c *Core) trySeal() {
+	height := c.blockchain.CurrentBlock().Header.Number.Uint64()
 
-func (c *Core) Unicast(msg *poatypes.Message, address string) error {
-	payload, err := msg.EncodeMessage()
-	if err != nil {
-		return err
-	}
-	p2pMsg := &p2p.Message{
-		Type: p2p.ConsensusMessage,
-		Data: payload,
-	}
-	encoded, err := p2pMsg.Encode()
-	if err != nil {
-		return err
-	}
+	// 轮值计算
+	validatorIndex := height % uint64(len(c.ValSet))
+	expected := c.ValSet[validatorIndex]
 
-	if id, ok := c.addrToID[address]; ok {
-		peerID, err := peer.Decode(id)
-		if err != nil {
-			return err
-		}
-		c.p2pNode.SendMessage(peerID, string(encoded))
-	} else {
-		return errors.New("Unicast: address not found")
-	}
-	return nil
-}
-
-// 主节点生成初始请求
-func (c *Core) ProcessRequest() {
-	log.Println("主节点生成 Preprepare")
-
-	preprepare := &poatypes.Message{
-		Code:    poatypes.MsgPreprepare,
-		Msg:     []byte("SomeBlockHashOrData"), // 实际使用请替换为真实区块 hash 或数据
-		Address: c.Address(),
-	}
-	c.SignMessage(preprepare)
-	c.Broadcast(preprepare)
-
-	prepare := &poatypes.Message{
-		Code:    poatypes.MsgPrepare,
-		Msg:     preprepare.Msg,
-		Address: c.Address(),
-	}
-	c.SignMessage(prepare)
-	log.Println("主节点本地处理 Prepare")
-	c.HandleMessage(prepare)
-}
-
-// 核心: 处理共识消息
-func (c *Core) HandleMessage(msg *poatypes.Message) {
-	data, _ := msg.PayloadNoSig()
-	signer, err := GetSignatureAddress(data, msg.Signature)
-	if err != nil {
-		log.Println("签名恢复失败:", err)
+	if expected != string(c.address) {
+		log.Printf("[PoA] 当前轮到验证者: 0x%x, 跳过", expected)
 		return
 	}
 
-	if !c.IsValidator(signer.Bytes()) {
-		log.Println("收到非法验证者消息，忽略")
+	log.Printf("[PoA] 当前轮到我 Seal 块，高度 #%d", height+1)
+
+	//minerAddr := fmt.Sprintf("0x%s", hex.EncodeToString(c.address))
+
+	minerAddr := c.blockchain.MinerAddr
+	if minerAddr == "" {
+		// fallback 使用节点地址
+		minerAddr = fmt.Sprintf("0x%s", hex.EncodeToString(c.address))
+	}
+
+	block, err := c.blockchain.MineNewBlock(minerAddr)
+	if err != nil {
+		log.Println("[PoA] 没有可打包交易")
 		return
 	}
 
-	hash := string(msg.Msg)
+	// 标记出块人
+	block.Header.Extra = c.address
 
-	switch msg.Code {
-	case poatypes.MsgPreprepare:
-		log.Println("收到 Preprepare")
-		if c.prepareSet[hash] == nil {
-			c.prepareSet[hash] = make(map[string]bool)
-		}
-		c.prepareSet[hash][string(c.address)] = true
-
-		prepare := &poatypes.Message{
-			Code:    poatypes.MsgPrepare,
-			Msg:     msg.Msg,
-			Address: c.Address(),
-		}
-		c.SignMessage(prepare)
-		c.Broadcast(prepare)
-
-	case poatypes.MsgPrepare:
-		if c.prepareSet[hash] == nil {
-			c.prepareSet[hash] = make(map[string]bool)
-		}
-		c.prepareSet[hash][string(msg.Address)] = true
-
-		log.Printf("Prepare 当前计数: %d", len(c.prepareSet[hash]))
-		if len(c.prepareSet[hash]) >= 2*c.ByzantineSize+1 {
-			log.Println("Prepare 阈值达标，生成 Commit")
-			commit := &poatypes.Message{
-				Code:    poatypes.MsgCommit,
-				Msg:     msg.Msg,
-				Address: c.Address(),
-			}
-			c.SignMessage(commit)
-			c.Broadcast(commit)
-		}
-
-	case poatypes.MsgCommit:
-		if c.commitSet[hash] == nil {
-			c.commitSet[hash] = make(map[string]bool)
-		}
-		c.commitSet[hash][string(msg.Address)] = true
-
-		log.Printf("Commit 当前计数: %d", len(c.commitSet[hash]))
-		if len(c.commitSet[hash]) >= 2*c.ByzantineSize+1 {
-			log.Println("Commit 阈值达标，正式提交区块")
-			block, err := c.blockChain.MineNewBlock("0x" + hex.EncodeToString(c.Address()))
-			if err == nil {
-				c.blockChain.AddBlock(block)
-			} else {
-				log.Println("打包区块失败:", err)
-			}
-		}
+	if !c.blockchain.AddBlock(block) {
+		log.Println("[PoA] 加链失败")
+		return
 	}
-}
 
-/*
-	 func (c *Core) Sign(data []byte) ([]byte, error) {
-		hash := crypto.GlobalHashAlgorithm.Hash(data)
-		return crypto.Sign(hash, c.privateKey)
-	}
-*/
-func (c *Core) Sign(data []byte) ([]byte, error) {
-	hash := crypto.Keccak256(data)
-	return crypto.Sign(hash, c.privateKey)
-}
+	log.Printf("[PoA] 成功 Seal 块 #%s", block.Header.Number.String())
 
-func (c *Core) SignMessage(msg *poatypes.Message) ([]byte, error) {
-	data, err := msg.PayloadNoSig()
+	// 广播
+	encodedBlock, err := block.EncodeBlock()
 	if err != nil {
-		return nil, err
+		log.Printf("[PoA] 区块编码失败: %v", err)
+		return
 	}
-	sig, err := c.Sign(data)
-	if err != nil {
-		return nil, err
-	}
-	msg.Signature = sig
-	return sig, nil
-}
 
-//func GetSignatureAddress(data []byte, sig []byte)
+	p2pMsg := &p2p.Message{
+		Type: p2p.BlockMessage,
+		Data: encodedBlock,
+	}
 
-func GetSignatureAddress(data []byte, sig []byte) (common.Address, error) {
-	hash := crypto.Keccak256(data)
-	pubKeyBytes, err := crypto.Ecrecover(hash, sig)
+	encodedP2PMsg, err := p2pMsg.Encode()
 	if err != nil {
-		return common.Address{}, err
+		log.Printf("[PoA] 消息编码失败: %v", err)
+		return
 	}
-	pubKey, err := crypto.UnmarshalPubkey(pubKeyBytes)
-	if err != nil {
-		return common.Address{}, err
-	}
-	return crypto.PubkeyToAddress(*pubKey), nil
+
+	c.p2pNode.BroadcastMessage(string(encodedP2PMsg))
 }

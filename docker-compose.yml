@@ -23,8 +23,8 @@ services:
       --listen /ip4/0.0.0.0/tcp/32000 
       --nodekey ./key_store/nodekey0 
       --consensus poa
-      --valaddress 0xdd9519d740639ddd562bf7b736be15e77def601d --valaddress 0xb7316a8ae5a1c5fcd95756fbfc090c9af1d191ac --valaddress 0x7557ec7cadb300c0929407f2e135ea4878b88cbe 
-      --peer /ip4/172.30.0.10/tcp/32000/p2p/16Uiu2HAmQjS1ibDMrR8PPnAsVaHcKGfzbxYYoeGPDQpsc5rEBast --peer /ip4/172.30.0.11/tcp/32000/p2p/16Uiu2HAmN7WPVAytKsaBwetEzQyFgvccxLqmkWAZpQgadB4iay2z --peer /ip4/172.30.0.12/tcp/32000/p2p/16Uiu2HAm8ffdDwx1sGamH3YrvxykvrYJhrUHR78AwjprtCoufkxC 
+      --valaddress 0x1adc900ef6be0b44002146889c516252f0109c66 --valaddress 0xb1395f4496a8150b6a8269a1cf5ccdc9cb221ecd --valaddress 0x49261e6d03cbbab70fafa747111f4684e0a1e6ac 
+      --peer /ip4/172.30.0.10/tcp/32000/p2p/16Uiu2HAmEzihceovFJrKAQCf45kYWUqTgEQuen39WM1boDDbGned --peer /ip4/172.30.0.11/tcp/32000/p2p/16Uiu2HAkvzE2F6pUKx8X1RRwW52c6EUWtrJwYRQPLmLBmQtaT38d --peer /ip4/172.30.0.12/tcp/32000/p2p/16Uiu2HAkukBsWjyaNrEvpqvUu3z4xjnRJSxFHa2fPmAnhKLCi4My 
       --backend=true
   node21:
     container_name: node21
@@ -48,8 +48,8 @@ services:
       --listen /ip4/0.0.0.0/tcp/32000 
       --nodekey ./key_store/nodekey1 
       --consensus poa
-      --valaddress 0xdd9519d740639ddd562bf7b736be15e77def601d --valaddress 0xb7316a8ae5a1c5fcd95756fbfc090c9af1d191ac --valaddress 0x7557ec7cadb300c0929407f2e135ea4878b88cbe 
-      --peer /ip4/172.30.0.10/tcp/32000/p2p/16Uiu2HAmQjS1ibDMrR8PPnAsVaHcKGfzbxYYoeGPDQpsc5rEBast --peer /ip4/172.30.0.11/tcp/32000/p2p/16Uiu2HAmN7WPVAytKsaBwetEzQyFgvccxLqmkWAZpQgadB4iay2z --peer /ip4/172.30.0.12/tcp/32000/p2p/16Uiu2HAm8ffdDwx1sGamH3YrvxykvrYJhrUHR78AwjprtCoufkxC 
+      --valaddress 0x1adc900ef6be0b44002146889c516252f0109c66 --valaddress 0xb1395f4496a8150b6a8269a1cf5ccdc9cb221ecd --valaddress 0x49261e6d03cbbab70fafa747111f4684e0a1e6ac 
+      --peer /ip4/172.30.0.10/tcp/32000/p2p/16Uiu2HAmEzihceovFJrKAQCf45kYWUqTgEQuen39WM1boDDbGned --peer /ip4/172.30.0.11/tcp/32000/p2p/16Uiu2HAkvzE2F6pUKx8X1RRwW52c6EUWtrJwYRQPLmLBmQtaT38d --peer /ip4/172.30.0.12/tcp/32000/p2p/16Uiu2HAkukBsWjyaNrEvpqvUu3z4xjnRJSxFHa2fPmAnhKLCi4My 
       --backend=true
   node22:
     container_name: node22
@@ -73,8 +73,8 @@ services:
       --listen /ip4/0.0.0.0/tcp/32000 
       --nodekey ./key_store/nodekey2 
       --consensus poa
-      --valaddress 0xdd9519d740639ddd562bf7b736be15e77def601d --valaddress 0xb7316a8ae5a1c5fcd95756fbfc090c9af1d191ac --valaddress 0x7557ec7cadb300c0929407f2e135ea4878b88cbe 
-      --peer /ip4/172.30.0.10/tcp/32000/p2p/16Uiu2HAmQjS1ibDMrR8PPnAsVaHcKGfzbxYYoeGPDQpsc5rEBast --peer /ip4/172.30.0.11/tcp/32000/p2p/16Uiu2HAmN7WPVAytKsaBwetEzQyFgvccxLqmkWAZpQgadB4iay2z --peer /ip4/172.30.0.12/tcp/32000/p2p/16Uiu2HAm8ffdDwx1sGamH3YrvxykvrYJhrUHR78AwjprtCoufkxC 
+      --valaddress 0x1adc900ef6be0b44002146889c516252f0109c66 --valaddress 0xb1395f4496a8150b6a8269a1cf5ccdc9cb221ecd --valaddress 0x49261e6d03cbbab70fafa747111f4684e0a1e6ac 
+      --peer /ip4/172.30.0.10/tcp/32000/p2p/16Uiu2HAmEzihceovFJrKAQCf45kYWUqTgEQuen39WM1boDDbGned --peer /ip4/172.30.0.11/tcp/32000/p2p/16Uiu2HAkvzE2F6pUKx8X1RRwW52c6EUWtrJwYRQPLmLBmQtaT38d --peer /ip4/172.30.0.12/tcp/32000/p2p/16Uiu2HAkukBsWjyaNrEvpqvUu3z4xjnRJSxFHa2fPmAnhKLCi4My 
       --backend=true
 networks:
   customnet2:

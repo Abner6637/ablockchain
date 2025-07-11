@@ -1,6 +1,6 @@
 package poatypes
 
-import (
+/* import (
 	"bytes"
 	"encoding/gob"
 )
@@ -46,3 +46,4 @@ func (m *Message) PayloadNoSig() ([]byte, error) {
 	}
 	return tmp.EncodeMessage()
 }
+*/
