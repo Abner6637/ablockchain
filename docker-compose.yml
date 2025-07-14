@@ -5,7 +5,7 @@ services:
     container_name: node20
     depends_on:
       - bootnode
-    image: ablockchain:2.2.3
+    image: ablockchain:2.2.8
     networks:
       customnet2:
         ipv4_address: 172.30.0.10
@@ -23,14 +23,14 @@ services:
       --listen /ip4/0.0.0.0/tcp/32000 
       --nodekey ./key_store/nodekey0 
       --consensus poa
-      --valaddress 0x1adc900ef6be0b44002146889c516252f0109c66 --valaddress 0xb1395f4496a8150b6a8269a1cf5ccdc9cb221ecd --valaddress 0x49261e6d03cbbab70fafa747111f4684e0a1e6ac 
-      --peer /ip4/172.30.0.10/tcp/32000/p2p/16Uiu2HAmEzihceovFJrKAQCf45kYWUqTgEQuen39WM1boDDbGned --peer /ip4/172.30.0.11/tcp/32000/p2p/16Uiu2HAkvzE2F6pUKx8X1RRwW52c6EUWtrJwYRQPLmLBmQtaT38d --peer /ip4/172.30.0.12/tcp/32000/p2p/16Uiu2HAkukBsWjyaNrEvpqvUu3z4xjnRJSxFHa2fPmAnhKLCi4My 
+      --valaddress 0xd1f0885f69dda850cf44862bee63c906599675b7 --valaddress 0xdedacec87080c05e873c1c1f9e34397670c4168a --valaddress 0x90d6260e9b1eae86d461c24f3a1a299d02e70442 
+      --peer /ip4/172.30.0.10/tcp/32000/p2p/16Uiu2HAm9orP1s7GHLtftJGrFzMzsVoqLpBhndjZrmAX7PV6ePrt --peer /ip4/172.30.0.11/tcp/32000/p2p/16Uiu2HAmSSP4W5gqCCRbmvrC8aFA6r7KiD9se6nuPDE3JxbCuiMQ --peer /ip4/172.30.0.12/tcp/32000/p2p/16Uiu2HAm3dK6NnGL3UyFhiwj1iMgKrb9QUzhJi6WtQBaG1bvGfcF 
       --backend=true
   node21:
     container_name: node21
     depends_on:
       - bootnode
-    image: ablockchain:2.2.3
+    image: ablockchain:2.2.8
     networks:
       customnet2:
         ipv4_address: 172.30.0.11
@@ -48,14 +48,14 @@ services:
       --listen /ip4/0.0.0.0/tcp/32000 
       --nodekey ./key_store/nodekey1 
       --consensus poa
-      --valaddress 0x1adc900ef6be0b44002146889c516252f0109c66 --valaddress 0xb1395f4496a8150b6a8269a1cf5ccdc9cb221ecd --valaddress 0x49261e6d03cbbab70fafa747111f4684e0a1e6ac 
-      --peer /ip4/172.30.0.10/tcp/32000/p2p/16Uiu2HAmEzihceovFJrKAQCf45kYWUqTgEQuen39WM1boDDbGned --peer /ip4/172.30.0.11/tcp/32000/p2p/16Uiu2HAkvzE2F6pUKx8X1RRwW52c6EUWtrJwYRQPLmLBmQtaT38d --peer /ip4/172.30.0.12/tcp/32000/p2p/16Uiu2HAkukBsWjyaNrEvpqvUu3z4xjnRJSxFHa2fPmAnhKLCi4My 
+      --valaddress 0xd1f0885f69dda850cf44862bee63c906599675b7 --valaddress 0xdedacec87080c05e873c1c1f9e34397670c4168a --valaddress 0x90d6260e9b1eae86d461c24f3a1a299d02e70442 
+      --peer /ip4/172.30.0.10/tcp/32000/p2p/16Uiu2HAm9orP1s7GHLtftJGrFzMzsVoqLpBhndjZrmAX7PV6ePrt --peer /ip4/172.30.0.11/tcp/32000/p2p/16Uiu2HAmSSP4W5gqCCRbmvrC8aFA6r7KiD9se6nuPDE3JxbCuiMQ --peer /ip4/172.30.0.12/tcp/32000/p2p/16Uiu2HAm3dK6NnGL3UyFhiwj1iMgKrb9QUzhJi6WtQBaG1bvGfcF 
       --backend=true
   node22:
     container_name: node22
     depends_on:
       - bootnode
-    image: ablockchain:2.2.3
+    image: ablockchain:2.2.8
     networks:
       customnet2:
         ipv4_address: 172.30.0.12
@@ -73,8 +73,8 @@ services:
       --listen /ip4/0.0.0.0/tcp/32000 
       --nodekey ./key_store/nodekey2 
       --consensus poa
-      --valaddress 0x1adc900ef6be0b44002146889c516252f0109c66 --valaddress 0xb1395f4496a8150b6a8269a1cf5ccdc9cb221ecd --valaddress 0x49261e6d03cbbab70fafa747111f4684e0a1e6ac 
-      --peer /ip4/172.30.0.10/tcp/32000/p2p/16Uiu2HAmEzihceovFJrKAQCf45kYWUqTgEQuen39WM1boDDbGned --peer /ip4/172.30.0.11/tcp/32000/p2p/16Uiu2HAkvzE2F6pUKx8X1RRwW52c6EUWtrJwYRQPLmLBmQtaT38d --peer /ip4/172.30.0.12/tcp/32000/p2p/16Uiu2HAkukBsWjyaNrEvpqvUu3z4xjnRJSxFHa2fPmAnhKLCi4My 
+      --valaddress 0xd1f0885f69dda850cf44862bee63c906599675b7 --valaddress 0xdedacec87080c05e873c1c1f9e34397670c4168a --valaddress 0x90d6260e9b1eae86d461c24f3a1a299d02e70442 
+      --peer /ip4/172.30.0.10/tcp/32000/p2p/16Uiu2HAm9orP1s7GHLtftJGrFzMzsVoqLpBhndjZrmAX7PV6ePrt --peer /ip4/172.30.0.11/tcp/32000/p2p/16Uiu2HAmSSP4W5gqCCRbmvrC8aFA6r7KiD9se6nuPDE3JxbCuiMQ --peer /ip4/172.30.0.12/tcp/32000/p2p/16Uiu2HAm3dK6NnGL3UyFhiwj1iMgKrb9QUzhJi6WtQBaG1bvGfcF 
       --backend=true
 networks:
   customnet2:
