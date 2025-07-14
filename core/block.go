@@ -21,6 +21,9 @@ type BlockHeader struct {
 	MerkleRoot []byte
 	Nonce      uint64 // PoW 计算用的随机数
 	Coinbase   string // 矿工地址，用于接收奖励
+	Signer     string
+	Signature  []byte
+	Extra      []byte
 }
 
 func NewBlockHeader(parentHash []byte, dif uint64, num *big.Int, merkleroot []byte, coinbase string) *BlockHeader {

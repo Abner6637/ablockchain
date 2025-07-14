@@ -127,11 +127,11 @@ func (bc *Blockchain) NewAccount() (*Account, error) {
 	}
 
 	// 默认将第一个创建的账户设置为矿工
-	// if bc.MinerAddr == "" {
-	// 	bc.MinerAddr = address
-	// 	log.Printf("开启挖矿，设置矿工地址: %s\n", address)
-	// 	bc.StartMiner()
-	// }
+	//if bc.MinerAddr == "" {
+	//	bc.MinerAddr = address
+	//	log.Printf("开启挖矿，设置矿工地址: %s\n", address)
+	//	bc.StartMiner()
+	//}
 
 	return account, nil
 }

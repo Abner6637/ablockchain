@@ -1,109 +1,59 @@
 version: '3.9'
 
 services:
-  node0:
-    container_name: node0
+  node10:
+    container_name: node10
     depends_on:
       - bootnode
-    image: ablockchain:2.0.0
+    image: ablockchain:1.1.3
     networks:
-      customnet:
-        ipv4_address: 172.28.0.10
+      customnet1:
+        ipv4_address: 172.29.0.10
     ports:
-      - "33000:32000"
-      - "26000:8545"
-      - "22000:5173"
+      - "33100:32000"
+      - "26100:8545"
+      - "22100:5173"
     volumes:
       - ./key_store/nodekey0:/ablockchain/key_store/nodekey0
       - ./genesis.json:/ablockchain/genesis.json
     environment:
-      - API_URL=http://192.168.2.127:26000
+      - API_URL=http://192.168.2.127:26100
     command: >
       ./ablockchain 
       --listen /ip4/0.0.0.0/tcp/32000 
       --nodekey ./key_store/nodekey0 
-      --consensus pbft
-      --valaddress 0x021187c7caeaa8fa94dc94e701b7b4473615efab --valaddress 0x97fc47082654df8c3c85fbdcd3cb72ac03fa5e20 --valaddress 0x52642c13d6f8d595a611e2b402b5f1eae51fa770 --valaddress 0xf31008a6231aa138d54d7d49145ee870c4ce7e83 
-      --peer /ip4/172.28.0.10/tcp/32000/p2p/16Uiu2HAm8FPt6hHJYyijwtYuZjS4AkFkHjZartgGEpg2NTwENPRV --peer /ip4/172.28.0.11/tcp/32000/p2p/16Uiu2HAmDJaWCTXFy1c9oGCUB3uK5qGC7ZMSRvn3Jk3XeZh7jHAy --peer /ip4/172.28.0.12/tcp/32000/p2p/16Uiu2HAmJanACBVd368KvirQxekYcQV9pswBQy19oL63yFLXKQjz --peer /ip4/172.28.0.13/tcp/32000/p2p/16Uiu2HAkx4VHiNouGepw3WSC3iTCQHfBacbssbpQZQRwAKTL7uTX 
+      --consensus poa
+      --valaddress 0x96e350e7d0761bb98b7f3654cceec601eb8c4ca7 --valaddress 0x32d64f981aac07e4c9dde39e2af68a8d769da2e9 
+      --peer /ip4/172.29.0.10/tcp/32000/p2p/16Uiu2HAkw3mLswDiTKMsovqWvAC2ovBXngtEXT7NQ472rgMY2kcE --peer /ip4/172.29.0.11/tcp/32000/p2p/16Uiu2HAmGcfUQJyfUJzqG1RuxedLNeujv8ayF1bP5fuLFwcspnp6 
       --backend=true
-  node1:
-    container_name: node1
+  node11:
+    container_name: node11
     depends_on:
       - bootnode
-    image: ablockchain:2.0.0
+    image: ablockchain:1.1.3
     networks:
-      customnet:
-        ipv4_address: 172.28.0.11
+      customnet1:
+        ipv4_address: 172.29.0.11
     ports:
-      - "33001:32000"
-      - "26001:8545"
-      - "22001:5173"
+      - "33101:32000"
+      - "26101:8545"
+      - "22101:5173"
     volumes:
       - ./key_store/nodekey1:/ablockchain/key_store/nodekey1
       - ./genesis.json:/ablockchain/genesis.json
     environment:
-      - API_URL=http://192.168.2.127:26001
+      - API_URL=http://192.168.2.127:26101
     command: >
       ./ablockchain 
       --listen /ip4/0.0.0.0/tcp/32000 
       --nodekey ./key_store/nodekey1 
-      --consensus pbft
-      --valaddress 0x021187c7caeaa8fa94dc94e701b7b4473615efab --valaddress 0x97fc47082654df8c3c85fbdcd3cb72ac03fa5e20 --valaddress 0x52642c13d6f8d595a611e2b402b5f1eae51fa770 --valaddress 0xf31008a6231aa138d54d7d49145ee870c4ce7e83 
-      --peer /ip4/172.28.0.10/tcp/32000/p2p/16Uiu2HAm8FPt6hHJYyijwtYuZjS4AkFkHjZartgGEpg2NTwENPRV --peer /ip4/172.28.0.11/tcp/32000/p2p/16Uiu2HAmDJaWCTXFy1c9oGCUB3uK5qGC7ZMSRvn3Jk3XeZh7jHAy --peer /ip4/172.28.0.12/tcp/32000/p2p/16Uiu2HAmJanACBVd368KvirQxekYcQV9pswBQy19oL63yFLXKQjz --peer /ip4/172.28.0.13/tcp/32000/p2p/16Uiu2HAkx4VHiNouGepw3WSC3iTCQHfBacbssbpQZQRwAKTL7uTX 
-      --backend=true
-  node2:
-    container_name: node2
-    depends_on:
-      - bootnode
-    image: ablockchain:2.0.0
-    networks:
-      customnet:
-        ipv4_address: 172.28.0.12
-    ports:
-      - "33002:32000"
-      - "26002:8545"
-      - "22002:5173"
-    volumes:
-      - ./key_store/nodekey2:/ablockchain/key_store/nodekey2
-      - ./genesis.json:/ablockchain/genesis.json
-    environment:
-      - API_URL=http://192.168.2.127:26002
-    command: >
-      ./ablockchain 
-      --listen /ip4/0.0.0.0/tcp/32000 
-      --nodekey ./key_store/nodekey2 
-      --consensus pbft
-      --valaddress 0x021187c7caeaa8fa94dc94e701b7b4473615efab --valaddress 0x97fc47082654df8c3c85fbdcd3cb72ac03fa5e20 --valaddress 0x52642c13d6f8d595a611e2b402b5f1eae51fa770 --valaddress 0xf31008a6231aa138d54d7d49145ee870c4ce7e83 
-      --peer /ip4/172.28.0.10/tcp/32000/p2p/16Uiu2HAm8FPt6hHJYyijwtYuZjS4AkFkHjZartgGEpg2NTwENPRV --peer /ip4/172.28.0.11/tcp/32000/p2p/16Uiu2HAmDJaWCTXFy1c9oGCUB3uK5qGC7ZMSRvn3Jk3XeZh7jHAy --peer /ip4/172.28.0.12/tcp/32000/p2p/16Uiu2HAmJanACBVd368KvirQxekYcQV9pswBQy19oL63yFLXKQjz --peer /ip4/172.28.0.13/tcp/32000/p2p/16Uiu2HAkx4VHiNouGepw3WSC3iTCQHfBacbssbpQZQRwAKTL7uTX 
-      --backend=true
-  node3:
-    container_name: node3
-    depends_on:
-      - bootnode
-    image: ablockchain:2.0.0
-    networks:
-      customnet:
-        ipv4_address: 172.28.0.13
-    ports:
-      - "33003:32000"
-      - "26003:8545"
-      - "22003:5173"
-    volumes:
-      - ./key_store/nodekey3:/ablockchain/key_store/nodekey3
-      - ./genesis.json:/ablockchain/genesis.json
-    environment:
-      - API_URL=http://192.168.2.127:26003
-    command: >
-      ./ablockchain 
-      --listen /ip4/0.0.0.0/tcp/32000 
-      --nodekey ./key_store/nodekey3 
-      --consensus pbft
-      --valaddress 0x021187c7caeaa8fa94dc94e701b7b4473615efab --valaddress 0x97fc47082654df8c3c85fbdcd3cb72ac03fa5e20 --valaddress 0x52642c13d6f8d595a611e2b402b5f1eae51fa770 --valaddress 0xf31008a6231aa138d54d7d49145ee870c4ce7e83 
-      --peer /ip4/172.28.0.10/tcp/32000/p2p/16Uiu2HAm8FPt6hHJYyijwtYuZjS4AkFkHjZartgGEpg2NTwENPRV --peer /ip4/172.28.0.11/tcp/32000/p2p/16Uiu2HAmDJaWCTXFy1c9oGCUB3uK5qGC7ZMSRvn3Jk3XeZh7jHAy --peer /ip4/172.28.0.12/tcp/32000/p2p/16Uiu2HAmJanACBVd368KvirQxekYcQV9pswBQy19oL63yFLXKQjz --peer /ip4/172.28.0.13/tcp/32000/p2p/16Uiu2HAkx4VHiNouGepw3WSC3iTCQHfBacbssbpQZQRwAKTL7uTX 
+      --consensus poa
+      --valaddress 0x96e350e7d0761bb98b7f3654cceec601eb8c4ca7 --valaddress 0x32d64f981aac07e4c9dde39e2af68a8d769da2e9 
+      --peer /ip4/172.29.0.10/tcp/32000/p2p/16Uiu2HAkw3mLswDiTKMsovqWvAC2ovBXngtEXT7NQ472rgMY2kcE --peer /ip4/172.29.0.11/tcp/32000/p2p/16Uiu2HAmGcfUQJyfUJzqG1RuxedLNeujv8ayF1bP5fuLFwcspnp6 
       --backend=true
 networks:
-  customnet:
+  customnet1:
     driver: bridge
     ipam:
       config:
-        - subnet: 172.28.0.0/16
+        - subnet: 172.29.0.0/16

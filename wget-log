@@ -1,0 +1,4 @@
+--2025-07-06 11:05:43--  https://go.dev/dl/go1.23.7.linux-amd64.tar.gz
+Resolving go.dev (go.dev)... 216.239.34.21, 216.239.36.21, 216.239.38.21, ...
+Connecting to go.dev (go.dev)|216.239.34.21|:443... connected.
+Unable to establish SSL connection.

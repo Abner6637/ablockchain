@@ -13,7 +13,7 @@ mkdir -p ./block_storage
 # mkdir -p ./key_store
 
 # 监听端口的起始值
-BASE_PORT=32000
+BASE_PORT=32100
 
 # 存储所有节点的 P2P 地址
 declare -a NODE_ADDRS

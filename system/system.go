@@ -6,6 +6,7 @@ import (
 	"ablockchain/consensus"
 	hotstuffcore "ablockchain/consensus/bft/hotstuff/core"
 	pbftcore "ablockchain/consensus/bft/pbft/core"
+	poacore "ablockchain/consensus/poa"
 	"ablockchain/consensus/pow"
 	"ablockchain/core"
 	"ablockchain/event"
@@ -78,6 +79,8 @@ func StartSystem(cfg *cli.Config) *System {
 	go sys.p2pNode.PeriodHelloBroadcast() // 定时发送Hello消息
 
 	switch cfg.ConsensusType {
+	case "poa":
+		sys.consensus = poacore.NewCore(cfg, node, bc)
 	case "pbft":
 		sys.consensus = pbftcore.NewCore(cfg, node)
 	case "hotstuff":
@@ -87,7 +90,7 @@ func StartSystem(cfg *cli.Config) *System {
 	default:
 		sys.consensus = pbftcore.NewCore(cfg, node)
 	}
-
+	log.Printf("共识类型: %s", cfg.ConsensusType)
 	// 开启共识模块
 	sys.consensus.Start()
 	log.Printf("开启共识模块……\n")
