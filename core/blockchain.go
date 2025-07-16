@@ -237,37 +237,50 @@ func (bc *Blockchain) GetPendingTxs(transactionsPerBlock int) []*Transaction {
 }
 
 func (bc *Blockchain) MineNewBlock(miner string) (*Block, error) {
-	txs := bc.GetPendingTxs(MinTransactionsPerBlock)
-	if len(txs) == 0 {
-		return nil, fmt.Errorf("no transaction!")
+	// 获取交易池状态
+	pendingCount := bc.TxPool.PendingSize()
+	queuedCount := bc.TxPool.QueuedSize()
+
+	// 记录交易池状态
+	log.Printf("交易池状态: Pending: %d, Queued: %d", pendingCount, queuedCount)
+
+	// 即使没有交易也允许打包空块
+	if pendingCount == 0 {
+		log.Println("没有待处理交易，打包空块")
 	}
 
+	// 获取可打包的交易（即使为空也继续）
+	txs := bc.GetPendingTxs(MinTransactionsPerBlock)
+
 	merkleroot := CalculateMerkleRoot(txs)
-	// 避免打包已经提交过的区块
-	// if bytes.Equal(merkleroot, bc.GetLatestMR()) {
-	// 	bc.TxPool.ClearPackedTxs(txs)
-	// 	fmt.Printf("打包的区块已上链\n")
-	// 	return nil, fmt.Errorf("重复区块")
-	// }
 
 	// 创建新区块
-	header := NewBlockHeader(bc.CurrentBlockHash, Difficulty, new(big.Int).Add(bc.CurBlockNum, big.NewInt(1)), merkleroot, miner)
+	header := NewBlockHeader(
+		bc.CurrentBlockHash,
+		Difficulty,
+		new(big.Int).Add(bc.CurBlockNum, big.NewInt(1)),
+		merkleroot,
+		miner,
+	)
 	block := NewBlock(header, txs)
 
-	// bc.AddBlock(block)
-	bc.NewBlockChan <- block // 将新区块发送到通道
+	// 发送新区块到通道
+	bc.NewBlockChan <- block
 
-	// bc.TxPool.ClearPackedTxs(block.Transactions) // 如果在这里清理，区块丢弃后要写回收交易的逻辑
-	fmt.Printf("打包区块%s，交易池：\n Pending: %d, Queued: %d\n", block.Header.Number.String(), bc.TxPool.PendingSize(), bc.TxPool.QueuedSize())
-	// if bc.TxPool.PendingSize() > 0 {
-	// 	fmt.Println("%下一笔交易：")
-	// 	bc.TxPool.Pending[0].PrintTransaction()
-	// }
+	// 记录打包信息（包括交易数量）
+	log.Printf("打包区块 #%s，包含 %d 笔交易",
+		block.Header.Number.String(),
+		len(txs))
+	log.Printf("交易池更新后状态: Pending: %d, Queued: %d",
+		bc.TxPool.PendingSize(),
+		bc.TxPool.QueuedSize())
+
 	bc.Mining = true
 	return block, nil
 }
 
 func (bc *Blockchain) AddBlock(block *Block) bool {
+
 	str := fmt.Sprintf("%s", block.Header.Number)
 	fmt.Println(str)
 	block.PrintBlock()

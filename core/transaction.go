@@ -27,6 +27,18 @@ type Transaction struct {
 	Gas      uint64
 }
 
+func (tx *Transaction) DecodeTransaction(data []byte) any {
+	panic("unimplemented")
+}
+
+func (tx *Transaction) EncodeTransaction() (any, any) {
+	panic("unimplemented")
+}
+
+func (tx *Transaction) Hash() {
+	panic("unimplemented")
+}
+
 func NewTransaction(from string, to string, value uint64, data string, nonce uint64) *Transaction {
 	tx := &Transaction{
 		From:  from,

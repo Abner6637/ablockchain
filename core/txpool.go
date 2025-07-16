@@ -12,6 +12,14 @@ type TxPool struct {
 	lock    sync.RWMutex
 }
 
+func (tp *TxPool) PendingCount() int {
+	panic("unimplemented")
+}
+
+func (tp *TxPool) AddTransaction(tx *Transaction) any {
+	panic("unimplemented")
+}
+
 func NewTxPool() *TxPool {
 	pool := &TxPool{
 		Pending: make([]*Transaction, 0),

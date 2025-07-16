@@ -76,11 +76,13 @@ func StartSystem(cfg *cli.Config) *System {
 	}
 	sys.blockChain = bc
 
-	go sys.p2pNode.PeriodHelloBroadcast() // 定时发送Hello消息
+	//go sys.p2pNode.PeriodHelloBroadcast() // 定时发送Hello消息
 
 	switch cfg.ConsensusType {
 	case "poa":
 		sys.consensus = poacore.NewCore(cfg, node, bc)
+		//sys.consensus = poacore.NewCore(node, bc, cfg.ValSet)
+
 	case "pbft":
 		sys.consensus = pbftcore.NewCore(cfg, node)
 	case "hotstuff":
