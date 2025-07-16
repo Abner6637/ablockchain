@@ -241,3 +241,27 @@ func (c *Core) AddValidator(newHex string) {
 	})
 	log.Printf("[PoA] 新增验证者: 0x%x, 新 ValSet: %+v", addrBytes, c.ValSet)
 }
+
+// RemoveValidator 删除验证者
+func (c *Core) RemoveValidator(addrHex string) {
+	addrHex = strings.TrimPrefix(addrHex, "0x")
+	addrBytes, err := hex.DecodeString(addrHex)
+	if err != nil {
+		log.Printf("[PoA] 删除验证者解析失败: %v", err)
+		return
+	}
+
+	// 寻找并删除验证者
+	for i, v := range c.ValSet {
+		if bytes.Equal(v, addrBytes) {
+			c.ValSet = append(c.ValSet[:i], c.ValSet[i+1:]...)
+			sort.Slice(c.ValSet, func(i, j int) bool {
+				return bytes.Compare(c.ValSet[i], c.ValSet[j]) < 0
+			})
+			log.Printf("[PoA] 已删除验证者: 0x%x, 新 ValSet: %+v", addrBytes, c.ValSet)
+			return
+		}
+	}
+
+	log.Printf("[PoA] 验证者不存在: 0x%x", addrBytes)
+}

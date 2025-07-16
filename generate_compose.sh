@@ -35,7 +35,7 @@ for ((i=0; i<NODE_COUNT; i++)); do
     container_name: node$((i + 20))
     depends_on:
       - bootnode
-    image: ablockchain:2.2.8
+    image: ablockchain:2.2.10
     networks:
       customnet2:
         ipv4_address: 172.30.0.${node_ip}

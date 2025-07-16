@@ -6,6 +6,7 @@ import (
 	"ablockchain/consensus"
 	hotstuffcore "ablockchain/consensus/bft/hotstuff/core"
 	pbftcore "ablockchain/consensus/bft/pbft/core"
+	raftcore "ablockchain/consensus/bft/raft/core"
 	poacore "ablockchain/consensus/poa/core"
 
 	//"ablockchain/consensus/poa"
@@ -89,6 +90,8 @@ func StartSystem(cfg *cli.Config) *System {
 		sys.consensus = pow.NewProofOfWork(node)
 	case "poa":
 		sys.consensus = poacore.NewCore(node, sys.blockChain, cfg.ValSet)
+	case "raft":
+		sys.consensus = raftcore.NewCore(cfg, node)
 	default:
 		sys.consensus = pbftcore.NewCore(cfg, node)
 	}

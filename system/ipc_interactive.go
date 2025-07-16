@@ -13,6 +13,8 @@ import (
 	"strconv"
 	"strings"
 
+	poacore "ablockchain/consensus/poa/core"
+
 	"github.com/ethereum/go-ethereum/rlp"
 )
 
@@ -172,6 +174,45 @@ func (c *IPCCommander) executeCommand(cmd string) {
 		str2 := fmt.Sprintf("p2pID:%s\n", c.sys.p2pNode.ID)
 		c.output.Write([]byte(str1))
 		c.output.Write([]byte(str2))
+
+	case "valadd":
+		if len(parts) < 2 {
+			fmt.Println("用法: valadd <address>")
+			return
+		}
+		if poaCore, ok := c.sys.consensus.(*poacore.Core); ok {
+			poaCore.AddValidator(parts[1]) // 增加验证者
+			fmt.Println("验证者已添加（如地址合法）")
+		} else {
+			fmt.Println("当前共识模块不支持验证者管理操作")
+		}
+
+	case "valdel":
+		if len(parts) < 2 {
+			fmt.Println("用法: valdel <address>")
+			return
+		}
+		if poaCore, ok := c.sys.consensus.(*poacore.Core); ok {
+			poaCore.RemoveValidator(parts[1]) // 删除验证者
+			fmt.Println("验证者已删除（如地址合法）")
+		} else {
+			fmt.Println("当前共识模块不支持验证者管理操作")
+		}
+
+	case "vallist":
+		if poaCore, ok := c.sys.consensus.(*poacore.Core); ok {
+			if len(poaCore.ValSet) == 0 {
+				fmt.Println("验证者列表为空")
+			} else {
+				fmt.Println("当前验证者列表:")
+				for _, v := range poaCore.ValSet {
+					fmt.Printf("  0x%x\n", v)
+				}
+			}
+		} else {
+			fmt.Println("当前共识模块不支持验证者管理操作")
+		}
+
 	case "exit":
 		c.running = false
 
@@ -316,6 +357,9 @@ func (c *IPCCommander) printHelp() {
   printall             - 打印所有区块
   height               - 总区块数
   testmine             - 测试共识
+  valadd <address>     - 添加验证者地址
+  valdel <address>     - 删除验证者地址
+  vallist              - 查看验证者列表
   exit                 - 退出程序
   help                 - 显示帮助` + "\n"))
 }
