@@ -27,6 +27,14 @@ type Transaction struct {
 	Gas      uint64
 }
 
+func (tx *Transaction) Encode() (any, any) {
+	panic("unimplemented")
+}
+
+func (tx *Transaction) Decode(data []byte) any {
+	panic("unimplemented")
+}
+
 func (tx *Transaction) DecodeTransaction(data []byte) any {
 	panic("unimplemented")
 }
