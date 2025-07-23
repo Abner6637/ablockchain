@@ -1,12 +1,14 @@
 package poacore
 
 import (
+	poatypes "ablockchain/consensus/poa/types"
 	"ablockchain/core"
 	"ablockchain/crypto"
 	"ablockchain/event"
 	"ablockchain/p2p"
 	"bytes"
 	"crypto/ecdsa"
+	"encoding/gob"
 	"encoding/hex"
 	"log"
 	"reflect"
@@ -25,10 +27,13 @@ type Core struct {
 	running    bool
 }
 
+func init() {
+	gob.Register(&poatypes.ValidatorMessage{})
+}
+
 // NewCore 创建 PoA 核心
 func NewCore(p2pNode *p2p.Node, bc *core.Blockchain, valSet []string) *Core {
 	address := crypto.PubkeyToAddress(p2pNode.PrivateKey.PublicKey).Bytes()
-
 	log.Printf("[PoA] 我自己地址: 0x%x", address)
 
 	var realSet [][]byte
@@ -45,7 +50,6 @@ func NewCore(p2pNode *p2p.Node, bc *core.Blockchain, valSet []string) *Core {
 		}
 	}
 
-	// 排序地址切片，保证一致顺序
 	sort.Slice(realSet, func(i, j int) bool {
 		return bytes.Compare(realSet[i], realSet[j]) < 0
 	})
@@ -94,18 +98,10 @@ func (c *Core) Address() []byte {
 // SubscribeEvents 订阅事件
 func (c *Core) SubscribeEvents() {
 	c.events = []event.EventSubscription{
-		{
-			Name:    "ConsensusStart",
-			Channel: event.Bus.Subscribe("ConsensusStart"),
-		},
-		{
-			Name:    "BlockMessage",
-			Channel: event.Bus.Subscribe("BlockMessage"),
-		},
-		{
-			Name:    "ConsensusStop",
-			Channel: event.Bus.Subscribe("ConsensusStop"),
-		},
+		{Name: "ConsensusStart", Channel: event.Bus.Subscribe("ConsensusStart")},
+		{Name: "BlockMessage", Channel: event.Bus.Subscribe("BlockMessage")},
+		{Name: "ConsensusStop", Channel: event.Bus.Subscribe("ConsensusStop")},
+		{Name: "MessageEvent", Channel: event.Bus.Subscribe("MessageEvent")},
 	}
 }
 
@@ -115,10 +111,7 @@ func (c *Core) HandleEvents() {
 		cases := make([]reflect.SelectCase, len(c.events))
 		eventNames := make([]string, len(c.events))
 		for i, sub := range c.events {
-			cases[i] = reflect.SelectCase{
-				Dir:  reflect.SelectRecv,
-				Chan: reflect.ValueOf(sub.Channel),
-			}
+			cases[i] = reflect.SelectCase{Dir: reflect.SelectRecv, Chan: reflect.ValueOf(sub.Channel)}
 			eventNames[i] = sub.Name
 		}
 
@@ -149,11 +142,59 @@ func (c *Core) HandleEvents() {
 				log.Println("[PoA] 收到停止信号")
 				return
 
+			case "MessageEvent":
+				if raw, ok := eventData.([]byte); ok {
+					c.HandleConsensusMessage(raw)
+				}
+
 			default:
 				log.Printf("[PoA] 未知事件: %s", eventNames[chosen])
 			}
 		}
 	}()
+}
+
+// HandleConsensusMessage 处理验证者同步消息
+func (c *Core) HandleConsensusMessage(payload []byte) {
+	msg, err := poatypes.DecodeValidatorMessage(payload)
+	if err != nil {
+		log.Printf("[PoA] 解码验证者消息失败: %v", err)
+		return
+	}
+
+	addrBytes, err := hex.DecodeString(msg.Address) // 解码 hex 字符串为 []byte
+	if err != nil {
+		log.Printf("[PoA] 地址解码失败: %v", err)
+		return
+	}
+
+	switch msg.Code {
+	case poatypes.MsgAddValidator:
+		log.Printf("[PoA] 收到新增验证者广播: 0x%x", addrBytes)
+		c.addValidatorInternal(addrBytes)
+	case poatypes.MsgRemoveValidator:
+		log.Printf("[PoA] 收到删除验证者广播: 0x%x", addrBytes)
+		c.removeValidatorInternal(addrBytes)
+	}
+}
+
+func (c *Core) broadcastValidatorMessage(code uint8, address []byte) {
+	msg := &poatypes.ValidatorMessage{
+		Code:    code,
+		Address: hex.EncodeToString(address),
+	}
+	encoded, err := msg.Encode()
+	if err != nil {
+		log.Printf("[PoA] 编码验证者消息失败: %v", err)
+		return
+	}
+	p2pMsg := &p2p.Message{Type: p2p.ConsensusMessage, Data: encoded}
+	finalBytes, err := p2pMsg.Encode()
+	if err != nil {
+		log.Printf("[PoA] 编码 P2P 消息失败: %v", err)
+		return
+	}
+	c.p2pNode.BroadcastMessage(string(finalBytes))
 }
 
 // Propose 轮值验证并广播区块
@@ -168,8 +209,6 @@ func (c *Core) Propose(block *core.Block) {
 	}
 
 	log.Printf("[PoA] 轮到我出块 #%d", height)
-
-	// Extra 写裸地址
 	block.Header.Extra = c.address
 
 	encodedBlock, err := block.EncodeBlock()
@@ -178,24 +217,18 @@ func (c *Core) Propose(block *core.Block) {
 		return
 	}
 
-	p2pMsg := &p2p.Message{
-		Type: p2p.BlockMessage,
-		Data: encodedBlock,
-	}
+	p2pMsg := &p2p.Message{Type: p2p.BlockMessage, Data: encodedBlock}
 	encodedP2PMsg, err := p2pMsg.Encode()
 	if err != nil {
 		log.Printf("[PoA] 消息编码失败: %v", err)
 		return
 	}
-
 	c.p2pNode.BroadcastMessage(string(encodedP2PMsg))
 	log.Printf("[PoA] 广播已完成")
 
-	// 本节点也验证
 	c.OnReceiveBlock(block)
 }
 
-// OnReceiveBlock 收到区块验证并执行
 func (c *Core) OnReceiveBlock(block *core.Block) {
 	if c.ValidateBlock(block) {
 		log.Printf("[PoA] 区块验证通过")
@@ -205,11 +238,9 @@ func (c *Core) OnReceiveBlock(block *core.Block) {
 	}
 }
 
-// ValidateBlock 验证轮值合法性
 func (c *Core) ValidateBlock(block *core.Block) bool {
 	height := block.Header.Number.Uint64()
 	validatorIndex := height % uint64(len(c.ValSet))
-
 	expected := c.ValSet[validatorIndex]
 	actual := block.Header.Extra
 
@@ -220,7 +251,6 @@ func (c *Core) ValidateBlock(block *core.Block) bool {
 	return true
 }
 
-// AddValidator 新增验证者（可选）
 func (c *Core) AddValidator(newHex string) {
 	newHex = strings.TrimPrefix(newHex, "0x")
 	addrBytes, err := hex.DecodeString(newHex)
@@ -228,21 +258,10 @@ func (c *Core) AddValidator(newHex string) {
 		log.Printf("[PoA] 新增验证者解析失败: %v", err)
 		return
 	}
-
-	for _, v := range c.ValSet {
-		if bytes.Equal(v, addrBytes) {
-			log.Printf("[PoA] 验证者已存在: 0x%x", addrBytes)
-			return
-		}
-	}
-	c.ValSet = append(c.ValSet, addrBytes)
-	sort.Slice(c.ValSet, func(i, j int) bool {
-		return bytes.Compare(c.ValSet[i], c.ValSet[j]) < 0
-	})
-	log.Printf("[PoA] 新增验证者: 0x%x, 新 ValSet: %+v", addrBytes, c.ValSet)
+	c.addValidatorInternal(addrBytes)
+	c.broadcastValidatorMessage(poatypes.MsgAddValidator, addrBytes)
 }
 
-// RemoveValidator 删除验证者
 func (c *Core) RemoveValidator(addrHex string) {
 	addrHex = strings.TrimPrefix(addrHex, "0x")
 	addrBytes, err := hex.DecodeString(addrHex)
@@ -250,18 +269,34 @@ func (c *Core) RemoveValidator(addrHex string) {
 		log.Printf("[PoA] 删除验证者解析失败: %v", err)
 		return
 	}
+	c.removeValidatorInternal(addrBytes)
+	c.broadcastValidatorMessage(poatypes.MsgRemoveValidator, addrBytes)
+}
 
-	// 寻找并删除验证者
+func (c *Core) addValidatorInternal(addr []byte) {
+	for _, v := range c.ValSet {
+		if bytes.Equal(v, addr) {
+			log.Printf("[PoA] 验证者已存在: 0x%x", addr)
+			return
+		}
+	}
+	c.ValSet = append(c.ValSet, addr)
+	sort.Slice(c.ValSet, func(i, j int) bool {
+		return bytes.Compare(c.ValSet[i], c.ValSet[j]) < 0
+	})
+	log.Printf("[PoA] 新增验证者: 0x%x, 新 ValSet: %+v", addr, c.ValSet)
+}
+
+func (c *Core) removeValidatorInternal(addr []byte) {
 	for i, v := range c.ValSet {
-		if bytes.Equal(v, addrBytes) {
+		if bytes.Equal(v, addr) {
 			c.ValSet = append(c.ValSet[:i], c.ValSet[i+1:]...)
 			sort.Slice(c.ValSet, func(i, j int) bool {
 				return bytes.Compare(c.ValSet[i], c.ValSet[j]) < 0
 			})
-			log.Printf("[PoA] 已删除验证者: 0x%x, 新 ValSet: %+v", addrBytes, c.ValSet)
+			log.Printf("[PoA] 已删除验证者: 0x%x, 新 ValSet: %+v", addr, c.ValSet)
 			return
 		}
 	}
-
-	log.Printf("[PoA] 验证者不存在: 0x%x", addrBytes)
+	log.Printf("[PoA] 验证者不存在: 0x%x", addr)
 }

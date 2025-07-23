@@ -12,6 +12,8 @@ type EventBus[T any] struct {
 
 var Bus = NewEventBus[any]() //全局单例
 
+var DefaultBus = NewEventBus[any]()
+
 // 创建新的事件总线
 func NewEventBus[T any]() *EventBus[T] {
 	return &EventBus[T]{

@@ -6,37 +6,51 @@ import (
 )
 
 const (
-	MsgRequestVote uint8 = iota
+	MsgRequestVote = iota
 	MsgVoteResponse
 	MsgAppendEntries
 	MsgAppendResponse
 )
 
 type Message struct {
-	Type        uint8
+	Code        int
 	Term        uint64
 	LeaderID    []byte
 	CandidateID []byte
-	LogIndex    uint64
-	LogTerm     uint64
-	Entries     [][]byte
-	CommitIndex uint64
-
-	Success bool   // 用于回应
-	Address []byte // 发送者地址
+	Block       []byte // 用于AppendEntries
+	VoteGranted bool
+	From        []byte
+	Signature   []byte
 }
 
-func (m *Message) Encode() ([]byte, error) {
+type AppendResp struct {
+	Term    uint64
+	From    string
+	Success bool
+}
+
+type AppendEntries struct {
+	Term     uint64
+	LeaderID []byte
+	Data     []byte
+}
+
+func (a *AppendEntries) Encode() []byte {
 	var buf bytes.Buffer
-	encoder := gob.NewEncoder(&buf)
-	err := encoder.Encode(m)
-	return buf.Bytes(), err
+	_ = gob.NewEncoder(&buf).Encode(a)
+	return buf.Bytes()
 }
 
-func DecodeMessage(data []byte) (*Message, error) {
-	buf := bytes.NewBuffer(data)
-	decoder := gob.NewDecoder(buf)
-	var msg Message
-	err := decoder.Decode(&msg)
-	return &msg, err
+func (a *AppendEntries) Decode(data []byte) error {
+	return gob.NewDecoder(bytes.NewBuffer(data)).Decode(a)
+}
+
+func (r *AppendResp) Encode() []byte {
+	var buf bytes.Buffer
+	_ = gob.NewEncoder(&buf).Encode(r)
+	return buf.Bytes()
+}
+
+func (r *AppendResp) Decode(data []byte) error {
+	return gob.NewDecoder(bytes.NewBuffer(data)).Decode(r)
 }
