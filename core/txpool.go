@@ -144,6 +144,14 @@ func (tp *TxPool) GetMaxNonce(from string) uint64 {
 			}
 		}
 	}
+	for _, tx := range tp.Queued {
+		if tx.From == from {
+			if tx.Nonce > maxNonce {
+				maxNonce = tx.Nonce
+			}
+		}
+	}
+
 	return maxNonce
 }
 

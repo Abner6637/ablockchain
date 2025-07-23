@@ -5,7 +5,7 @@ services:
     container_name: node10
     depends_on:
       - bootnode
-    image: ablockchain:5.0.5
+    image: ablockchain:5.1.5
     networks:
       customnet1:
         ipv4_address: 172.29.0.10
@@ -23,14 +23,14 @@ services:
       --listen /ip4/0.0.0.0/tcp/32000 
       --nodekey ./key_store/nodekey0 
       --consensus poa 
-      --valaddress 0x51a433d8f9054e2d7946e89f539104096cfefd17 --valaddress 0x53073641fe38e199692fd91e09ac5e708e431be3 
-      --peer /ip4/172.29.0.11/tcp/32000/p2p/16Uiu2HAmHjhQtosPuBZvhS9vuoYf7nknzdCAf7p3tcN9V6pPv1u5 
+      --valaddress 0xb26406d6a75187d8a5635609d0fa393431d81655 --valaddress 0x6e3685ad792c752be8772aeb3451c7be91c32ff2 
+      --peer /ip4/172.29.0.11/tcp/32000/p2p/16Uiu2HAmT613qmWJ3dXq6XV1h1TACXaHPAgvvnoke4CUxo2tRXda 
       --backend=true
   node11:
     container_name: node11
     depends_on:
       - bootnode
-    image: ablockchain:5.0.5
+    image: ablockchain:5.1.5
     networks:
       customnet1:
         ipv4_address: 172.29.0.11
@@ -48,8 +48,8 @@ services:
       --listen /ip4/0.0.0.0/tcp/32000 
       --nodekey ./key_store/nodekey1 
       --consensus poa 
-      --valaddress 0x51a433d8f9054e2d7946e89f539104096cfefd17 --valaddress 0x53073641fe38e199692fd91e09ac5e708e431be3 
-      --peer /ip4/172.29.0.10/tcp/32000/p2p/16Uiu2HAm8HFR3HCWdRXwnCQQwoFhDJp2CDC9gCJTspZ3ATFfmuRi 
+      --valaddress 0xb26406d6a75187d8a5635609d0fa393431d81655 --valaddress 0x6e3685ad792c752be8772aeb3451c7be91c32ff2 
+      --peer /ip4/172.29.0.10/tcp/32000/p2p/16Uiu2HAm43QqeC4aN5DS3Ma3kFMdQBFkxFxmgi5AQZXG9a5SiUMm 
       --backend=true
 
 networks:

@@ -153,6 +153,7 @@ const (
 	GetBlocksMessage
 	BlocksMessage
 	HelloMessage
+	ValidatorActionMessage // 新增验证者操作类型
 )
 
 // 消息结构体

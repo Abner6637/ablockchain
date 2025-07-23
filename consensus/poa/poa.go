@@ -40,6 +40,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/ethereum/go-ethereum/rlp"
 )
 
 const sealInterval = 30 * time.Second
@@ -57,6 +59,7 @@ type Core struct {
 	lastSkipLogTime time.Time     // 记录上次打印"跳过打包"日志的时间
 	skipLogInterval time.Duration // 跳过日志的最小时间间隔
 	lastSkipReason  string        // 记录上次跳过打包的原因
+	mu              sync.Mutex    // 确保线程安全
 }
 
 // 创建共识核心
@@ -250,7 +253,6 @@ func (c *Core) broadcastBlock(block *core.Block) {
 	c.p2pNode.BroadcastMessage(string(encodedMsg))
 }
 
-// 处理收到的 P2P 消息
 func (c *Core) HandleP2PMessage(data []byte) {
 	msg := &p2p.Message{}
 	if err := msg.Decode(data); err != nil {
@@ -258,18 +260,26 @@ func (c *Core) HandleP2PMessage(data []byte) {
 		return
 	}
 
-	if msg.Type != p2p.BlockMessage {
-		log.Printf("[PoA] 忽略非区块消息类型: %d", msg.Type)
-		return
-	}
+	switch msg.Type {
+	case p2p.BlockMessage:
+		block := &core.Block{}
+		if err := block.DecodeBlock(msg.Data); err != nil {
+			log.Printf("[PoA] Block 解码失败: %v", err)
+			return
+		}
+		c.OnReceiveBlock(block)
 
-	block := &core.Block{}
-	if err := block.DecodeBlock(msg.Data); err != nil {
-		log.Printf("[PoA] Block 解码失败: %v", err)
-		return
-	}
+	case p2p.ValidatorActionMessage:
+		var action ValidatorAction
+		if err := rlp.DecodeBytes(msg.Data, &action); err != nil {
+			log.Printf("[PoA] 解码验证者操作失败: %v", err)
+			return
+		}
+		c.handleValidatorAction(action)
 
-	c.OnReceiveBlock(block)
+	default:
+		log.Printf("[PoA] 忽略未知消息类型: %d", msg.Type)
+	}
 }
 
 // 收到区块后的处理逻辑
@@ -299,4 +309,146 @@ func (c *Core) ValidateBlock(block *core.Block) bool {
 		return false
 	}
 	return true
+}
+
+// 标准化并校验地址是否有效
+func (c *Core) validateAddress(address string) bool {
+	// 校验地址长度，去掉前缀后的地址长度应该是40
+	address = strings.ToLower(strings.TrimPrefix(address, "0x"))
+	if len(address) != 40 {
+		log.Printf("[PoA] 无效的地址格式: %s", address)
+		return false
+	}
+	return true
+}
+
+// 增加验证者并广播
+func (c *Core) AddValidator(newValidator string) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	normalizedAddr := strings.ToLower(strings.TrimPrefix(newValidator, "0x"))
+	if !c.validateAddress(normalizedAddr) {
+		log.Printf("[PoA] 无效的验证者地址: %s", newValidator)
+		return
+	}
+
+	for _, addr := range c.ValSet {
+		if addr == normalizedAddr {
+			log.Printf("[PoA] 验证者地址已存在: %s", normalizedAddr)
+			return
+		}
+	}
+
+	// 添加验证者到本地
+	c.ValSet = append(c.ValSet, normalizedAddr)
+	log.Printf("[PoA] 添加新的验证者: %s", normalizedAddr)
+
+	// 广播添加验证者操作
+	c.broadcastValidatorAction(normalizedAddr, "add")
+}
+
+// 删除验证者并广播
+func (c *Core) RemoveValidator(validator string) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	normalizedAddr := strings.ToLower(strings.TrimPrefix(validator, "0x"))
+	for i, addr := range c.ValSet {
+		if addr == normalizedAddr {
+			c.ValSet = append(c.ValSet[:i], c.ValSet[i+1:]...)
+			log.Printf("[PoA] 移除验证者: %s", normalizedAddr)
+
+			// 广播移除验证者操作
+			c.broadcastValidatorAction(normalizedAddr, "remove")
+			return
+		}
+	}
+
+	log.Printf("[PoA] 未找到要移除的验证者: %s", normalizedAddr)
+}
+
+// 显示所有验证者
+func (c *Core) ListValidators() {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	if len(c.ValSet) == 0 {
+		log.Println("[PoA] 当前没有验证者")
+		return
+	}
+	log.Println("[PoA] 当前验证者列表:")
+	for i, addr := range c.ValSet {
+		log.Printf("验证者 #%d: %s", i+1, addr)
+	}
+}
+
+// ValidatorAction 定义添加或删除验证者的消息
+type ValidatorAction struct {
+	Address string // 验证者地址
+	Action  string // 操作类型，"add" 或 "remove"
+}
+
+func (c *Core) broadcastValidatorAction(address, action string) {
+	msg := ValidatorAction{
+		Address: address,
+		Action:  action,
+	}
+
+	// 使用RLP编码验证者操作
+	data, err := rlp.EncodeToBytes(msg)
+	if err != nil {
+		log.Printf("[PoA] RLP 编码验证者操作失败: %v", err)
+		return
+	}
+
+	// 创建标准消息格式
+	p2pMsg := &p2p.Message{
+		Type: p2p.ValidatorActionMessage, // 使用新定义的消息类型
+		Data: data,
+	}
+
+	// 编码整个消息
+	encodedMsg, err := p2pMsg.Encode()
+	if err != nil {
+		log.Printf("[PoA] 编码验证者消息失败: %v", err)
+		return
+	}
+
+	c.p2pNode.BroadcastMessage(string(encodedMsg))
+	log.Printf("[PoA] 已广播验证者操作: %s %s", action, address)
+}
+func (c *Core) handleValidatorAction(msg ValidatorAction) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	log.Printf("[PoA] 收到验证者操作: %s %s", msg.Action, msg.Address)
+
+	// 检查操作有效性
+	switch msg.Action {
+	case "add":
+		// 检查是否已存在
+		for _, addr := range c.ValSet {
+			if addr == msg.Address {
+				log.Printf("[PoA] 忽略重复添加: %s", msg.Address)
+				return
+			}
+		}
+		c.ValSet = append(c.ValSet, msg.Address)
+		log.Printf("[PoA] 添加新的验证者: %s", msg.Address)
+
+	case "remove":
+		// 检查是否存在
+		for i, addr := range c.ValSet {
+			if addr == msg.Address {
+				c.ValSet = append(c.ValSet[:i], c.ValSet[i+1:]...)
+				log.Printf("[PoA] 移除验证者: %s", msg.Address)
+				return
+			}
+		}
+		log.Printf("[PoA] 未找到验证者: %s", msg.Address)
+
+	default:
+		log.Printf("[PoA] 未知验证者操作: %s", msg.Action)
+	}
 }

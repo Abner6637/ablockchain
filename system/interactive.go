@@ -1,25 +1,27 @@
 package system
 
 import (
+	"ablockchain/consensus/poa" // 确保正确的导入路径
 	"ablockchain/core"
 	"ablockchain/event"
 	"ablockchain/p2p"
 	"bufio"
 	"fmt"
+	"github.com/ethereum/go-ethereum/rlp"
 	"log"
 	"math/big"
 	"os"
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/ethereum/go-ethereum/rlp"
 )
 
 type Commander struct {
 	sys     *System
 	reader  *bufio.Reader
 	running bool
+	poa     *poacore.Core    // PoA 共识模块
+	core    *core.Blockchain // 区块链核心
 }
 
 func NewCommander(sys *System) *Commander {
@@ -144,6 +146,35 @@ func (c *Commander) Run() {
 		case "id":
 			fmt.Printf("listenAddr: %v\n", c.sys.p2pNode.Host.Addrs())
 			fmt.Printf("p2pID:%s", c.sys.p2pNode.ID)
+		case "valadd":
+			if len(parts) < 2 {
+				fmt.Println("用法: valadd <address>")
+				return
+			}
+			if poaCore, ok := c.sys.consensus.(*poacore.Core); ok {
+				poaCore.AddValidator(parts[1]) // 直接调用 Core 方法
+			} else {
+				fmt.Println("当前共识模块不支持验证者管理操作")
+			}
+
+		case "reval":
+			if len(parts) < 2 {
+				fmt.Println("用法: reval <address>")
+				return
+			}
+			if poaCore, ok := c.sys.consensus.(*poacore.Core); ok {
+				poaCore.RemoveValidator(parts[1]) // 直接调用 Core 方法
+			} else {
+				fmt.Println("当前共识模块不支持验证者管理操作")
+			}
+
+		case "listvals":
+			if poaCore, ok := c.sys.consensus.(*poacore.Core); ok {
+				poaCore.ListValidators() // 直接调用 Core 方法
+			} else {
+				fmt.Println("当前共识模块不支持验证者管理操作")
+			}
+
 		case "exit":
 			c.running = false
 		case "help":
@@ -290,6 +321,9 @@ func (c *Commander) printHelp() {
   printall             - 打印所有区块
   height               - 总区块数
   testmine             - 测试共识
+  valadd <address>      - 添加验证者
+  reval <address>       - 删除验证者
+  listvals              - 列出所有验证者
   exit                 - 退出程序
   help                 - 显示帮助`)
 }
