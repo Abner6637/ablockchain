@@ -5,7 +5,7 @@ services:
     container_name: node10
     depends_on:
       - bootnode
-    image: ablockchain:5.1.5
+    image: ablockchain:9.9.9
     networks:
       customnet1:
         ipv4_address: 172.29.0.10
@@ -23,14 +23,14 @@ services:
       --listen /ip4/0.0.0.0/tcp/32000 
       --nodekey ./key_store/nodekey0 
       --consensus poa 
-      --valaddress 0xb26406d6a75187d8a5635609d0fa393431d81655 --valaddress 0x6e3685ad792c752be8772aeb3451c7be91c32ff2 
-      --peer /ip4/172.29.0.11/tcp/32000/p2p/16Uiu2HAmT613qmWJ3dXq6XV1h1TACXaHPAgvvnoke4CUxo2tRXda 
+      --valaddress 0x4939d8b055d41d5c275d195eac9a1e52cdc47dd6 --valaddress 0x64afc63848018844f33c9dd1a94b43a903ff0b3f --valaddress 0x6b7ab31987c5b375d3617d89933966783e6e2a15 
+      --peer /ip4/172.29.0.11/tcp/32000/p2p/16Uiu2HAmJcHKFgq157Nri8wh68mADM3Gigy8ET2d3V725AieNHej --peer /ip4/172.29.0.12/tcp/32000/p2p/16Uiu2HAmVeBS5sUZ8UDqgJ2feT6uNSnLUvhytTdy61zmWavLFAem 
       --backend=true
   node11:
     container_name: node11
     depends_on:
       - bootnode
-    image: ablockchain:5.1.5
+    image: ablockchain:9.9.9
     networks:
       customnet1:
         ipv4_address: 172.29.0.11
@@ -48,8 +48,33 @@ services:
       --listen /ip4/0.0.0.0/tcp/32000 
       --nodekey ./key_store/nodekey1 
       --consensus poa 
-      --valaddress 0xb26406d6a75187d8a5635609d0fa393431d81655 --valaddress 0x6e3685ad792c752be8772aeb3451c7be91c32ff2 
-      --peer /ip4/172.29.0.10/tcp/32000/p2p/16Uiu2HAm43QqeC4aN5DS3Ma3kFMdQBFkxFxmgi5AQZXG9a5SiUMm 
+      --valaddress 0x4939d8b055d41d5c275d195eac9a1e52cdc47dd6 --valaddress 0x64afc63848018844f33c9dd1a94b43a903ff0b3f --valaddress 0x6b7ab31987c5b375d3617d89933966783e6e2a15 
+      --peer /ip4/172.29.0.10/tcp/32000/p2p/16Uiu2HAm8yVSiFxb53eLkFepDs9ns3vHiEnmbWJzkSFbVZza6HCF --peer /ip4/172.29.0.12/tcp/32000/p2p/16Uiu2HAmVeBS5sUZ8UDqgJ2feT6uNSnLUvhytTdy61zmWavLFAem 
+      --backend=true
+  node12:
+    container_name: node12
+    depends_on:
+      - bootnode
+    image: ablockchain:9.9.9
+    networks:
+      customnet1:
+        ipv4_address: 172.29.0.12
+    ports:
+      - "33102:32000"
+      - "26102:8545"
+      - "22102:5173"
+    volumes:
+      - ./key_store/nodekey2:/ablockchain/key_store/nodekey2
+      - ./genesis.json:/ablockchain/genesis.json
+    environment:
+      - API_URL=http://192.168.2.127:26102
+    command: >
+      ./ablockchain 
+      --listen /ip4/0.0.0.0/tcp/32000 
+      --nodekey ./key_store/nodekey2 
+      --consensus poa 
+      --valaddress 0x4939d8b055d41d5c275d195eac9a1e52cdc47dd6 --valaddress 0x64afc63848018844f33c9dd1a94b43a903ff0b3f --valaddress 0x6b7ab31987c5b375d3617d89933966783e6e2a15 
+      --peer /ip4/172.29.0.10/tcp/32000/p2p/16Uiu2HAm8yVSiFxb53eLkFepDs9ns3vHiEnmbWJzkSFbVZza6HCF --peer /ip4/172.29.0.11/tcp/32000/p2p/16Uiu2HAmJcHKFgq157Nri8wh68mADM3Gigy8ET2d3V725AieNHej 
       --backend=true
 
 networks:

@@ -304,10 +304,17 @@ func (c *Core) ValidateBlock(block *core.Block) bool {
 	expected := c.ValSet[validatorIndex]
 	actual := string(block.Header.Extra)
 
+	// 添加详细的验证日志
+	log.Printf("[PoA] 开始验证区块 #%d: 预期验证者=0x%s, 实际验证者=0x%s",
+		height, expected, actual)
+
 	if expected != actual {
-		log.Printf("[PoA] 验证失败，预期验证者: 0x%s, 实际: 0x%s", expected, actual)
+		log.Printf("[PoA] 验证失败: 预期验证者: 0x%s, 实际: 0x%s", expected, actual)
 		return false
 	}
+
+	// 验证通过时添加详细日志
+	log.Printf("[PoA] 验证通过: 区块 #%d 由正确验证者 0x%s 打包", height, actual)
 	return true
 }
 
